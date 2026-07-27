@@ -1,0 +1,328 @@
+.page {
+  --brand: #adb62e;
+  --brand-dark: #8f9726;
+  --bg: #fffdeb;
+  --gray-model: #9ba0ab;
+
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  min-height: 100dvh;
+  background-color: var(--bg);
+  display: flex;
+  flex-direction: column;
+  font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+  overflow: hidden;
+}
+
+/* ---------- Header ---------- */
+
+.header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 32px;
+}
+
+.logo {
+  height: 56px;
+  width: auto;
+  flex-shrink: 0;
+}
+
+.adSlot {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 76px;
+  border-radius: 10px;
+  /* здесь будет рекламный баннер — контент подключается отдельно,
+     этот блок только резервирует место и не должен ломать раскладку */
+}
+
+.dateTime {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: var(--brand);
+}
+
+.dateTimeText {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+  text-align: right;
+}
+
+.time {
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.date {
+  font-size: 14px;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.divider {
+  width: 1px;
+  height: 32px;
+  background-color: var(--brand);
+  opacity: 0.5;
+}
+
+.langSwitch {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: var(--brand);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+}
+
+.globeIcon {
+  width: 22px;
+  height: 22px;
+}
+
+/* ---------- Map area ---------- */
+
+.mapArea {
+  position: relative;
+  flex: 1;
+  margin: 0 32px 32px;
+  min-height: 0;
+}
+
+/* Search bar */
+
+.searchBar {
+  position: absolute;
+  top: 16px;
+  left: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background-color: var(--brand);
+  border-radius: 20px;
+  width: min(90%, 480px);
+}
+
+.searchInputWrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #fff;
+  border-radius: 999px;
+  padding: 14px 20px;
+}
+
+.searchIcon {
+  width: 20px;
+  height: 20px;
+  color: #9a9a9a;
+  flex-shrink: 0;
+}
+
+.searchInput {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 16px;
+  color: #4a4a4a;
+  font-family: inherit;
+}
+
+.searchInput::placeholder {
+  color: #9a9a9a;
+}
+
+.chevronBtn {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  background-color: #fff;
+  color: var(--brand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.chevronBtn svg {
+  width: 22px;
+  height: 22px;
+  transition: transform 0.2s ease;
+}
+
+.chevronBtnOpen svg {
+  transform: rotate(180deg);
+}
+
+/* 3D model placeholder */
+
+.modelViewport {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+  transform-origin: center;
+}
+
+.modelPlaceholder {
+  width: 90%;
+  height: 85%;
+  border-radius: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.25s ease;
+  /* TODO: заменить этот блок на реальный 3D-viewer (three.js / react-three-fiber
+     или встроенный iframe) — сюда же прокидывать activeFloor как проп */
+}
+
+.modelPlaceholderLabel {
+  color: #fff;
+  font-size: 20px;
+  font-weight: 700;
+  opacity: 0.85;
+  letter-spacing: 0.02em;
+}
+
+/* Floor controls (right side) */
+
+.floorControls {
+  position: absolute;
+  top: 24px;
+  right: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.floorBtn {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2px solid var(--brand);
+  background-color: #fff;
+  color: var(--brand);
+  font-size: 20px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.floorBtn:hover {
+  background-color: #f4f5e3;
+}
+
+.floorBtnActive,
+.floorBtnActive:hover {
+  background-color: var(--brand);
+  color: #fff;
+}
+
+.locationBtn {
+  margin-top: 8px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2px solid var(--brand);
+  background-color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.locationIcon {
+  width: 26px;
+  height: 26px;
+}
+
+/* Zoom controls (bottom right) */
+
+.zoomControls {
+  position: absolute;
+  bottom: 8px;
+  right: 0;
+  z-index: 10;
+  display: flex;
+  gap: 12px;
+}
+
+.zoomBtn {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2px solid var(--brand);
+  background-color: #fff;
+  color: var(--brand);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.zoomBtn svg {
+  width: 22px;
+  height: 22px;
+}
+
+.qrBtn {
+  width: auto;
+  height: 56px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: none;
+  overflow: hidden;
+}
+
+.qrBtn img {
+  height: 56px;
+  width: auto;
+  object-fit: contain;
+}
+
+@media (max-width: 900px) {
+  .header {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .adSlot {
+    order: 3;
+    flex-basis: 100%;
+  }
+
+  .floorControls,
+  .zoomControls {
+    transform: scale(0.85);
+  }
+}
