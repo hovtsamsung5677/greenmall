@@ -15,9 +15,14 @@
   max-width: 480px;
   background: var(--bg);
   border-radius: var(--radius-outer);
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
   z-index: 20;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
 }
 
 .bgPattern {
@@ -37,7 +42,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 20px;
+  padding: 16px;
 }
 
 .searchPill {
@@ -47,7 +52,7 @@
   gap: 10px;
   background: var(--card);
   border-radius: var(--radius-pill);
-  padding: 16px 20px;
+  padding: 14px 18px;
   min-height: 24px;
 }
 
@@ -96,8 +101,8 @@
 }
 
 .collapseBtn {
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   flex-shrink: 0;
   background: var(--card);
   border-radius: 50%;
@@ -129,6 +134,8 @@
   display: grid;
   grid-template-rows: 0fr;
   transition: grid-template-rows 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  flex: 1;
+  min-height: 0;
 }
 
 .slideWrapperOpen {
@@ -136,37 +143,38 @@
 }
 
 .slideInner {
-  overflow: hidden;
+  overflow-x: hidden;
 }
 
 .content {
   position: relative;
   z-index: 1;
-  padding: 20px;
+  padding: 16px;
 }
 
 .grid {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
 }
 
 .catCard {
   background: var(--card);
   border-radius: var(--radius-card);
-  padding: 28px 12px 20px;
+  padding: 24px 8px 16px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
-  gap: 24px;
+  gap: 20px;
   aspect-ratio: 1 / 1.15;
   cursor: pointer;
   border: none;
   font-family: inherit;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
+  min-width: 0;
 }
 .catCard:hover {
   transform: translateY(-2px);
@@ -176,70 +184,17 @@
   transform: translateY(0);
 }
 
-.catCard img {
-  width: 56px;
-  height: 56px;
-  object-fit: contain;
+.catIcon {
+  width: 48px;
+  height: 48px;
+  color: var(--text-dark);
 }
 
 .catCard span {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 500;
   color: var(--text-dark);
   text-align: center;
-}
-
-.floors {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 18px;
-  flex-wrap: wrap;
-}
-
-.floorOption {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  user-select: none;
-  background: none;
-  border: none;
-  padding: 0;
-  font-family: inherit;
-}
-
-.floorRadio {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: var(--card);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.floorRadio::after {
-  content: "";
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: transparent;
-}
-.floorOption.active .floorRadio {
-  border: 3px solid var(--text-dark);
-  background: var(--card);
-}
-.floorOption.active .floorRadio::after {
-  background: var(--text-dark);
-}
-
-.floorOption span {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-dark);
 }
 
 .subcatList {

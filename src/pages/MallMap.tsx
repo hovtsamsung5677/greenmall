@@ -21,6 +21,7 @@ const MONTHS_EN = [
 
 const FLOORS = [1, 2, 3, 4];
 
+
 const FLOOR_PLACEHOLDER_COLOR: Record<number, string> = {
   1: '#9BA0AB',
   2: '#8B93A6',
@@ -83,6 +84,7 @@ export default function MallMap() {
       <div className={styles.mapArea}>
         <MallWidget
           open={filtersOpen}
+          lang={lang}
           onExpand={() => setFiltersOpen(true)}
           onCollapse={() => setFiltersOpen(false)}
         />
