@@ -173,6 +173,15 @@
   transform: rotate(180deg);
 }
 
+.widgetOverlay {
+  position: absolute;
+  top: 110px;
+  left: 0;
+  z-index: 20;
+  width: min(90%, 420px);
+  max-width: 420px;
+}
+
 /* 3D model placeholder */
 
 .modelViewport {

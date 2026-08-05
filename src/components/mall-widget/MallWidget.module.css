@@ -1,0 +1,282 @@
+.widget {
+  --bg: #adb62e;
+  --leaf: rgba(255, 255, 255, 0.07);
+  --card: #ffffff;
+  --text-dark: #2c3620;
+  --text-muted: #b7b7b7;
+  --radius-outer: 20px;
+  --radius-card: 20px;
+  --radius-pill: 40px;
+
+  position: absolute;
+  top: 16px;
+  left: 0;
+  width: min(90%, 480px);
+  max-width: 480px;
+  background: var(--bg);
+  border-radius: var(--radius-outer);
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  z-index: 20;
+}
+
+.bgPattern {
+  position: absolute;
+  inset: 0;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+  opacity: 0.95;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.topbar {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+}
+
+.searchPill {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--card);
+  border-radius: var(--radius-pill);
+  padding: 16px 20px;
+  min-height: 24px;
+}
+
+.searchIcon {
+  width: 20px;
+  height: 20px;
+  color: #9a9a9a;
+  flex-shrink: 0;
+}
+
+.searchPlaceholder {
+  font-size: 17px;
+  color: #9a9a9a;
+}
+
+.searchPill input {
+  border: none;
+  outline: none;
+  flex: 1;
+  font-size: 17px;
+  color: var(--text-dark);
+  background: transparent;
+  font-family: inherit;
+}
+.searchPill input::placeholder {
+  color: #a9a9a9;
+}
+
+.iconBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-dark);
+  flex-shrink: 0;
+}
+
+.title {
+  flex: 1;
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--text-dark);
+}
+
+.collapseBtn {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  background: var(--card);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+}
+
+.collapseBtn svg {
+  transition: transform 0.2s ease;
+}
+
+.collapseBtnOpen svg {
+  transform: rotate(180deg);
+}
+
+.detailTopbar {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 20px 0;
+}
+
+.slideWrapper {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.slideWrapperOpen {
+  grid-template-rows: 1fr;
+}
+
+.slideInner {
+  overflow: hidden;
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+  padding: 20px;
+}
+
+.grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.catCard {
+  background: var(--card);
+  border-radius: var(--radius-card);
+  padding: 28px 12px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 24px;
+  aspect-ratio: 1 / 1.15;
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.catCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.1);
+}
+.catCard:active {
+  transform: translateY(0);
+}
+
+.catCard img {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+}
+
+.catCard span {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-dark);
+  text-align: center;
+}
+
+.floors {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.floorOption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+}
+
+.floorRadio {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.floorRadio::after {
+  content: "";
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: transparent;
+}
+.floorOption.active .floorRadio {
+  border: 3px solid var(--text-dark);
+  background: var(--card);
+}
+.floorOption.active .floorRadio::after {
+  background: var(--text-dark);
+}
+
+.floorOption span {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.subcatList {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.subcatItem {
+  background: var(--card);
+  border-radius: var(--radius-pill);
+  padding: 18px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  text-align: left;
+  width: 100%;
+}
+
+.subcatItem .name {
+  font-size: 17px;
+  color: var(--text-dark);
+}
+
+.subcatItem .count {
+  font-size: 17px;
+  color: var(--text-muted);
+}
+
+.emptyState {
+  text-align: center;
+  padding: 30px 10px;
+  color: #5b6146;
+  font-size: 15px;
+}

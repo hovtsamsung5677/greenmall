@@ -5,9 +5,7 @@ import logoGreenMall from '../assets/icons/logo2.png';
 import tochkaIcon from '../assets/icons/tochka_icon.png';
 import qrCodeIcon from '../assets/icons/qr_code.png';
 import qrCodeEngIcon from '../assets/icons/qr_code_eng.png';
-
-// подставьте реальные расширения ваших файлов (.png / .svg)
-// например: import logoGreenMall from '../assets/icons/logo_greenmall.png';
+import MallWidget from '../components/mall-widget/MallWidget';
 
 const WEEKDAYS_RU = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 const MONTHS_RU = [
@@ -23,20 +21,12 @@ const MONTHS_EN = [
 
 const FLOORS = [1, 2, 3, 4];
 
-// Разный цвет заглушки для каждого этажа — просто чтобы визуально
-// подтвердить, что переключение работает. Когда появится реальная
-// 3D-модель, этот блок и стили .modelPlaceholder можно будет убрать.
 const FLOOR_PLACEHOLDER_COLOR: Record<number, string> = {
   1: '#9BA0AB',
   2: '#8B93A6',
   3: '#A3907C',
   4: '#7C97A3',
 };
-
-const TRANSLATIONS = {
-  ru: { searchPlaceholder: 'Куда отправимся?' },
-  en: { searchPlaceholder: 'Where to?' },
-} as const;
 
 function formatTime(date: Date): string {
   const hh = String(date.getHours()).padStart(2, '0');
@@ -58,7 +48,6 @@ export default function MallMap() {
   const [lang, setLang] = useState<'ru' | 'en'>('ru');
   const [activeFloor, setActiveFloor] = useState<number>(1);
   const [zoom, setZoom] = useState<number>(1);
-  const [query, setQuery] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   const handleZoom = (delta: number) => {
@@ -67,13 +56,9 @@ export default function MallMap() {
 
   return (
     <div className={styles.page}>
-      {/* ---------- Верхняя панель ---------- */}
       <header className={styles.header}>
         <img src={logoGreenMall} alt="GreenMall" className={styles.logo} draggable={false} />
-
-        {/* Место под рекламный баннер — контент не трогаем, только резервируем размер */}
         <div className={styles.adSlot} aria-hidden="true" />
-
         <div className={styles.dateTime}>
           <div className={styles.dateTimeText}>
             <span className={styles.time}>{formatTime(now)}</span>
@@ -95,36 +80,13 @@ export default function MallMap() {
         </div>
       </header>
 
-      {/* ---------- Карта ---------- */}
       <div className={styles.mapArea}>
-        {/* Поиск */}
-        <div className={styles.searchBar}>
-          <div className={styles.searchInputWrap}>
-            <svg className={styles.searchIcon} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
-              <path d="M21 21L16.5 16.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            </svg>
-            <input
-              className={styles.searchInput}
-              type="text"
-              placeholder={TRANSLATIONS[lang].searchPlaceholder}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-          </div>
-          <button
-            className={`${styles.chevronBtn} ${filtersOpen ? styles.chevronBtnOpen : ''}`}
-            type="button"
-            aria-label="Показать фильтры"
-            onClick={() => setFiltersOpen((p) => !p)}
-          >
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-        </div>
+        <MallWidget
+          open={filtersOpen}
+          onExpand={() => setFiltersOpen(true)}
+          onCollapse={() => setFiltersOpen(false)}
+        />
 
-        {/* Заглушка 3D-модели этажа */}
         <div
           className={styles.modelViewport}
           style={{ transform: `scale(${zoom})` }}
@@ -139,7 +101,6 @@ export default function MallMap() {
           </div>
         </div>
 
-        {/* Кнопки этажей */}
         <div className={styles.floorControls}>
           {FLOORS.map((floor) => (
             <button
@@ -152,17 +113,11 @@ export default function MallMap() {
               {floor}
             </button>
           ))}
-
-          <button
-            type="button"
-            className={styles.locationBtn}
-            aria-label="Моё местоположение"
-          >
+          <button type="button" className={styles.locationBtn} aria-label="Моё местоположение">
             <img src={tochkaIcon} alt="" className={styles.locationIcon} draggable={false} />
           </button>
         </div>
 
-        {/* Зум */}
         <div className={styles.zoomControls}>
           <button type="button" className={styles.qrBtn} aria-label="QR-код">
             <img src={lang === 'en' ? qrCodeEngIcon : qrCodeIcon} alt="QR" />
@@ -174,7 +129,7 @@ export default function MallMap() {
           </button>
           <button type="button" className={styles.zoomBtn} aria-label="Увеличить" onClick={() => handleZoom(0.1)}>
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+              <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
         </div>
