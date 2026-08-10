@@ -60,6 +60,17 @@
   padding: 0;
 }
 
+.adminBtn {
+  border: 1px solid var(--brand);
+  border-radius: 8px;
+  padding: 4px 10px;
+  background: transparent;
+  color: var(--brand);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
 .globeIcon {
   width: 20px;
   height: 20px;

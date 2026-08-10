@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import LoadingScreen from './pages/LoadingScreen';
 import MallMap from './pages/MallMap';
+import AdminPage from './pages/AdminPage';
 
 const IDLE_TIMEOUT = 60000;
 
 function App() {
   const [showMap, setShowMap] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const resetTimer = useCallback(() => {
@@ -35,10 +37,17 @@ function App() {
     };
   }, [resetTimer]);
 
+  if (showAdmin) {
+    return <AdminPage />;
+  }
+
   return showMap ? (
-    <MallMap />
+    <MallMap onOpenAdmin={() => setShowAdmin(true)} />
   ) : (
-    <LoadingScreen onContinue={() => setShowMap(true)} />
+    <LoadingScreen
+      onContinue={() => setShowMap(true)}
+      onOpenAdmin={() => setShowAdmin(true)}
+    />
   );
 }
 

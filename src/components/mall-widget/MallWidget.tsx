@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Category, SubcategoryItem } from "./types";
-import { SearchIcon, ChevronUpIcon, BackIcon, CloseIcon } from "./icons";
+import { SearchIcon, ChevronUpIcon, BackIcon, FloorIcon } from "./icons";
 import {
   ClothingIcon,
   ShoesIcon,
@@ -220,15 +220,15 @@ export default function MallWidget({
           </>
         ) : (
           <>
-             <div className={styles.searchPill}>
-               <button className={styles.iconBtn} aria-label={lang === 'ru' ? 'Назад' : 'Back'} onClick={closeDetail}>
-                 <BackIcon />
-               </button>
-               <span className={styles.title}>{currentCategory?.title}</span>
-               <button className={styles.iconBtn} aria-label={lang === 'ru' ? 'Закрыть' : 'Close'} onClick={closeDetail}>
-                 <CloseIcon />
-               </button>
-             </div>
+              <div className={styles.searchPill}>
+                <button className={styles.iconBtn} aria-label={lang === 'ru' ? 'Назад' : 'Back'} onClick={closeDetail}>
+                  <BackIcon />
+                </button>
+                <span className={styles.title}>{currentCategory?.title}</span>
+                <button className={styles.floorBtn} aria-label={lang === 'ru' ? 'Этаж -1' : 'Floor -1'}>
+                  -1
+                </button>
+              </div>
                  <button className={styles.collapseBtn} aria-label={lang === 'ru' ? 'Свернуть' : 'Collapse'} onClick={onCollapse}>
                    <ChevronUpIcon />
                  </button>
