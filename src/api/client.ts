@@ -5,15 +5,18 @@ const BASE_URL = (
 async function request<T>(
   path: string,
   options: RequestInit = {},
+  sendAuth = true,
 ): Promise<T> {
   const headers: Record<string, string> = {
     Accept: 'application/json',
     ...(options.headers as Record<string, string> ?? {}),
   };
 
-  const token = getAccessToken();
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
+  if (sendAuth) {
+    const token = getAccessToken();
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
   }
 
   const response = await fetch(`${BASE_URL}${path}`, {
@@ -39,28 +42,44 @@ export async function fetchCurrentUser(): Promise<AdminUser> {
   return request<AdminUser>('/auth/me');
 }
 
-export async function apiPost<T>(path: string, body: unknown): Promise<T> {
+export async function apiPost<T>(
+  path: string,
+  body: unknown,
+  sendAuth = true,
+): Promise<T> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
 
-  return request<T>(path, {
-    method: 'POST',
-    body: JSON.stringify(body),
-    headers,
-  });
+  return request<T>(
+    path,
+    {
+      method: 'POST',
+      body: JSON.stringify(body),
+      headers,
+    },
+    sendAuth,
+  );
 }
 
-export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
+export async function apiPatch<T>(
+  path: string,
+  body: unknown,
+  sendAuth = true,
+): Promise<T> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
 
-  return request<T>(path, {
-    method: 'PATCH',
-    body: JSON.stringify(body),
-    headers,
-  });
+  return request<T>(
+    path,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+      headers,
+    },
+    sendAuth,
+  );
 }
 
 export async function apiDelete<T>(path: string): Promise<T> {

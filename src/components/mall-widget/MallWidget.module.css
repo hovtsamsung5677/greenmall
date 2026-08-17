@@ -1,5 +1,6 @@
 .widget {
-  --bg: #adb62e;
+  --brand: #C2C353;
+  --bg: #C2C353;
   --leaf: rgba(255, 255, 255, 0.07);
   --card: #ffffff;
   --text-dark: #2c3620;
@@ -11,18 +12,29 @@
   position: absolute;
   top: 16px;
   left: 0;
-  width: min(90%, 480px);
-  max-width: 480px;
+  width: min(92%, 520px);
+  max-width: 520px;
   background: var(--bg);
   border-radius: var(--radius-outer);
   overflow-x: hidden;
   overflow-y: auto;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
   z-index: 20;
   max-height: 85vh;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+}
+
+/* Крупные инфопанели / киоски (напр. 43" 16:9 ≈ 1920x1080) */
+@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
+  .widget {
+    top: 28px;
+    width: min(92%, 820px);
+    max-width: 820px;
+    border-radius: 32px;
+    max-height: 88vh;
+  }
 }
 
 .bgPattern {
@@ -41,8 +53,18 @@
   z-index: 1;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
   padding: 16px;
+}
+
+/* Крупные инфопанели / киоски */
+@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
+  .topbar {
+    gap: 20px;
+    padding: 26px;
+    justify-content: space-between;
+  }
 }
 
 .searchPill {
@@ -56,6 +78,14 @@
   min-height: 24px;
 }
 
+/* Крупные инфопанели / киоски */
+@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
+  .searchPill {
+    gap: 18px;
+    padding: 22px 30px;
+  }
+}
+
 .searchIcon {
   width: 20px;
   height: 20px;
@@ -63,9 +93,24 @@
   flex-shrink: 0;
 }
 
+/* Крупные инфопанели / киоски */
+@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
+  .searchIcon {
+    width: 32px;
+    height: 32px;
+  }
+}
+
 .searchPlaceholder {
   font-size: 17px;
   color: #9a9a9a;
+}
+
+/* Крупные инфопанели / киоски */
+@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
+  .searchPlaceholder {
+    font-size: 27px;
+  }
 }
 
 .searchPill input {
@@ -77,8 +122,30 @@
   background: transparent;
   font-family: inherit;
 }
+
+/* Крупные инфопанели / киоски */
+@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
+  .searchPill input {
+    font-size: 27px;
+  }
+}
 .searchPill input::placeholder {
   color: #a9a9a9;
+}
+
+.mainSearchPill {
+  flex: 1 1 auto;
+  max-width: none;
+  width: 100%;
+  margin-right: 60px;
+}
+
+/* Крупные инфопанели / киоски */
+@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
+  .mainSearchPill {
+    max-width: none;
+    margin-right: 84px;
+  }
 }
 
 .iconBtn {
@@ -100,9 +167,16 @@
   color: var(--text-dark);
 }
 
+/* Крупные инфопанели / киоски */
+@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
+  .title {
+    font-size: 28px;
+  }
+}
+
 .collapseBtn {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   flex-shrink: 0;
   background: var(--card);
   border-radius: 50%;
@@ -111,14 +185,27 @@
   justify-content: center;
   border: none;
   cursor: pointer;
+  margin-right: 16px;
+}
+
+/* Крупные инфопанели / киоски */
+@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
+  .collapseBtn {
+    width: 64px;
+    height: 64px;
+    margin-right: 24px;
+  }
 }
 
 .collapseBtn svg {
+  display: block;
+  color: #C2C353;
   transition: transform 0.2s ease;
+  transform: rotate(180deg);
 }
 
 .collapseBtnOpen svg {
-  transform: rotate(180deg);
+  transform: rotate(0deg);
 }
 
 .detailTopbar {
@@ -128,6 +215,14 @@
   align-items: center;
   gap: 12px;
   padding: 20px 20px 0;
+}
+
+/* Крупные инфопанели / киоски */
+@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
+  .detailTopbar {
+    gap: 20px;
+    padding: 32px 32px 0;
+  }
 }
 
 .slideWrapper {
@@ -152,12 +247,26 @@
   padding: 16px;
 }
 
+/* Крупные инфопанели / киоски */
+@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
+  .content {
+    padding: 26px;
+  }
+}
+
 .grid {
   position: relative;
   z-index: 1;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
+}
+
+/* Крупные инфопанели / киоски */
+@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
+  .grid {
+    gap: 16px;
+  }
 }
 
 .catCard {
@@ -185,9 +294,19 @@
 }
 
 .catIcon {
-  width: 48px;
   height: 48px;
-  color: var(--text-dark);
+  width: auto;
+  max-width: 72px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+/* Крупные инфопанели / киоски */
+@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
+  .catIcon {
+    height: 76px;
+    max-width: 114px;
+  }
 }
 
 .catCard span {
@@ -197,12 +316,26 @@
   text-align: center;
 }
 
+/* Крупные инфопанели / киоски */
+@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
+  .catCard span {
+    font-size: 24px;
+  }
+}
+
 .subcatList {
   position: relative;
   z-index: 1;
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+/* Крупные инфопанели / киоски */
+@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
+  .subcatList {
+    gap: 20px;
+  }
 }
 
 .subcatItem {
@@ -219,14 +352,35 @@
   width: 100%;
 }
 
+/* Крупные инфопанели / киоски */
+@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
+  .subcatItem {
+    padding: 28px 38px;
+  }
+}
+
 .subcatItem .name {
   font-size: 17px;
   color: var(--text-dark);
 }
 
+/* Крупные инфопанели / киоски */
+@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
+  .subcatItem .name {
+    font-size: 27px;
+  }
+}
+
 .subcatItem .count {
   font-size: 17px;
   color: var(--text-muted);
+}
+
+/* Крупные инфопанели / киоски */
+@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
+  .subcatItem .count {
+    font-size: 27px;
+  }
 }
 
 .floorBtn {
@@ -246,9 +400,267 @@
   font-family: inherit;
 }
 
+/* Крупные инфопанели / киоски */
+@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
+  .floorBtn {
+    width: 70px;
+    height: 70px;
+    font-size: 26px;
+  }
+}
+
 .emptyState {
   text-align: center;
   padding: 30px 10px;
   color: #5b6146;
   font-size: 15px;
+}
+
+/* Крупные инфопанели / киоски */
+@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
+  .emptyState {
+    padding: 48px 16px;
+    font-size: 24px;
+  }
+}
+
+.storeCard {
+  background: #fff;
+  border-radius: 20px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+}
+
+.storeCover {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.storeCover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.storeLogo {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* Крупные инфопанели / киоски */
+@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
+  .storeLogo {
+    top: 20px;
+    left: 20px;
+    width: 92px;
+    height: 92px;
+  }
+}
+
+.storeLogoFallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 800;
+  color: #2F3A18;
+}
+
+/* Крупные инфопанели / киоски */
+@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
+  .storeLogoFallback {
+    font-size: 32px;
+  }
+}
+
+.storeLogo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.storeLogoFallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 800;
+  color: #2F3A18;
+}
+
+.storeBody {
+  padding: 16px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Крупные инфопанели / киоски */
+@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
+  .storeBody {
+    padding: 26px 30px 28px;
+  }
+}
+
+.storeCategory {
+  font-size: 13px;
+  font-weight: 700;
+  color: #6d7058;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Крупные инфопанели / киоски */
+@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
+  .storeCategory {
+    font-size: 20px;
+  }
+}
+
+.storeHours {
+  font-size: 13px;
+  font-weight: 700;
+  color: #6d7058;
+  text-align: right;
+  line-height: 1.35;
+}
+
+/* Крупные инфопанели / киоски */
+@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
+  .storeHours {
+    font-size: 20px;
+  }
+}
+
+.storeName {
+  margin: 2px 0 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: #2F3A18;
+  line-height: 1.2;
+}
+
+/* Крупные инфопанели / киоски */
+@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
+  .storeName {
+    font-size: 34px;
+  }
+}
+
+.storeFloor {
+  margin: 2px 0 0;
+  font-size: 15px;
+  color: #6d7058;
+  font-weight: 600;
+}
+
+/* Крупные инфопанели / киоски */
+@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
+  .storeFloor {
+    font-size: 24px;
+  }
+}
+
+.routeBtn {
+  margin-top: 10px;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 40px;
+  background: #C2C353;
+  color: #fff;
+  font-weight: 800;
+  font-size: 15px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity 0.15s ease;
+  align-self: flex-start;
+}
+
+/* Крупные инфопанели / киоски */
+@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
+  .routeBtn {
+    margin-top: 16px;
+    padding: 20px 34px;
+    border-radius: 60px;
+    font-size: 24px;
+  }
+}
+
+.storeTopRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.storeCategory {
+  font-size: 13px;
+  font-weight: 700;
+  color: #6d7058;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.storeHours {
+  font-size: 13px;
+  font-weight: 700;
+  color: #6d7058;
+  text-align: right;
+  line-height: 1.35;
+}
+
+.storeName {
+  margin: 2px 0 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: #2F3A18;
+  line-height: 1.2;
+}
+
+.storeFloor {
+  margin: 2px 0 0;
+  font-size: 15px;
+  color: #6d7058;
+  font-weight: 600;
+}
+
+.routeBtn {
+  margin-top: 10px;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 40px;
+  background: #C2C353;
+  color: #fff;
+  font-weight: 800;
+  font-size: 15px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity 0.15s ease;
+  align-self: flex-start;
+}
+
+.routeBtn:active {
+  opacity: 0.85;
 }

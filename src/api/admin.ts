@@ -6,7 +6,7 @@ import {
   type AdminUser,
   type LoginResponse,
 } from './client';
-import type { ApiCategory, ApiStore } from './types';
+import type { ApiCategory, ApiStore, ApiTenant } from './types';
 
 export interface CreateCategoryInput {
   name: string;
@@ -29,7 +29,9 @@ export interface UpdateCategoryInput {
 export interface CreateStoreInput {
   name: string;
   slug?: string;
+  tenantId?: string | null;
   categoryId?: string | null;
+  floorId?: string | null;
   description?: string;
   roomNumber?: string;
   phone?: string;
@@ -37,6 +39,8 @@ export interface CreateStoreInput {
   website?: string;
   workingHours?: Record<string, unknown>;
   searchKeywords?: string;
+  logoAssetId?: string | null;
+  coverAssetId?: string | null;
   isActive?: boolean;
   isVisible?: boolean;
 }
@@ -44,7 +48,9 @@ export interface CreateStoreInput {
 export interface UpdateStoreInput {
   name?: string;
   slug?: string;
+  tenantId?: string | null;
   categoryId?: string | null;
+  floorId?: string | null;
   description?: string;
   roomNumber?: string;
   phone?: string;
@@ -52,6 +58,8 @@ export interface UpdateStoreInput {
   website?: string;
   workingHours?: Record<string, unknown>;
   searchKeywords?: string;
+  logoAssetId?: string | null;
+  coverAssetId?: string | null;
   isActive?: boolean;
   isVisible?: boolean;
 }
@@ -107,4 +115,46 @@ export async function updateAdminStore(
 
 export async function deleteAdminStore(id: string): Promise<ApiStore> {
   return apiDelete<ApiStore>(`/admin/stores/${id}`);
+}
+
+export async function fetchAdminTenants(): Promise<ApiTenant[]> {
+  return apiGet<ApiTenant[]>('/admin/tenants');
+}
+
+export async function fetchAdminTenant(id: string): Promise<ApiTenant> {
+  return apiGet<ApiTenant>(`/admin/tenants/${id}`);
+}
+
+export interface CreateTenantInput {
+  name: string;
+  legalName?: string;
+  description?: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  logoAssetId?: string | null;
+  isActive?: boolean;
+}
+
+export interface UpdateTenantInput {
+  name?: string;
+  legalName?: string;
+  description?: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  logoAssetId?: string | null;
+  isActive?: boolean;
+}
+
+export async function createAdminTenant(dto: CreateTenantInput): Promise<ApiTenant> {
+  return apiPost<ApiTenant>('/admin/tenants', dto);
+}
+
+export async function updateAdminTenant(id: string, dto: UpdateTenantInput): Promise<ApiTenant> {
+  return apiPatch<ApiTenant>(`/admin/tenants/${id}`, dto);
+}
+
+export async function deleteAdminTenant(id: string): Promise<ApiTenant> {
+  return apiDelete<ApiTenant>(`/admin/tenants/${id}`);
 }

@@ -1,46 +1,46 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Category, SubcategoryItem } from "./types";
 import { SearchIcon, ChevronUpIcon, BackIcon, FloorIcon } from "./icons";
-import {
-  ClothingIcon,
-  ShoesIcon,
-  ElectronicsIcon,
-  BeautyHealthIcon,
-  SportIcon,
-  HomeGoodsIcon,
-  CafesRestaurantsIcon,
-  GroceriesIcon,
-  KidsGoodsIcon,
-  EntertainmentIcon,
-  ServicesIcon,
-  InfrastructureIcon,
-  AtmsIcon,
-  ToiletsIcon,
-  ParkingIcon,
-} from "./icons";
+
+import clothingIcon from "../../assets/icons/Одежда.svg";
+import shoesIcon from "../../assets/icons/обувь.svg";
+import electronicsIcon from "../../assets/icons/техника.svg";
+import beautyIcon from "../../assets/icons/красота и здоровье.svg";
+import sportIcon from "../../assets/icons/спорт.svg";
+import homeGoodsIcon from "../../assets/icons/товары для дома.svg";
+import cafesIcon from "../../assets/icons/кафе и рестораны.svg";
+import groceriesIcon from "../../assets/icons/продукты.svg";
+import kidsIcon from "../../assets/icons/детские товары.svg";
+import entertainmentIcon from "../../assets/icons/развлечения.svg";
+import servicesIcon from "../../assets/icons/услуги.svg";
+import infrastructureIcon from "../../assets/icons/инфраструктура.svg";
+import atmsIcon from "../../assets/icons/банкомат.svg";
+import toiletsIcon from "../../assets/icons/туалеты.svg";
+import parkingIcon from "../../assets/icons/парковка.svg";
 import styles from "./MallWidget.module.css";
 
 import patternImg from "../../assets/fons/fon_ecran_loading.png";
 
 import { fetchCategories, fetchStores } from "../../api/categories";
-import type { ApiCategory, ApiStore } from "../../api/types";
+import { resolveAssetUrl } from "../../api/fileAssets";
+import type { ApiCategory, ApiStore, ApiFileAsset } from "../../api/types";
 
-const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
-  clothing: ClothingIcon,
-  shoes: ShoesIcon,
-  electronics: ElectronicsIcon,
-  "beauty-and-health": BeautyHealthIcon,
-  sport: SportIcon,
-  "home-goods": HomeGoodsIcon,
-  "cafes-and-restaurants": CafesRestaurantsIcon,
-  groceries: GroceriesIcon,
-  "kids-goods": KidsGoodsIcon,
-  entertainment: EntertainmentIcon,
-  services: ServicesIcon,
-  infrastructure: InfrastructureIcon,
-  atms: AtmsIcon,
-  toilets: ToiletsIcon,
-  parking: ParkingIcon,
+const ICON_MAP: Record<string, string | React.ComponentType<{ className?: string }>> = {
+  clothing: clothingIcon,
+  shoes: shoesIcon,
+  electronics: electronicsIcon,
+  "beauty-and-health": beautyIcon,
+  sport: sportIcon,
+  "home-goods": homeGoodsIcon,
+  "cafes-and-restaurants": cafesIcon,
+  groceries: groceriesIcon,
+  "kids-goods": kidsIcon,
+  entertainment: entertainmentIcon,
+  services: servicesIcon,
+  infrastructure: infrastructureIcon,
+  atms: atmsIcon,
+  toilets: toiletsIcon,
+  parking: parkingIcon,
 };
 
 const CATEGORY_TRANSLATIONS: Record<string, Record<'ru' | 'en', string>> = {
@@ -67,7 +67,7 @@ const STORE_TRANSLATIONS: Record<string, Record<'ru' | 'en', string>> = {
   'green-coffee': { ru: 'Кофейня GREEN', en: 'GREEN Coffee' },
 };
 
-type Screen = "categories" | "detail";
+type Screen = "categories" | "detail" | "store-detail";
 
 function translateCategory(slug: string, fallbackName: string, lang: 'ru' | 'en'): string {
   return CATEGORY_TRANSLATIONS[slug]?.[lang] ?? CATEGORY_TRANSLATIONS[slug]?.ru ?? fallbackName;
@@ -77,36 +77,13 @@ function translateStore(slug: string, fallbackName: string, lang: 'ru' | 'en'): 
   return STORE_TRANSLATIONS[slug]?.[lang] ?? STORE_TRANSLATIONS[slug]?.ru ?? fallbackName;
 }
 
-function buildWidgetCategories(
-  apiCategories: ApiCategory[],
-  apiStores: ApiStore[],
-  lang: 'ru' | 'en',
-): Category[] {
-  const storesByCategory = new Map<string, ApiStore[]>();
-  for (const store of apiStores) {
-    if (!store.category?.id) continue;
-    const list = storesByCategory.get(store.category.id) ?? [];
-    list.push(store);
-    storesByCategory.set(store.category.id, list);
-  }
-
-  return apiCategories.map((category) => {
-    const categoryStores = storesByCategory.get(category.id) ?? [];
-
-    return {
-      id: category.slug,
-      title: translateCategory(category.slug, category.name, lang),
-      icon: category.icon ?? category.slug,
-      items: categoryStores.map((store) => ({ name: translateStore(store.slug, store.name, lang), count: 1 })),
-    } satisfies Category;
-  });
-}
-
 export interface MallWidgetProps {
   open?: boolean;
   categories?: Category[];
   lang?: 'ru' | 'en';
+  refreshKey?: number;
   onSelectItem?: (category: Category, floor: number, item: SubcategoryItem) => void;
+  onSelectStore?: (store: ApiStore) => void;
   onExpand?: () => void;
   onCollapse?: () => void;
 }
@@ -115,12 +92,15 @@ export default function MallWidget({
   open = false,
   categories: categoriesProp,
   lang = 'ru',
+  refreshKey,
   onSelectItem,
+  onSelectStore,
   onExpand,
   onCollapse,
 }: MallWidgetProps) {
   const [screen, setScreen] = useState<Screen>("categories");
   const [currentCategory, setCurrentCategory] = useState<Category | null>(null);
+  const [selectedStore, setSelectedStore] = useState<ApiStore | null>(null);
   const [internalCategories, setInternalCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState(false);
@@ -130,13 +110,28 @@ export default function MallWidget({
     [categoriesProp, internalCategories],
   );
 
+  const storesById = useMemo(() => {
+    const map = new Map<string, ApiStore>();
+    const source = categoriesProp ?? internalCategories;
+    for (const cat of source) {
+      for (const item of cat.items) {
+        if (item.storeId && item.store) {
+          map.set(item.storeId, item.store);
+        }
+      }
+    }
+    return map;
+  }, [categoriesProp, internalCategories]);
+
   useEffect(() => {
+    console.log('[MallWidget] mount/refresh useEffect', { categoriesProp: !!categoriesProp, lang, refreshKey });
     if (categoriesProp) return;
 
     let cancelled = false;
     let intervalId: ReturnType<typeof setInterval> | undefined;
 
     async function loadCategories() {
+      console.log('[MallWidget] loadCategories start', { categoriesProp: !!categoriesProp, lang, refreshKey });
       setLoading(true);
       setLoadError(false);
       try {
@@ -144,9 +139,53 @@ export default function MallWidget({
           fetchCategories(),
           fetchStores(),
         ]);
-        if (cancelled) return;
+         console.log('[MallWidget] loaded', { categories: apiCategories.length, stores: apiStores.length });
+         if (cancelled) return;
 
-        const mapped = buildWidgetCategories(apiCategories, apiStores, lang);
+        const storesByCategory = new Map<string, ApiStore[]>();
+        const storesByIdMap = new Map<string, ApiStore>();
+        const storesWithoutCategory: ApiStore[] = [];
+        for (const store of apiStores) {
+          if (store.category?.id) {
+            const list = storesByCategory.get(store.category.id) ?? [];
+            list.push(store);
+            storesByCategory.set(store.category.id, list);
+          } else {
+            storesWithoutCategory.push(store);
+          }
+          storesByIdMap.set(store.id, store);
+        }
+
+        const mapped = apiCategories.map((category) => {
+          const categoryStores = storesByCategory.get(category.id) ?? [];
+          return {
+            id: category.id,
+            title: translateCategory(category.slug, category.name, lang),
+            icon: category.icon ?? category.slug,
+            items: categoryStores.map((store) => ({
+              name: translateStore(store.slug, store.name, lang),
+              count: 1,
+              storeId: store.id,
+              store,
+            })),
+          };
+        });
+
+        if (storesWithoutCategory.length > 0) {
+          const uncategorized: Category = {
+            id: '__uncategorized',
+            title: lang === 'ru' ? 'Другое' : 'Other',
+            icon: 'infrastructure',
+            items: storesWithoutCategory.map((store) => ({
+              name: translateStore(store.slug, store.name, lang),
+              count: 1,
+              storeId: store.id,
+              store,
+            })),
+          };
+          mapped.push(uncategorized);
+        }
+
         setInternalCategories(mapped);
       } catch (error) {
         if (!cancelled) {
@@ -171,20 +210,114 @@ export default function MallWidget({
     };
   }, [categoriesProp, lang]);
 
+  useEffect(() => {
+    console.log('[MallWidget] refreshKey useEffect', { categoriesProp: !!categoriesProp, lang, refreshKey });
+    if (categoriesProp || refreshKey == null) return;
+
+    let cancelled = false;
+
+    async function reload() {
+      setLoading(true);
+      setLoadError(false);
+      try {
+        const [apiCategories, apiStores] = await Promise.all([
+          fetchCategories(),
+          fetchStores(),
+        ]);
+        if (cancelled) return;
+
+        const storesByCategory = new Map<string, ApiStore[]>();
+        const storesByIdMap = new Map<string, ApiStore>();
+        const storesWithoutCategory: ApiStore[] = [];
+        for (const store of apiStores) {
+          if (store.category?.id) {
+            const list = storesByCategory.get(store.category.id) ?? [];
+            list.push(store);
+            storesByCategory.set(store.category.id, list);
+          } else {
+            storesWithoutCategory.push(store);
+          }
+          storesByIdMap.set(store.id, store);
+        }
+
+         const mapped = apiCategories.map((category) => {
+           const categoryStores = storesByCategory.get(category.id) ?? [];
+           return {
+             id: category.id,
+             title: translateCategory(category.slug, category.name, lang),
+             icon: category.icon ?? category.slug,
+             items: categoryStores.map((store) => ({
+               name: translateStore(store.slug, store.name, lang),
+               count: 1,
+               storeId: store.id,
+               store,
+             })),
+           } satisfies Category & { items: (SubcategoryItem & { storeId: string; store: ApiStore })[] };
+         });
+
+        if (storesWithoutCategory.length > 0) {
+          const uncategorized: Category = {
+            id: '__uncategorized',
+            title: lang === 'ru' ? 'Другое' : 'Other',
+            icon: 'infrastructure',
+            items: storesWithoutCategory.map((store) => ({
+              name: translateStore(store.slug, store.name, lang),
+              count: 1,
+              storeId: store.id,
+              store,
+            })),
+          };
+          mapped.push(uncategorized);
+        }
+
+        setInternalCategories(mapped);
+      } catch (error) {
+        if (!cancelled) {
+          console.error('MallWidget: failed to reload categories', error);
+          setLoadError(true);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void reload();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [categoriesProp, lang, refreshKey]);
+
   function openCategory(cat: Category) {
     setCurrentCategory(cat);
+    setSelectedStore(null);
     setScreen("detail");
+  }
+
+  function openStore(store: ApiStore) {
+    setSelectedStore(store);
+    setScreen("store-detail");
   }
 
   function closeDetail() {
     setScreen("categories");
     setCurrentCategory(null);
+    setSelectedStore(null);
   }
 
   function handleSelectItem(item: SubcategoryItem) {
-    if (currentCategory) {
+    if (item.store) {
+      openStore(item.store);
+    } else if (currentCategory) {
       onSelectItem?.(currentCategory, 0, item);
     }
+  }
+
+  function goBackToCategory() {
+    setScreen("detail");
+    setSelectedStore(null);
   }
 
   function getIconKey(cat: Category): string {
@@ -194,17 +327,52 @@ export default function MallWidget({
   }
 
   const items: SubcategoryItem[] = currentCategory?.items ?? [];
-
   const isLoading = loading && categories.length === 0;
+
+  function formatWorkingHours(workingHours: Record<string, unknown> | null): string {
+    if (!workingHours || typeof workingHours !== 'object') return '';
+    const days = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+    const dayNamesRu: Record<string, string> = { mon: 'Пн', tue: 'Вт', wed: 'Ср', thu: 'Чт', fri: 'Пт', sat: 'Сб', sun: 'Вс' };
+    
+    let firstDay = '';
+    let lastDay = '';
+    let startTime = '';
+    let endTime = '';
+    
+    for (const day of days) {
+      const hours = workingHours[day];
+      if (hours && typeof hours === 'object') {
+        const h = hours as Record<string, unknown>;
+        const start = typeof h.start === 'string' ? h.start : '';
+        const end = typeof h.end === 'string' ? h.end : '';
+        if (start && end) {
+          if (!firstDay) {
+            firstDay = dayNamesRu[day] || day;
+            startTime = start;
+          }
+          lastDay = dayNamesRu[day] || day;
+          endTime = end;
+        }
+      }
+    }
+    
+    if (firstDay && lastDay && startTime && endTime) {
+      if (firstDay === lastDay) {
+        return `${firstDay}: ${startTime}-${endTime}`;
+      }
+      return `${firstDay}-${lastDay}: ${startTime}-${endTime}`;
+    }
+    return '';
+  }
 
   return (
     <div className={styles.widget}>
       <div className={styles.bgPattern} style={{ backgroundImage: `url(${patternImg})` }} />
       <div className={styles.topbar}>
-        {screen === "categories" ? (
-          <>
-            <div className={styles.searchPill}>
-              <svg className={styles.searchIcon} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+         {screen === "categories" ? (
+           <>
+             <div className={`${styles.searchPill} ${styles.mainSearchPill}`}>
+               <svg className={styles.searchIcon} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
                 <path d="M21 21L16.5 16.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
               </svg>
@@ -215,8 +383,20 @@ export default function MallWidget({
                aria-label={lang === 'ru' ? (open ? 'Свернуть' : 'Открыть') : (open ? 'Collapse' : 'Open')}
                onClick={open ? onCollapse : onExpand}
              >
-              <ChevronUpIcon />
-            </button>
+               <ChevronUpIcon />
+             </button>
+           </>
+         ) : screen === "store-detail" && selectedStore ? (
+          <>
+              <div className={styles.searchPill}>
+                <button className={styles.iconBtn} aria-label={lang === 'ru' ? 'Назад' : 'Back'} onClick={goBackToCategory}>
+                  <BackIcon />
+                </button>
+                <span className={styles.title}>{selectedStore.name}</span>
+              </div>
+              <button className={styles.collapseBtn} aria-label={lang === 'ru' ? 'Свернуть' : 'Collapse'} onClick={onCollapse}>
+                <ChevronUpIcon />
+             </button>
           </>
         ) : (
           <>
@@ -225,8 +405,8 @@ export default function MallWidget({
                   <BackIcon />
                 </button>
                 <span className={styles.title}>{currentCategory?.title}</span>
-                <button className={styles.floorBtn} aria-label={lang === 'ru' ? 'Этаж -1' : 'Floor -1'}>
-                  -1
+                <button className={styles.floorBtn} aria-label={lang === 'ru' ? 'Этаж 0' : 'Floor 0'}>
+                  0
                 </button>
               </div>
                  <button className={styles.collapseBtn} aria-label={lang === 'ru' ? 'Свернуть' : 'Collapse'} onClick={onCollapse}>
@@ -258,15 +438,23 @@ export default function MallWidget({
                 ) : null}
               <div className={styles.grid}>
                 {categories.map((cat) => {
-                  const IconComponent = ICON_MAP[getIconKey(cat)];
+                  const iconEntry = ICON_MAP[getIconKey(cat)];
+                  const IconComp = (
+                    typeof iconEntry === "function"
+                      ? iconEntry
+                      : null
+                  ) as React.ComponentType<{ className?: string }> | null;
+                  const iconUrl = typeof iconEntry === "string" ? iconEntry : null;
                   return (
                     <button
                       key={cat.id}
                       className={styles.catCard}
                       onClick={() => openCategory(cat)}
                     >
-                      {IconComponent ? (
-                        <IconComponent className={styles.catIcon} />
+                      {iconUrl ? (
+                        <img className={styles.catIcon} src={iconUrl} alt="" />
+                      ) : IconComp ? (
+                        <IconComp className={styles.catIcon} />
                       ) : (
                         <div className={styles.catIcon} />
                       )}
@@ -274,6 +462,41 @@ export default function MallWidget({
                     </button>
                   );
                 })}
+              </div>
+            </div>
+           ) : screen === "store-detail" && selectedStore ? (
+            <div className={styles.content}>
+              <div className={styles.storeCard}>
+                {selectedStore.coverAsset ? (
+                  <div className={styles.storeCover}>
+                    <img src={resolveAssetUrl(selectedStore.coverAsset?.url)} alt={selectedStore.name} />
+                    {selectedStore.logoAsset ? (
+                      <div className={styles.storeLogo}>
+                        <img src={resolveAssetUrl(selectedStore.logoAsset.url)} alt={selectedStore.name} />
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+                <div className={styles.storeBody}>
+                  <div className={styles.storeTopRow}>
+                    {selectedStore.category ? (
+                      <span className={styles.storeCategory}>{selectedStore.category.name}</span>
+                    ) : null}
+                    {formatWorkingHours(selectedStore.workingHours) ? (
+                      <span className={styles.storeHours}>{formatWorkingHours(selectedStore.workingHours)}</span>
+                    ) : null}
+                  </div>
+                  <h3 className={styles.storeName}>{selectedStore.name}</h3>
+                  {selectedStore.floor ? (
+                    <p className={styles.storeFloor}>{selectedStore.floor.number} {lang === 'ru' ? 'этаж' : 'floor'}</p>
+                  ) : null}
+                  <button
+                    className={styles.routeBtn}
+                    onClick={() => onSelectStore?.(selectedStore)}
+                  >
+                    {lang === 'ru' ? 'Продолжить маршрут' : 'Continue route'}
+                  </button>
+                </div>
               </div>
             </div>
           ) : currentCategory ? (

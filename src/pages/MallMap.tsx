@@ -1,14 +1,18 @@
-import { useState, useEffect, useMemo, Suspense } from 'react';
+﻿import { useState, useEffect, useMemo, Suspense, useRef } from 'react';
 import React from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Center, Bounds } from '@react-three/drei';
+import { OrbitControls, Bounds } from '@react-three/drei';
 import { useLoader } from '@react-three/fiber';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import * as THREE from 'three';
+import type { Group } from 'three';
 import styles from './MallMap.module.css';
 
 import logoGreenMall from '../assets/icons/logo2.png';
 import qrCodeIcon from '../assets/icons/qr_code.png';
 import qrCodeEngIcon from '../assets/icons/qr_code_eng.png';
+import translatorRu from '../assets/icons/переводчик рус.svg';
+import translatorEn from '../assets/icons/переводчик англ.svg';
 import MallWidget from '../components/mall-widget/MallWidget';
 import { fetchFloors, fetchFloorScene } from '../api/floors';
 import type { ApiFloor, ApiFloorScene } from '../api/types';
@@ -25,10 +29,8 @@ const MONTHS_EN = [
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
 ];
 
-const FLOORS = [-1, 1, 2, 3, 4];
+const FLOORS = [0, 1, 2, 3, 4];
 
-// Локальные 3D-модели этажей из frontend/floors/<номер>_floor.glb.
-// Vite сам разрешает их в реальные URL и включает в сборку.
 const localFloorModelModules = import.meta.glob('../../floors/*.glb', {
   eager: true,
   query: '?url',
@@ -67,11 +69,29 @@ function formatDate(date: Date, lang: 'ru' | 'en'): string {
   return `${weekday}, ${day} ${month}`;
 }
 
-function FloorModel({ url }: { url: string }) {
+function FloorModel({
+  url,
+  groupRef,
+}: {
+  url: string;
+  groupRef?: React.RefObject<Group | null>;
+}) {
   const gltf = useLoader(GLTFLoader, url);
-  // useLoader кеширует GLTF, поэтому клонируем сцену под конкретный монтаж.
-  const scene = useMemo(() => gltf.scene.clone(true), [gltf]);
-  return <primitive object={scene} />;
+  const scene = useMemo(() => {
+    const cloned = gltf.scene.clone(true);
+    const box = new THREE.Box3().setFromObject(cloned);
+    const center = box.getCenter(new THREE.Vector3());
+    cloned.position.x -= center.x;
+    cloned.position.z -= center.z;
+    cloned.position.y -= box.min.y;
+    return cloned;
+  }, [gltf]);
+
+  return (
+    <group ref={groupRef}>
+      <primitive object={scene} />
+    </group>
+  );
 }
 
 function ModelError({ onRetry }: { onRetry: () => void }) {
@@ -113,8 +133,13 @@ class ErrorBoundary extends React.Component<
   }
 }
 
-export default function MallMap({ onOpenAdmin }: { onOpenAdmin?: () => void } = {}) {
-  const [now] = useState(() => new Date());
+export default function MallMap({ onOpenAdmin, widgetRefreshKey }: { onOpenAdmin?: () => void; widgetRefreshKey?: number } = {}) {
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000 * 15);
+    return () => clearInterval(timer);
+  }, []);
   const [lang, setLang] = useState<'ru' | 'en'>('ru');
   const [activeFloor, setActiveFloor] = useState<number>(1);
   const [zoom, setZoom] = useState<number>(1);
@@ -125,6 +150,7 @@ export default function MallMap({ onOpenAdmin }: { onOpenAdmin?: () => void } = 
   const [modelError, setModelError] = useState(false);
   const [canvasError, setCanvasError] = useState(false);
   const [currentModelUrl, setCurrentModelUrl] = useState<string | null>(null);
+  const modelGroupRef = useRef<Group | null>(null);
 
   useEffect(() => {
     fetchFloors()
@@ -162,7 +188,6 @@ export default function MallMap({ onOpenAdmin }: { onOpenAdmin?: () => void } = 
     setZoom((prev) => Math.min(2, Math.max(0.5, +(prev + delta).toFixed(2))));
   };
 
-  // Модель берём из локальной папки frontend/floors, бэкенд — только запасной вариант.
   const localModelUrl = LOCAL_FLOOR_MODELS[activeFloor] ?? null;
   const modelUrl = localModelUrl ?? currentModelUrl;
 
@@ -185,37 +210,45 @@ export default function MallMap({ onOpenAdmin }: { onOpenAdmin?: () => void } = 
     <div className={styles.page}>
       <header className={styles.header}>
         <img src={logoGreenMall} alt="GreenMall" className={styles.logo} draggable={false} />
-        <div className={styles.adSlot} aria-hidden="true" />
-        <div className={styles.dateTime}>
-          <div className={styles.dateTimeText}>
+
+        <div className={styles.headerRight}>
+          <div className={styles.dateTime}>
             <span className={styles.time}>{formatTime(now)}</span>
             <span className={styles.date}>{formatDate(now, lang)}</span>
           </div>
-          <span className={styles.divider} />
-          <button
-            className={styles.langSwitch}
-            type="button"
-            onClick={() => setLang((p) => (p === 'en' ? 'ru' : 'en'))}
-          >
-            <svg className={styles.globeIcon} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.6" />
-              <ellipse cx="12" cy="12" rx="4" ry="9" stroke="currentColor" strokeWidth="1.6" />
-              <path d="M3 12h18" stroke="currentColor" strokeWidth="1.6" />
-            </svg>
-            <span>{lang.toUpperCase()}</span>
-          </button>
-          {onOpenAdmin ? (
-            <button className={styles.adminBtn} type="button" onClick={onOpenAdmin}>
-              Admin
+
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            {onOpenAdmin ? (
+              <button
+                className={styles.adminBtn}
+                type="button"
+                onClick={onOpenAdmin}
+              >
+                Admin
+              </button>
+            ) : null}
+            <button
+              className={styles.langSwitch}
+              type="button"
+              onClick={() => setLang((p) => (p === 'en' ? 'ru' : 'en'))}
+            >
+              <img
+                src={lang === 'ru' ? translatorRu : translatorEn}
+                alt={lang === 'ru' ? 'Переключить на английский' : 'Switch to Russian'}
+                className={styles.translatorIcon}
+                draggable={false}
+              />
             </button>
-          ) : null}
+          </div>
         </div>
       </header>
 
       <div className={styles.mapArea}>
         <MallWidget
+          key={widgetRefreshKey}
           open={filtersOpen}
           lang={lang}
+          refreshKey={widgetRefreshKey}
           onExpand={() => setFiltersOpen(true)}
           onCollapse={() => setFiltersOpen(false)}
         />
@@ -238,7 +271,7 @@ export default function MallMap({ onOpenAdmin }: { onOpenAdmin?: () => void } = 
           ) : (
             <ErrorBoundary onError={() => setModelError(true)}>
               <Canvas
-                camera={{ position: [0, 200, 500], fov: 50, near: 0.1, far: 100000 }}
+                camera={{ position: [0, 1000, 0.0001], fov: 50, near: 0.1, far: 100000 }}
                 style={{ background: 'transparent' }}
                 onCreated={() => {
                   console.log('[Canvas] Created for', modelUrl);
@@ -247,13 +280,31 @@ export default function MallMap({ onOpenAdmin }: { onOpenAdmin?: () => void } = 
                 <ambientLight intensity={0.8} />
                 <directionalLight position={[10, 20, 10]} intensity={1.2} />
                 <Suspense fallback={null}>
-                  <Bounds fit clip observe margin={0.7}>
-                    <Center>
-                      <FloorModel key={modelUrl} url={modelUrl} />
-                    </Center>
+                  <Bounds fit clip margin={0.7}>
+                    <FloorModel
+                      key={modelUrl}
+                      url={modelUrl}
+                      groupRef={modelGroupRef}
+                    />
                   </Bounds>
                 </Suspense>
-                <OrbitControls makeDefault enablePan={false} />
+                <OrbitControls
+                  makeDefault
+                  enableRotate={false}
+                  enableZoom
+                  enablePan
+                  minPolarAngle={0}
+                  maxPolarAngle={0}
+                  mouseButtons={{
+                    LEFT: THREE.MOUSE.PAN,
+                    MIDDLE: THREE.MOUSE.DOLLY,
+                    RIGHT: THREE.MOUSE.PAN,
+                  }}
+                  touches={{
+                    ONE: THREE.TOUCH.PAN,
+                    TWO: THREE.TOUCH.DOLLY_PAN,
+                  }}
+                />
               </Canvas>
             </ErrorBoundary>
           )}

@@ -1,10 +1,10 @@
 .page {
-  --brand: #adb62e;
-  --brand-dark: #8f9726;
+  --brand: #C2C353;
+  --brand-dark: #9FA044;
   --bg: #fffdeb;
   --panel-bg: #ffffff;
   --border: #e7e4d9;
-  --text: #1f220f;
+  --text: #2F3A18;
   --muted: #6d7058;
   --danger: #d04545;
 
@@ -12,7 +12,7 @@
   min-height: 100dvh;
   background-color: var(--bg);
   color: var(--text);
-  font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
   padding: 24px;
   display: flex;
   flex-direction: column;
@@ -214,6 +214,13 @@ select.input {
   background-color: #fff;
 }
 
+.itemMain {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
 .itemTitle {
   font-weight: 800;
   font-size: 15px;
@@ -271,4 +278,350 @@ select.input {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.preview {
+  border: 1px dashed var(--border);
+  border-radius: 14px;
+  padding: 14px;
+  background-color: #fafaf5;
+}
+
+.previewTitle {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.storePreviewCard {
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  max-width: 320px;
+}
+
+.previewCover {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #ddd;
+  overflow: hidden;
+}
+
+.previewCover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.whEditor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  background-color: #fff;
+}
+
+.whRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.whOpen {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  flex: 1;
+  min-width: 130px;
+}
+
+.whTimes {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.whTimes .input {
+  width: auto;
+  flex: 0 0 auto;
+  padding: 8px 10px;
+}
+
+.whTimes .input:disabled {
+  opacity: 0.5;
+  background-color: #f3f4f6;
+}
+
+.whDash {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
+  .whEditor {
+    padding: 18px;
+    gap: 12px;
+    border-radius: 16px;
+  }
+  .whOpen {
+    font-size: 20px;
+  }
+}
+
+.previewLogo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.previewBody {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.previewTopRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.previewCategory {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.previewName {
+  margin: 2px 0 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.previewFloor {
+  margin: 2px 0 0;
+  font-size: 14px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.previewHours {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  text-align: right;
+  line-height: 1.35;
+}
+
+.coverField {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.coverField .input {
+  flex: 1;
+  min-width: 0;
+}
+
+.uploadBtn {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 14px;
+  background-color: #fff;
+  color: var(--brand-dark);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.uploadBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.coverPreview {
+  width: 100%;
+  max-width: 320px;
+  aspect-ratio: 16 / 9;
+  background: #ddd;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.coverPreview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.assetRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.assetThumb {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  object-fit: contain;
+  background: #f3f4f6;
+  border: 1px solid var(--border);
+}
+
+.assetThumbEmpty {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f3f4f6;
+  border: 1px dashed var(--border);
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+/* Крупные инфопанели / киоски (напр. 43" 16:9 ≈ 1920x1080) */
+@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
+  .page {
+    padding: 40px;
+    gap: 24px;
+  }
+  .heading {
+    font-size: 40px;
+  }
+  .userInfo {
+    font-size: 20px;
+  }
+  .tab {
+    padding: 16px 28px;
+    font-size: 22px;
+    border-radius: 16px;
+  }
+  .panel {
+    border-radius: 28px;
+    padding: 28px;
+    gap: 18px;
+  }
+  .panelTitle {
+    font-size: 28px;
+  }
+  .label {
+    font-size: 20px;
+  }
+  .input,
+  .textarea,
+  select.input {
+    padding: 16px 18px;
+    font-size: 22px;
+    border-radius: 16px;
+  }
+  .textarea {
+    min-height: 140px;
+  }
+  .checkboxField {
+    font-size: 22px;
+    gap: 12px;
+  }
+  .primaryBtn,
+  .ghostBtn {
+    padding: 16px 28px;
+    font-size: 22px;
+    border-radius: 16px;
+  }
+  .dangerBtn,
+  .smallBtn {
+    padding: 12px 18px;
+    font-size: 20px;
+  }
+  .item {
+    padding: 18px;
+    border-radius: 20px;
+  }
+  .itemTitle {
+    font-size: 22px;
+  }
+  .itemMeta {
+    font-size: 18px;
+  }
+  .uploadBtn {
+    padding: 16px 22px;
+    font-size: 20px;
+    border-radius: 16px;
+  }
+  .loginCard {
+    width: min(100%, 560px);
+    padding: 40px;
+    border-radius: 28px;
+  }
+  .loginTitle {
+    font-size: 34px;
+  }
+  .loginSubtitle {
+    font-size: 20px;
+  }
+  .storePreviewCard {
+    max-width: 460px;
+  }
+  .previewName {
+    font-size: 28px;
+  }
+  .previewFloor {
+    font-size: 20px;
+  }
+  .previewHours {
+    font-size: 18px;
+  }
+.searchRow {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.searchRow .input {
+  flex: 1;
+  min-width: 220px;
+}
+
+.searchCount {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
+  .searchCount {
+    font-size: 18px;
+  }
+}
 }

@@ -1,5 +1,5 @@
 .screen {
-  --brand: #adb62e;
+  --brand: #C2C353;
   --bg: #fffdeb;
 
   position: relative;
@@ -16,15 +16,23 @@
   cursor: pointer;
   user-select: none;
   overflow: hidden;
-  font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
 }
 
 .topBar {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   padding: 20px 24px 0 0;
+}
+
+/* Крупные инфопанели / киоски */
+@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
+  .topBar {
+    gap: 22px;
+    padding: 32px 40px 0 0;
+  }
 }
 
 .dateTime {
@@ -37,12 +45,12 @@
 }
 
 .time {
-  font-size: 18px;
+  font-size: 21.6px;
   font-weight: 800;
 }
 
 .date {
-  font-size: 13px;
+  font-size: 15.6px;
   font-weight: 600;
   opacity: 0.9;
 }
@@ -54,27 +62,57 @@
   background: none;
   border: none;
   color: var(--brand);
-  font-size: 13px;
+  font-size: 15.6px;
   font-weight: 700;
   cursor: pointer;
   padding: 0;
 }
 
+.translatorIcon {
+  height: 30.24px;
+  width: auto;
+  pointer-events: none;
+}
+
+/* Крупные инфопанели / киоски */
+@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
+  .translatorIcon {
+    height: 50.4px;
+  }
+}
+
+/* Крупные инфопанели / киоски */
+@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
+  .time {
+    font-size: 36px;
+  }
+  .date {
+    font-size: 26.4px;
+  }
+  .langSwitch {
+    font-size: 26.4px;
+    gap: 8px;
+  }
+}
+
 .adminBtn {
   border: 1px solid var(--brand);
-  border-radius: 8px;
-  padding: 4px 10px;
+  border-radius: 9.6px;
+  padding: 4.8px 12px;
   background: transparent;
   color: var(--brand);
-  font-size: 12px;
+  font-size: 14.4px;
   font-weight: 800;
   cursor: pointer;
 }
 
-.globeIcon {
-  width: 20px;
-  height: 20px;
-  color: var(--brand);
+/* Крупные инфопанели / киоски */
+@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
+  .adminBtn {
+    font-size: 24px;
+    padding: 9.6px 21.6px;
+    border-radius: 11.52px;
+  }
 }
 
 .center {
@@ -91,6 +129,13 @@
   pointer-events: none;
 }
 
+/* Крупные инфопанели / киоски (напр. 43" 16:9 ≈ 1920x1080) */
+@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
+  .logo {
+    width: 560px;
+  }
+}
+
 @keyframes pulse {
   0%, 100% {
     transform: scale(1);
@@ -105,20 +150,47 @@
   align-items: center;
   justify-content: center;
   gap: 10px;
+  margin-top: 18vh;
   padding-bottom: 12%;
   animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Крупные инфопанели / киоски */
+@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
+  .footer {
+    gap: 18px;
+    margin-top: 16vh;
+    padding-bottom: 12%;
+  }
 }
 
 .tapText {
   color: var(--brand);
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 600;
+}
+
+/* Крупные инфопанели / киоски */
+@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
+  .tapText {
+    font-size: 36px;
+  }
 }
 
 .fingerIcon {
   width: 26px;
   height: 26px;
+  flex-shrink: 0;
+  object-fit: contain;
   pointer-events: none;
+}
+
+/* Крупные инфопанели / киоски */
+@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
+  .fingerIcon {
+    width: 44px;
+    height: 44px;
+  }
 }
 
 @media (max-width: 480px) {

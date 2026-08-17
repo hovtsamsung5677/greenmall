@@ -8,6 +8,7 @@ const IDLE_TIMEOUT = 60000;
 function App() {
   const [showMap, setShowMap] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
+  const [widgetRefreshKey, setWidgetRefreshKey] = useState(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const resetTimer = useCallback(() => {
@@ -37,16 +38,30 @@ function App() {
     };
   }, [resetTimer]);
 
+  function openAdmin() {
+    setShowAdmin(true);
+  }
+
+  function closeAdmin() {
+    console.log('[App] closeAdmin, current widgetRefreshKey', widgetRefreshKey);
+    setShowAdmin(false);
+    setWidgetRefreshKey((prev) => {
+      const next = prev + 1;
+      console.log('[App] widgetRefreshKey', prev, '->', next);
+      return next;
+    });
+  }
+
   if (showAdmin) {
-    return <AdminPage />;
+    return <AdminPage onClose={closeAdmin} />;
   }
 
   return showMap ? (
-    <MallMap onOpenAdmin={() => setShowAdmin(true)} />
+    <MallMap onOpenAdmin={openAdmin} widgetRefreshKey={widgetRefreshKey} />
   ) : (
     <LoadingScreen
       onContinue={() => setShowMap(true)}
-      onOpenAdmin={() => setShowAdmin(true)}
+      onOpenAdmin={openAdmin}
     />
   );
 }

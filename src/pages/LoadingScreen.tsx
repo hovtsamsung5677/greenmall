@@ -4,6 +4,8 @@ import styles from './LoadingScreen.module.css';
 import logoGreenMall from '../assets/icons/logo_greenmall.png';
 import fingerIcon from '../assets/icons/finger_icon.png';
 import bgPattern from '../assets/fons/fon_ecran_loading.png';
+import translatorRu from '../assets/icons/переводчик рус.svg';
+import translatorEn from '../assets/icons/переводчик англ.svg';
 
 // подставьте реальные расширения ваших файлов (.png / .svg)
 // например: import logoGreenMall from '../assets/icons/logo_greenmall.png';
@@ -71,28 +73,28 @@ export default function LoadingScreen({ onContinue, onOpenAdmin }: LoadingScreen
           <span className={styles.date}>{formatDate(now, lang)}</span>
         </div>
 
-         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          {onOpenAdmin ? (
-            <button
-              className={styles.adminBtn}
-              onClick={(e) => {
-                e.stopPropagation();
-                onOpenAdmin();
-              }}
-              type="button"
-            >
-              Admin
-            </button>
-          ) : null}
-          <button className={styles.langSwitch} onClick={toggleLang} type="button">
-          <svg className={styles.globeIcon} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.6" />
-            <ellipse cx="12" cy="12" rx="4" ry="9" stroke="currentColor" strokeWidth="1.6" />
-            <path d="M3 12h18" stroke="currentColor" strokeWidth="1.6" />
-          </svg>
-          <span>{lang.toUpperCase()}</span>
-        </button>
-        </div>
+         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            {onOpenAdmin ? (
+              <button
+                className={styles.adminBtn}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenAdmin();
+                }}
+                type="button"
+              >
+                Admin
+              </button>
+            ) : null}
+            <button className={styles.langSwitch} onClick={toggleLang} type="button">
+            <img
+              src={lang === 'ru' ? translatorRu : translatorEn}
+              alt={lang === 'ru' ? 'Переключить на английский' : 'Switch to Russian'}
+              className={styles.translatorIcon}
+              draggable={false}
+            />
+          </button>
+          </div>
       </header>
 
       <main className={styles.center}>
