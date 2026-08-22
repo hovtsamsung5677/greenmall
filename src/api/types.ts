@@ -182,3 +182,140 @@ export interface ApiFloorScene {
     purpose: string;
   };
 }
+
+export type ApiRouteNodeType =
+  | 'ROUTE_POINT'
+  | 'ENTRANCE'
+  | 'PANEL'
+  | 'STORE_ANCHOR'
+  | 'ELEVATOR'
+  | 'ESCALATOR'
+  | 'STAIRS'
+  | 'TOILET'
+  | 'INFO_DESK'
+  | 'OTHER';
+
+export interface ApiRouteNode {
+  id: string;
+  floorId: string;
+  type: ApiRouteNodeType;
+  name: string | null;
+  code: string | null;
+  x: number;
+  y: number;
+  z: number | null;
+  rotationX: number | null;
+  rotationY: number | null;
+  rotationZ: number | null;
+  scaleX: number | null;
+  scaleY: number | null;
+  scaleZ: number | null;
+  mapObjectId: string | null;
+  metadata: Record<string, unknown> | null;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ApiRouteNodeFloor {
+  id: string;
+  number: number;
+  name: string;
+}
+
+export interface ApiRouteEdgeNodeRef {
+  id: string;
+  type: ApiRouteNodeType;
+  name: string | null;
+  x: number;
+  y: number;
+  z: number | null;
+}
+
+export interface ApiRouteEdge {
+  id: string;
+  floorId: string;
+  fromNodeId: string;
+  toNodeId: string;
+  distance: number | null;
+  weight: number | null;
+  isBidirectional: boolean;
+  metadata: Record<string, unknown> | null;
+  isActive: boolean;
+  fromNode: ApiRouteEdgeNodeRef;
+  toNode: ApiRouteEdgeNodeRef;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ApiRoutePathPoint {
+  nodeId: string;
+  type: ApiRouteNodeType | null;
+  name: string | null;
+  code: string | null;
+  x: number;
+  y: number;
+  z: number;
+  floorId: string;
+  floorNumber: number;
+  mapObjectId: string | null;
+  sortOrder: number;
+}
+
+export interface ApiRouteSegment {
+  edgeId: string;
+  fromNodeId: string;
+  toNodeId: string;
+  from: { x: number; y: number; z: number };
+  to: { x: number; y: number; z: number };
+  distance: number;
+  weight: number;
+  isBidirectional: boolean;
+  floorId: string;
+  label: string | null;
+}
+
+export interface ApiRouteInstruction {
+  order: number;
+  type: 'START' | 'MOVE' | 'ARRIVE';
+  title: string;
+  description: string;
+  nodeId: string;
+  x: number;
+  y: number;
+  z: number;
+}
+
+export interface ApiRouteResponse {
+  fromNode: ApiRouteNode;
+  toNode: ApiRouteNode;
+  nodes: ApiRouteNode[];
+  edges: ApiRouteEdge[];
+  totalDistance: number;
+  totalWeight: number;
+  routePath: ApiRoutePathPoint[];
+  routeSegments: ApiRouteSegment[];
+  instructions: ApiRouteInstruction[];
+  meta: {
+    schemaVersion: string;
+    generatedAt: string;
+    purpose: string;
+    rendering: {
+      supports2D: boolean;
+      supports3D: boolean;
+      coordinateSystem: string;
+      usesXYZ: boolean;
+    };
+  };
+}
+
+export interface ApiRouteToStoreResponse extends ApiRouteResponse {
+  targetStore: {
+    id: string;
+    name: string;
+    slug: string;
+    roomNumber: string | null;
+    primaryRouteNodeId: string | null;
+  } | null;
+}

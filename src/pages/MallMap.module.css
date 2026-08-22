@@ -18,6 +18,8 @@
 /* ---------- Header ---------- */
 
 .header {
+  position: relative;
+  z-index: 5;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -291,11 +293,17 @@
 .modelViewport {
   position: absolute;
   inset: 0;
+  z-index: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: transform 0.2s ease;
   transform-origin: center;
+  pointer-events: none;
+}
+
+.modelViewport canvas {
+  pointer-events: auto;
 }
 
 .modelPlaceholder {
@@ -655,4 +663,24 @@
     font-size: 12px;
     padding: 8px 10px;
   }
+}
+
+.routeStatus {
+  position: absolute;
+  left: 50%;
+  bottom: 92px;
+  transform: translateX(-50%);
+  z-index: 6;
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  max-width: 90vw;
+  text-align: center;
+}
+
+.routeError {
+  color: #fca5a5;
 }

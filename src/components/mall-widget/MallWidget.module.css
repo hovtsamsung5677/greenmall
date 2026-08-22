@@ -37,6 +37,42 @@
   }
 }
 
+.widgetStoreDetail {
+  width: min(92%, 500px);
+  max-width: 500px;
+  max-height: 85vh;
+}
+
+@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
+  .widgetStoreDetail {
+    width: min(92%, 760px);
+    max-width: 760px;
+    max-height: 88vh;
+  }
+}
+
+.storeDetailSlideWrapper {
+  display: flex !important;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.storeDetailSlideInner {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
+}
+
+.storeDetailContent {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 0;
+}
+
 .bgPattern {
   position: absolute;
   inset: 0;
@@ -425,20 +461,33 @@
 }
 
 .storeCard {
-  background: #fff;
-  border-radius: 20px;
-  overflow: hidden;
+  background: transparent;
+  border-radius: 0;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+}
+
+.storeCardScroll {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
 
 .storeCover {
   position: relative;
-  width: 100%;
-  aspect-ratio: 16 / 9;
+  width: calc(100% - 40px);
+  margin: 0 auto;
+  flex: 0 0 auto;
+  aspect-ratio: 16 / 8;
   background: #e2e8f0;
   overflow: hidden;
+  border-radius: 20px;
+  box-sizing: border-box;
 }
 
 .storeCover img {
@@ -446,6 +495,7 @@
   height: 100%;
   object-fit: cover;
   display: block;
+  border-radius: 20px;
 }
 
 .storeLogo {
@@ -511,21 +561,31 @@
 }
 
 .storeBody {
-  padding: 16px 18px 18px;
+  background: #fff;
+  border-radius: 20px;
+  padding: 26px 22px 28px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
+  width: calc(100% - 40px);
+  margin: 0 auto;
+  flex: 0 0 auto;
+  aspect-ratio: 16 / 9.4;
+  position: relative;
+  z-index: 2;
+  box-sizing: border-box;
 }
 
 /* Крупные инфопанели / киоски */
 @media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
   .storeBody {
     padding: 26px 30px 28px;
+    border-radius: 24px;
   }
 }
 
 .storeCategory {
-  font-size: 13px;
+  font-size: 18px;
   font-weight: 700;
   color: #6d7058;
   text-transform: uppercase;
@@ -535,16 +595,28 @@
 /* Крупные инфопанели / киоски */
 @media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
   .storeCategory {
-    font-size: 20px;
+    font-size: 28px;
   }
 }
 
 .storeHours {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
   font-size: 13px;
   font-weight: 700;
   color: #6d7058;
-  text-align: right;
   line-height: 1.35;
+  text-align: right;
+}
+
+.storeHoursDays {
+  font-size: 13px;
+}
+
+.storeHoursTime {
+  font-size: 13px;
 }
 
 /* Крупные инфопанели / киоски */
@@ -556,7 +628,7 @@
 
 .storeName {
   margin: 2px 0 0;
-  font-size: 22px;
+  font-size: 30px;
   font-weight: 800;
   color: #2F3A18;
   line-height: 1.2;
@@ -565,13 +637,13 @@
 /* Крупные инфопанели / киоски */
 @media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
   .storeName {
-    font-size: 34px;
+    font-size: 44px;
   }
 }
 
 .storeFloor {
   margin: 2px 0 0;
-  font-size: 15px;
+  font-size: 20px;
   color: #6d7058;
   font-weight: 600;
 }
@@ -579,12 +651,13 @@
 /* Крупные инфопанели / киоски */
 @media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
   .storeFloor {
-    font-size: 24px;
+    font-size: 32px;
   }
 }
 
 .routeBtn {
-  margin-top: 10px;
+  margin-top: auto;
+  align-self: center;
   padding: 12px 20px;
   border: none;
   border-radius: 40px;
@@ -595,13 +668,12 @@
   cursor: pointer;
   font-family: inherit;
   transition: opacity 0.15s ease;
-  align-self: flex-start;
 }
 
 /* Крупные инфопанели / киоски */
 @media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
   .routeBtn {
-    margin-top: 16px;
+    margin-top: auto;
     padding: 20px 34px;
     border-radius: 60px;
     font-size: 24px;
@@ -616,7 +688,7 @@
 }
 
 .storeCategory {
-  font-size: 13px;
+  font-size: 18px;
   font-weight: 700;
   color: #6d7058;
   text-transform: uppercase;
@@ -624,16 +696,20 @@
 }
 
 .storeHours {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
   font-size: 13px;
   font-weight: 700;
   color: #6d7058;
-  text-align: right;
   line-height: 1.35;
+  text-align: right;
 }
 
 .storeName {
   margin: 2px 0 0;
-  font-size: 22px;
+  font-size: 30px;
   font-weight: 800;
   color: #2F3A18;
   line-height: 1.2;
@@ -641,13 +717,14 @@
 
 .storeFloor {
   margin: 2px 0 0;
-  font-size: 15px;
+  font-size: 20px;
   color: #6d7058;
   font-weight: 600;
 }
 
 .routeBtn {
-  margin-top: 10px;
+  margin-top: auto;
+  align-self: center;
   padding: 12px 20px;
   border: none;
   border-radius: 40px;
@@ -658,7 +735,6 @@
   cursor: pointer;
   font-family: inherit;
   transition: opacity 0.15s ease;
-  align-self: flex-start;
 }
 
 .routeBtn:active {

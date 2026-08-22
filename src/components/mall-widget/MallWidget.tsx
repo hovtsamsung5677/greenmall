@@ -83,7 +83,7 @@ export interface MallWidgetProps {
   lang?: 'ru' | 'en';
   refreshKey?: number;
   onSelectItem?: (category: Category, floor: number, item: SubcategoryItem) => void;
-  onSelectStore?: (store: ApiStore) => void;
+  onPickStore?: (store: ApiStore) => void;
   onExpand?: () => void;
   onCollapse?: () => void;
 }
@@ -94,7 +94,7 @@ export default function MallWidget({
   lang = 'ru',
   refreshKey,
   onSelectItem,
-  onSelectStore,
+  onPickStore,
   onExpand,
   onCollapse,
 }: MallWidgetProps) {
@@ -308,10 +308,11 @@ export default function MallWidget({
   }
 
   function handleSelectItem(item: SubcategoryItem) {
-    if (item.store) {
-      openStore(item.store);
-    } else if (currentCategory) {
+    if (currentCategory) {
       onSelectItem?.(currentCategory, 0, item);
+      if (item.store) {
+        onPickStore?.(item.store);
+      }
     }
   }
 
@@ -329,16 +330,16 @@ export default function MallWidget({
   const items: SubcategoryItem[] = currentCategory?.items ?? [];
   const isLoading = loading && categories.length === 0;
 
-  function formatWorkingHours(workingHours: Record<string, unknown> | null): string {
-    if (!workingHours || typeof workingHours !== 'object') return '';
+  function formatWorkingHours(workingHours: Record<string, unknown> | null): { days: string; time: string } {
+    if (!workingHours || typeof workingHours !== 'object') return { days: '', time: '' };
     const days = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
     const dayNamesRu: Record<string, string> = { mon: 'Пн', tue: 'Вт', wed: 'Ср', thu: 'Чт', fri: 'Пт', sat: 'Сб', sun: 'Вс' };
-    
+
     let firstDay = '';
     let lastDay = '';
     let startTime = '';
     let endTime = '';
-    
+
     for (const day of days) {
       const hours = workingHours[day];
       if (hours && typeof hours === 'object') {
@@ -355,18 +356,16 @@ export default function MallWidget({
         }
       }
     }
-    
+
     if (firstDay && lastDay && startTime && endTime) {
-      if (firstDay === lastDay) {
-        return `${firstDay}: ${startTime}-${endTime}`;
-      }
-      return `${firstDay}-${lastDay}: ${startTime}-${endTime}`;
+      const daysText = firstDay === lastDay ? firstDay : `${firstDay}-${lastDay}`;
+      return { days: daysText, time: `${startTime}-${endTime}` };
     }
-    return '';
+    return { days: '', time: '' };
   }
 
   return (
-    <div className={styles.widget}>
+    <div className={`${styles.widget} ${screen === "store-detail" ? styles.widgetStoreDetail : ""}`}>
       <div className={styles.bgPattern} style={{ backgroundImage: `url(${patternImg})` }} />
       <div className={styles.topbar}>
          {screen === "categories" ? (
@@ -417,9 +416,9 @@ export default function MallWidget({
       </div>
 
       <div
-        className={`${styles.slideWrapper} ${open ? styles.slideWrapperOpen : ""}`}
+        className={`${styles.slideWrapper} ${open ? styles.slideWrapperOpen : ""} ${screen === "store-detail" ? styles.storeDetailSlideWrapper : ""}`}
       >
-        <div className={styles.slideInner}>
+        <div className={`${styles.slideInner} ${screen === "store-detail" ? styles.storeDetailSlideInner : ""}`}>
           {isLoading ? (
             <div className={styles.content}>
               <div className={styles.grid}>
@@ -465,7 +464,8 @@ export default function MallWidget({
               </div>
             </div>
            ) : screen === "store-detail" && selectedStore ? (
-            <div className={styles.content}>
+            <div className={`${styles.content} ${styles.storeDetailContent}`}>
+              <div className={styles.storeCardScroll}>
               <div className={styles.storeCard}>
                 {selectedStore.coverAsset ? (
                   <div className={styles.storeCover}>
@@ -482,9 +482,15 @@ export default function MallWidget({
                     {selectedStore.category ? (
                       <span className={styles.storeCategory}>{selectedStore.category.name}</span>
                     ) : null}
-                    {formatWorkingHours(selectedStore.workingHours) ? (
-                      <span className={styles.storeHours}>{formatWorkingHours(selectedStore.workingHours)}</span>
-                    ) : null}
+                    {(() => {
+                      const wh = formatWorkingHours(selectedStore.workingHours);
+                      return wh.days || wh.time ? (
+                        <span className={styles.storeHours}>
+                          <span className={styles.storeHoursDays}>{wh.days}</span>
+                          <span className={styles.storeHoursTime}>{wh.time}</span>
+                        </span>
+                      ) : null;
+                    })()}
                   </div>
                   <h3 className={styles.storeName}>{selectedStore.name}</h3>
                   {selectedStore.floor ? (
@@ -492,11 +498,12 @@ export default function MallWidget({
                   ) : null}
                   <button
                     className={styles.routeBtn}
-                    onClick={() => onSelectStore?.(selectedStore)}
+                    onClick={() => selectedStore && onPickStore?.(selectedStore)}
                   >
                     {lang === 'ru' ? 'Продолжить маршрут' : 'Continue route'}
                   </button>
                 </div>
+              </div>
               </div>
             </div>
           ) : currentCategory ? (

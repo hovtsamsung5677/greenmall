@@ -3,6 +3,7 @@ import React from 'react';
 import { fetchCategories, fetchStores } from '../api/categories';
 import { fetchFloors } from '../api/floors';
 import { fetchFileAssets, uploadFileAsset, resolveAssetUrl } from '../api/fileAssets';
+import RouteAdminPanel from '../components/route-editor/RouteAdminPanel';
 import { fetchAdminTenants } from '../api/admin';
 import {
   createAdminCategory,
@@ -38,7 +39,38 @@ import type {
 } from '../api/types';
 import styles from './AdminPage.module.css';
 
-type Tab = 'categories' | 'stores' | 'tenants';
+class RouteAdminErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { error: Error | null }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+
+  componentDidCatch(error: Error) {
+    console.error('[RouteAdmin] render error', error);
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ padding: 24, color: '#b91c1c', whiteSpace: 'pre-wrap', fontFamily: 'monospace', fontSize: 13 }}>
+          <h2>Ошибка вкладки «Маршруты»</h2>
+          <p>{this.state.error.message}</p>
+          <pre>{this.state.error.stack}</pre>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+type Tab = 'categories' | 'stores' | 'tenants' | 'routes';
 
 type AdminCategoryForm = {
   name: string;
@@ -771,8 +803,21 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
         >
           Арендаторы
         </button>
+        <button
+          type="button"
+          className={`${styles.tab} ${tab === 'routes' ? styles.tabActive : ''}`}
+          onClick={() => setTab('routes')}
+        >
+          Маршруты
+        </button>
       </nav>
 
+      {tab === 'routes' ? (
+        <RouteAdminErrorBoundary>
+          <RouteAdminPanel />
+        </RouteAdminErrorBoundary>
+      ) : (
+        <>
       {error ? <p className={styles.error}>{error}</p> : null}
 
       <div className={styles.searchRow}>
@@ -1521,7 +1566,11 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
             </>
           ) : null}
         </div>
-      )}
+        )
+        }
+      </>
+      )
+      }
     </div>
   );
 }

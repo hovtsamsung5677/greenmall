@@ -1,14 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import styles from './LoadingScreen.module.css';
 
-import logoGreenMall from '../assets/icons/logo_greenmall.png';
+import logoGreenMall from '../assets/icons/logo2.png';
 import fingerIcon from '../assets/icons/finger_icon.png';
 import bgPattern from '../assets/fons/fon_ecran_loading.png';
 import translatorRu from '../assets/icons/переводчик рус.svg';
 import translatorEn from '../assets/icons/переводчик англ.svg';
-
-// подставьте реальные расширения ваших файлов (.png / .svg)
-// например: import logoGreenMall from '../assets/icons/logo_greenmall.png';
 
 const WEEKDAYS_RU = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 const MONTHS_RU = [
