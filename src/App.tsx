@@ -2,13 +2,23 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import LoadingScreen from './pages/LoadingScreen';
 import MallMap from './pages/MallMap';
 import AdminPage from './pages/AdminPage';
+import RouteShareView from './pages/RouteShareView';
 
 const IDLE_TIMEOUT = 60000;
+
+function getRouteTokenFromHash(): string | null {
+  const hash = window.location.hash.replace(/^#/, '');
+  const match = /^\/route\/([A-Za-z0-9]+)$/.exec(hash);
+  return match ? match[1] : null;
+}
 
 function App() {
   const [showMap, setShowMap] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [widgetRefreshKey, setWidgetRefreshKey] = useState(0);
+  const [shareToken, setShareToken] = useState<string | null>(
+    () => getRouteTokenFromHash(),
+  );
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const resetTimer = useCallback(() => {
@@ -23,10 +33,15 @@ function App() {
   useEffect(() => {
     resetTimer();
 
+    const onHashChange = () => {
+      setShareToken(getRouteTokenFromHash());
+    };
+
     const events = ['mousedown', 'mousemove', 'keydown', 'touchstart', 'scroll'];
     events.forEach((event) => {
       document.addEventListener(event, resetTimer);
     });
+    window.addEventListener('hashchange', onHashChange);
 
     return () => {
       if (timerRef.current) {
@@ -35,6 +50,7 @@ function App() {
       events.forEach((event) => {
         document.removeEventListener(event, resetTimer);
       });
+      window.removeEventListener('hashchange', onHashChange);
     };
   }, [resetTimer]);
 
@@ -50,6 +66,10 @@ function App() {
       console.log('[App] widgetRefreshKey', prev, '->', next);
       return next;
     });
+  }
+
+  if (shareToken) {
+    return <RouteShareView token={shareToken} />;
   }
 
   if (showAdmin) {

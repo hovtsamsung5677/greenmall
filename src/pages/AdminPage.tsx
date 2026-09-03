@@ -4,6 +4,7 @@ import { fetchCategories, fetchStores } from '../api/categories';
 import { fetchFloors } from '../api/floors';
 import { fetchFileAssets, uploadFileAsset, resolveAssetUrl } from '../api/fileAssets';
 import RouteAdminPanel from '../components/route-editor/RouteAdminPanel';
+import RouteSharePreview from './RouteSharePreview';
 import { fetchAdminTenants } from '../api/admin';
 import {
   createAdminCategory,
@@ -70,7 +71,7 @@ class RouteAdminErrorBoundary extends React.Component<
   }
 }
 
-type Tab = 'categories' | 'stores' | 'tenants' | 'routes';
+type Tab = 'categories' | 'stores' | 'tenants' | 'routes' | 'mobile';
 
 type AdminCategoryForm = {
   name: string;
@@ -810,12 +811,21 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
         >
           Маршруты
         </button>
+        <button
+          type="button"
+          className={`${styles.tab} ${tab === 'mobile' ? styles.tabActive : ''}`}
+          onClick={() => setTab('mobile')}
+        >
+          QR-страница
+        </button>
       </nav>
 
       {tab === 'routes' ? (
         <RouteAdminErrorBoundary>
           <RouteAdminPanel />
         </RouteAdminErrorBoundary>
+      ) : tab === 'mobile' ? (
+        <RouteSharePreview />
       ) : (
         <>
       {error ? <p className={styles.error}>{error}</p> : null}

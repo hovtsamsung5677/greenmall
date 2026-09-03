@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import styles from './LoadingScreen.module.css';
 
-import logoGreenMall from '../assets/icons/logo2.png';
+import logoGreenMall from '../assets/icons/logo_greenmall.png';
 import fingerIcon from '../assets/icons/finger_icon.png';
 import bgPattern from '../assets/fons/fon_ecran_loading.png';
 import translatorRu from '../assets/icons/переводчик рус.svg';

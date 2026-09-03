@@ -1,4 +1,4 @@
-export interface ApiCategory {
+﻿export interface ApiCategory {
   id: string;
   name: string;
   slug: string;
@@ -287,6 +287,21 @@ export interface ApiRouteInstruction {
   z: number;
 }
 
+export interface ApiFloorSegment {
+  floorNumber: number;
+  floorId: string;
+  points: ApiRoutePathPoint[];
+}
+
+export interface ApiFloorChange {
+  fromFloor: number;
+  toFloor: number;
+  fromFloorId: string | null;
+  toFloorId: string | null;
+  nodeCode: string;
+  type: string;
+}
+
 export interface ApiRouteResponse {
   fromNode: ApiRouteNode;
   toNode: ApiRouteNode;
@@ -296,6 +311,8 @@ export interface ApiRouteResponse {
   totalWeight: number;
   routePath: ApiRoutePathPoint[];
   routeSegments: ApiRouteSegment[];
+  segments: ApiFloorSegment[];
+  floorChanges: ApiFloorChange[];
   instructions: ApiRouteInstruction[];
   meta: {
     schemaVersion: string;
@@ -319,3 +336,5 @@ export interface ApiRouteToStoreResponse extends ApiRouteResponse {
     primaryRouteNodeId: string | null;
   } | null;
 }
+
+

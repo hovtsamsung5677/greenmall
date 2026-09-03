@@ -310,9 +310,9 @@ export default function MallWidget({
   function handleSelectItem(item: SubcategoryItem) {
     if (currentCategory) {
       onSelectItem?.(currentCategory, 0, item);
-      if (item.store) {
-        onPickStore?.(item.store);
-      }
+    }
+    if (item.store) {
+      openStore(item.store);
     }
   }
 
@@ -397,22 +397,23 @@ export default function MallWidget({
                 <ChevronUpIcon />
              </button>
           </>
-        ) : (
-          <>
-              <div className={styles.searchPill}>
+          ) : (
+           <>
+              <div className={`${styles.searchPill} ${styles.mainSearchPill}`}>
                 <button className={styles.iconBtn} aria-label={lang === 'ru' ? 'Назад' : 'Back'} onClick={closeDetail}>
                   <BackIcon />
                 </button>
-                <span className={styles.title}>{currentCategory?.title}</span>
-                <button className={styles.floorBtn} aria-label={lang === 'ru' ? 'Этаж 0' : 'Floor 0'}>
-                  0
-                </button>
+                <span className={styles.searchPlaceholder}>{currentCategory?.title ?? (lang === 'ru' ? 'Куда отправимся?' : 'Where to?')}</span>
               </div>
-                 <button className={styles.collapseBtn} aria-label={lang === 'ru' ? 'Свернуть' : 'Collapse'} onClick={onCollapse}>
-                   <ChevronUpIcon />
-                 </button>
-          </>
-        )}
+              <button
+                className={`${styles.collapseBtn} ${open ? styles.collapseBtnOpen : ""}`}
+                aria-label={lang === 'ru' ? (open ? 'Свернуть' : 'Открыть') : (open ? 'Collapse' : 'Open')}
+                onClick={open ? onCollapse : onExpand}
+              >
+                <ChevronUpIcon />
+              </button>
+           </>
+         )}
       </div>
 
       <div
