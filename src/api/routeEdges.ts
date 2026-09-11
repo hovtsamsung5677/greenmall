@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPatch, apiDelete } from './client';
+﻿import { apiGet, apiPost, apiPatch, apiDelete } from './client';
 import type { ApiRouteEdge } from './types';
 
 export interface CreateRouteEdgeInput {
@@ -24,6 +24,10 @@ export function fetchRouteEdges(
   return apiGet<ApiRouteEdge[]>(`/admin/route-edges?${params.toString()}`);
 }
 
+export function fetchPublicRouteEdges(floorId: string): Promise<ApiRouteEdge[]> {
+  return apiGet<ApiRouteEdge[]>(`/public/floors/${encodeURIComponent(floorId)}/route-edges`);
+}
+
 export function createRouteEdge(input: CreateRouteEdgeInput): Promise<ApiRouteEdge> {
   return apiPost<ApiRouteEdge>('/admin/route-edges', input);
 }
@@ -38,3 +42,6 @@ export function updateRouteEdge(
 export function deleteRouteEdge(id: string): Promise<ApiRouteEdge> {
   return apiDelete<ApiRouteEdge>(`/admin/route-edges/${id}`);
 }
+
+
+

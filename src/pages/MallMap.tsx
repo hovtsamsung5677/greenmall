@@ -1,7 +1,7 @@
 ﻿import { useState, useEffect, useMemo, Suspense, useRef } from 'react';
 import React from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Line } from '@react-three/drei';
+import { OrbitControls } from '@react-three/drei';
 import { useLoader } from '@react-three/fiber';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as THREE from 'three';
@@ -16,8 +16,8 @@ import translatorRu from '../assets/icons/переводчик рус.svg';
 import translatorEn from '../assets/icons/переводчик англ.svg';
 import MallWidget from '../components/mall-widget/MallWidget';
 import { fetchFloors, fetchFloorScene } from '../api/floors';
-import { fetchRouteNodes } from '../api/routeNodes';
-import { fetchRouteEdges } from '../api/routeEdges';
+import { fetchPublicRouteNodes } from '../api/routeNodes';
+import { fetchPublicRouteEdges } from '../api/routeEdges';
 import { buildRouteToStore } from '../api/routes';
 import { createSharedRoute } from '../api/sharedRoutes';
 import type {
@@ -59,6 +59,7 @@ const LOCAL_FLOOR_MODELS: Record<number, string> = Object.entries(
 }, {});
 
 const FLOOR_PLACEHOLDER_COLOR: Record<number, string> = {
+  0: '#9BA0AB',
   1: '#9BA0AB',
   2: '#8B93A6',
   3: '#A3907C',
@@ -80,22 +81,111 @@ function formatDate(date: Date, lang: 'ru' | 'en'): string {
   return `${weekday}, ${day} ${month}`;
 }
 
+function getPointOnPolyline(points: THREE.Vector3[], totalLength: number, distance: number): THREE.Vector3 | null {
+  if (points.length === 0) return null;
+  if (points.length === 1) return points[0].clone();
+  if (distance <= 0) return points[0].clone();
+  if (distance >= totalLength) return points[points.length - 1].clone();
+
+  let traveled = 0;
+  for (let i = 0; i < points.length - 1; i++) {
+    const a = points[i];
+    const b = points[i + 1];
+    const segLen = a.distanceTo(b);
+    if (distance <= traveled + segLen) {
+      const t = (distance - traveled) / segLen;
+      return new THREE.Vector3().lerpVectors(a, b, Math.min(t, 1));
+    }
+    traveled += segLen;
+  }
+  return points[points.length - 1].clone();
+}
+
 export function AnimatedRouteLine({
   points,
   onComplete,
+  speed = 2.5,
+  dashSize = 4,
 }: {
   points: [number, number, number][];
   onComplete?: () => void;
+  speed?: number;
+  dashSize?: number;
 }) {
-  const lineRef = useRef<React.ElementRef<typeof Line>>(null);
   const markerRef = useRef<THREE.Mesh>(null);
   const progress = useRef(0);
   const completedRef = useRef(false);
 
-  const positions = useMemo(
+  const vectors = useMemo(
     () => points.map((p) => new THREE.Vector3(p[0], p[1], p[2])),
     [points],
   );
+
+  const DASH_LENGTH = 10;
+  const GAP_LENGTH = 5;
+
+  const totalLength = useMemo(() => {
+    let len = 0;
+    for (let i = 0; i < vectors.length - 1; i++) {
+      len += vectors[i].distanceTo(vectors[i + 1]);
+    }
+    return len;
+  }, [vectors]);
+
+  const dashes = useMemo(() => {
+    if (totalLength === 0 || vectors.length < 2) return [] as { a: THREE.Vector3; b: THREE.Vector3 }[];
+    const step = DASH_LENGTH + GAP_LENGTH;
+    const count = Math.max(1, Math.floor(totalLength / step));
+    const result: { a: THREE.Vector3; b: THREE.Vector3 }[] = [];
+    for (let i = 0; i < count; i++) {
+      const startDist = i * step;
+      const endDist = Math.min(startDist + DASH_LENGTH, totalLength);
+      const a = getPointOnPolyline(vectors, totalLength, startDist);
+      const b = getPointOnPolyline(vectors, totalLength, endDist);
+      if (a && b) {
+        result.push({ a, b });
+      }
+    }
+    return result;
+  }, [vectors, totalLength]);
+
+  const instancedMesh = useMemo(() => {
+    if (dashes.length === 0) return null;
+    const radius = Math.max(0.1, dashSize);
+    const geometry = new THREE.CylinderGeometry(radius, radius, 1, 12);
+    const material = new THREE.MeshStandardMaterial({
+      color: '#000000',
+      emissive: '#000000',
+      emissiveIntensity: 0.6,
+    });
+    const mesh = new THREE.InstancedMesh(geometry, material, dashes.length);
+    mesh.count = 0;
+
+    const dummy = new THREE.Object3D();
+    const mid = new THREE.Vector3();
+    const dir = new THREE.Vector3();
+    const quat = new THREE.Quaternion();
+    const up = new THREE.Vector3(0, 1, 0);
+    const scale = new THREE.Vector3();
+
+    for (let i = 0; i < dashes.length; i++) {
+      const { a, b } = dashes[i];
+      const length = Math.max(0.01, a.distanceTo(b));
+      mid.addVectors(a, b).multiplyScalar(0.5);
+      dir.subVectors(b, a);
+      dir.normalize();
+      quat.setFromUnitVectors(up, dir);
+      scale.set(1, length, 1);
+
+      dummy.position.copy(mid);
+      dummy.quaternion.copy(quat);
+      dummy.scale.copy(scale);
+      dummy.updateMatrix();
+      mesh.setMatrixAt(i, dummy.matrix);
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+    return mesh;
+  }, [dashes, dashSize]);
 
   useEffect(() => {
     progress.current = 0;
@@ -103,20 +193,21 @@ export function AnimatedRouteLine({
   }, [points]);
 
   useFrame((_, delta) => {
-    const target = positions.length - 1;
-    if (target <= 0) return;
-    if (progress.current < 1) {
-      progress.current = Math.min(1, progress.current + delta / 1.5);
-    }
-    const t = progress.current;
-    const seg = t * target;
-    const i = Math.min(positions.length - 2, Math.floor(seg));
-    const localT = seg - i;
-    const a = positions[i];
-    const b = positions[i + 1];
+    if (!instancedMesh || dashes.length === 0) return;
 
-    if (markerRef.current) {
-      markerRef.current.position.lerpVectors(a, b, localT);
+    if (progress.current < 1) {
+      progress.current = Math.min(1, progress.current + delta / speed);
+    }
+
+    const visibleCount = Math.max(0, Math.min(dashes.length, Math.floor(progress.current * dashes.length)));
+    if (instancedMesh.count !== visibleCount) {
+      instancedMesh.count = visibleCount;
+    }
+
+    const markerDist = progress.current * totalLength;
+    const markerPos = getPointOnPolyline(vectors, totalLength, markerDist);
+    if (markerRef.current && markerPos) {
+      markerRef.current.position.copy(markerPos);
     }
 
     if (progress.current >= 1 && !completedRef.current) {
@@ -125,12 +216,14 @@ export function AnimatedRouteLine({
     }
   });
 
+  if (!instancedMesh) return null;
+
   return (
     <group>
-      <Line ref={lineRef} points={points} color="#22C55E" lineWidth={6} />
+      <primitive object={instancedMesh} />
       <mesh ref={markerRef}>
-        <sphereGeometry args={[8, 16, 16]} />
-        <meshStandardMaterial color="#22C55E" emissive="#22C55E" emissiveIntensity={0.8} />
+        <sphereGeometry args={[dashSize * 1.2, 16, 16]} />
+        <meshStandardMaterial color="#000000" emissive="#000000" emissiveIntensity={0.6} />
       </mesh>
     </group>
   );
@@ -299,7 +392,7 @@ export default function MallMap({ onOpenAdmin, widgetRefreshKey }: { onOpenAdmin
   const prevZoomRef = useRef<number>(2);
 
   const cameraConfig = useMemo(() => ({
-    position: [0, 5000, 0.001] as [number, number, number],
+    position: [0, 600, 0.001] as [number, number, number],
     fov: 50,
     near: 0.1,
     far: 100000000,
@@ -361,7 +454,7 @@ export default function MallMap({ onOpenAdmin, widgetRefreshKey }: { onOpenAdmin
     if (!floor) return;
     setRouteNodes([]);
     setRouteEdges([]);
-    Promise.all([fetchRouteNodes(floor.id), fetchRouteEdges(floor.id)])
+    Promise.all([fetchPublicRouteNodes(floor.id), fetchPublicRouteEdges(floor.id)])
       .then(([n, e]) => {
         setRouteNodes(n);
         setRouteEdges(e);
@@ -385,9 +478,15 @@ export default function MallMap({ onOpenAdmin, widgetRefreshKey }: { onOpenAdmin
 
     const startNode =
       routeNodes.find((n) => n.type === 'PANEL' && connectedIds.has(n.id)) ??
-      routeNodes.find((n) => n.type === 'ENTRANCE' && connectedIds.has(n.id)) ??
       routeNodes.find((n) => n.type === 'PANEL') ??
-      routeNodes.find((n) => n.type === 'ENTRANCE');
+      routeNodes.find((n) => n.type === 'ENTRANCE' && connectedIds.has(n.id)) ??
+      routeNodes.find((n) => n.type === 'ENTRANCE') ??
+      routeNodes.find((n) => n.type === 'INFO_DESK' && connectedIds.has(n.id)) ??
+      routeNodes.find((n) => n.type === 'INFO_DESK') ??
+      routeNodes.find((n) => n.type === 'STORE_ANCHOR' && connectedIds.has(n.id)) ??
+      routeNodes.find((n) => n.type === 'STORE_ANCHOR') ??
+      routeNodes.find((n) => n.type === 'ROUTE_POINT' && connectedIds.has(n.id)) ??
+      routeNodes.find((n) => n.type === 'ROUTE_POINT');
 
     if (!startNode) {
       setRouteError('Нет узла стойки/входа на этом этаже для начала маршрута');
@@ -400,7 +499,6 @@ export default function MallMap({ onOpenAdmin, widgetRefreshKey }: { onOpenAdmin
       const route = await buildRouteToStore({
         fromNodeId: startNode.id,
         storeSlug,
-        floorId: floor.id,
       });
       setActiveRoute(route);
     } catch (err) {

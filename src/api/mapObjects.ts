@@ -19,6 +19,10 @@ export function fetchMapObjects(floorId: string): Promise<ApiMapObject[]> {
   );
 }
 
+export function fetchAllMapObjects(): Promise<ApiMapObject[]> {
+  return apiGet<ApiMapObject[]>('/public/map-objects?limit=100');
+}
+
 export function createMapObject(
   input: MapObjectUpsertInput,
 ): Promise<ApiMapObject> {

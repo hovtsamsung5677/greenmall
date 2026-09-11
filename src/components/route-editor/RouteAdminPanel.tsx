@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   fetchRouteNodes,
   createRouteNode,
+  updateRouteNode,
   deleteRouteNode,
   type CreateRouteNodeInput,
 } from '../../api/routeNodes';
@@ -11,7 +12,7 @@ import {
   deleteRouteEdge,
 } from '../../api/routeEdges';
 import { fetchFloors, fetchFloorScene } from '../../api/floors';
-import { fetchMapObjects } from '../../api/mapObjects';
+import { fetchAllMapObjects, fetchMapObjects } from '../../api/mapObjects';
 import type {
   ApiFloor,
   ApiRouteNode,
@@ -78,6 +79,7 @@ export default function RouteAdminPanel() {
   const [newNodeType, setNewNodeType] = useState<ApiRouteNodeType>('ROUTE_POINT');
   const [anchorMapObjectId, setAnchorMapObjectId] = useState<string>('');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [editingAnchorMapObjectId, setEditingAnchorMapObjectId] = useState<string>('');
   const [pendingFromId, setPendingFromId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [show3D, setShow3D] = useState(false);
@@ -96,7 +98,7 @@ export default function RouteAdminPanel() {
     if (!floorId) return;
     setLoading(true);
     setError(null);
-    Promise.all([fetchRouteNodes(floorId), fetchRouteEdges(floorId), fetchMapObjects(floorId)])
+    Promise.all([fetchRouteNodes(floorId), fetchRouteEdges(floorId), fetchAllMapObjects()])
       .then(([n, e, m]) => {
         setNodes(n);
         setEdges(e);
@@ -124,6 +126,10 @@ export default function RouteAdminPanel() {
     [nodes, selectedNodeId],
   );
 
+  useEffect(() => {
+    setEditingAnchorMapObjectId(selectedNode?.mapObjectId ?? '');
+  }, [selectedNode?.mapObjectId]);
+
   const planMetrics = useMemo(() => {
     const floor = floors.find((f) => f.id === floorId);
     if (!floor) return null;
@@ -132,6 +138,11 @@ export default function RouteAdminPanel() {
       height: floor.height ?? 600,
     };
   }, [floors, floorId]);
+
+  const floorMapObjects = useMemo(() => {
+    if (!floorId) return [];
+    return mapObjects.filter((obj) => obj.floorId === floorId);
+  }, [mapObjects, floorId]);
 
   async function handleAddNode(coords: { x: number; y: number; z: number }) {
     if (!floorId) return;
@@ -154,6 +165,22 @@ export default function RouteAdminPanel() {
       setNodes((prev) => [...prev, created]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка создания узла');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleUpdateNodeBinding() {
+    if (!selectedNodeId || !selectedNode) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const updated = await updateRouteNode(selectedNodeId, {
+        mapObjectId: editingAnchorMapObjectId || null,
+      });
+      setNodes((prev) => prev.map((n) => (n.id === updated.id ? updated : n)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Ошибка обновления привязки');
     } finally {
       setBusy(false);
     }
@@ -313,7 +340,7 @@ export default function RouteAdminPanel() {
               onChange={(e) => setAnchorMapObjectId(e.target.value)}
             >
               <option value="">— без привязки —</option>
-              {mapObjects.map((obj) => (
+              {floorMapObjects.map((obj) => (
                 <option key={obj.id} value={obj.id}>
                   {obj.name}
                 </option>
@@ -425,6 +452,33 @@ export default function RouteAdminPanel() {
               </p>
               {selectedNode.mapObjectId ? (
                 <p className={styles.muted}>MapObject: {selectedNode.mapObjectId}</p>
+              ) : null}
+              {selectedNode &&
+              selectedNode.type !== 'ROUTE_POINT' &&
+              selectedNode.type !== 'OTHER' ? (
+                <label className={styles.field}>
+                  <span>Привязать к объекту</span>
+                  <select
+                    className={styles.select}
+                    value={editingAnchorMapObjectId}
+                    onChange={(e) => setEditingAnchorMapObjectId(e.target.value)}
+                  >
+                     <option value="">— без привязки —</option>
+                     {floorMapObjects.map((obj) => (
+                       <option key={obj.id} value={obj.id}>
+                         {obj.name}
+                       </option>
+                     ))}
+                  </select>
+                  <button
+                    type="button"
+                    className={styles.modeBtn}
+                    onClick={handleUpdateNodeBinding}
+                    disabled={!selectedNode}
+                  >
+                    Сохранить привязку
+                  </button>
+                </label>
               ) : null}
             </div>
           ) : null}
