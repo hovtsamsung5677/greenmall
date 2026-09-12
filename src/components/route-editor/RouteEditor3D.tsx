@@ -3,7 +3,7 @@ import { Canvas, type ThreeEvent } from '@react-three/fiber';
 import { OrbitControls, Line } from '@react-three/drei';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { useLoader } from '@react-three/fiber';
-import * as THREE from 'three';
+import { Object3D, Vector3, Box3, MOUSE } from 'three';
 import type { Group } from 'three';
 import type { ApiRouteNode, ApiRouteEdge, ApiRouteNodeType } from '../../api/types';
 
@@ -13,12 +13,12 @@ export interface FloorPlanMetrics {
 }
 
 function resolveModelScale(
-  model: THREE.Object3D,
+  model: Object3D,
   metrics: FloorPlanMetrics | null,
-): { scale: number; center: THREE.Vector3 } {
-  const box = new THREE.Box3().setFromObject(model);
-  const size = new THREE.Vector3();
-  const center = new THREE.Vector3();
+): { scale: number; center: Vector3 } {
+  const box = new Box3().setFromObject(model);
+  const size = new Vector3();
+  const center = new Vector3();
   box.getSize(size);
   box.getCenter(center);
 
@@ -257,9 +257,9 @@ export default function RouteEditor3D({
             enableZoom
             enablePan
             mouseButtons={{
-              LEFT: THREE.MOUSE.ROTATE,
-              MIDDLE: THREE.MOUSE.DOLLY,
-              RIGHT: THREE.MOUSE.PAN,
+              LEFT: MOUSE.ROTATE,
+              MIDDLE: MOUSE.DOLLY,
+              RIGHT: MOUSE.PAN,
             }}
           />
         </Canvas>

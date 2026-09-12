@@ -1,10 +1,23 @@
 ﻿import { useState, useEffect, useMemo, Suspense, useRef } from 'react';
 import React from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { useLoader } from '@react-three/fiber';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import * as THREE from 'three';
+import {
+  Vector3,
+  Mesh,
+  Box3,
+  MeshStandardMaterial,
+  CylinderGeometry,
+  InstancedMesh,
+  Object3D,
+  Quaternion,
+  MOUSE,
+  TOUCH,
+  Sphere,
+  MathUtils,
+} from 'three';
 import type { Group } from 'three';
 import { QRCodeSVG } from 'qrcode.react';
 import styles from './MallMap.module.css';
@@ -20,6 +33,7 @@ import { fetchPublicRouteNodes } from '../api/routeNodes';
 import { fetchPublicRouteEdges } from '../api/routeEdges';
 import { buildRouteToStore } from '../api/routes';
 import { createSharedRoute } from '../api/sharedRoutes';
+import { getLocalFloorModelUrl } from '../utils/floors';
 import type {
   ApiFloor,
   ApiFloorScene,
@@ -41,22 +55,6 @@ const MONTHS_EN = [
 ];
 
 const FLOORS = [0, 1, 2, 3, 4];
-
-const localFloorModelModules = import.meta.glob('../../floors/*.glb', {
-  eager: true,
-  query: '?url',
-  import: 'default',
-}) as Record<string, string>;
-
-const LOCAL_FLOOR_MODELS: Record<number, string> = Object.entries(
-  localFloorModelModules,
-).reduce<Record<number, string>>((acc, [path, url]) => {
-  const match = /(-?\d+)_floor\.glb$/i.exec(path);
-  if (match) {
-    acc[Number(match[1])] = url;
-  }
-  return acc;
-}, {});
 
 const FLOOR_PLACEHOLDER_COLOR: Record<number, string> = {
   0: '#9BA0AB',
@@ -81,7 +79,7 @@ function formatDate(date: Date, lang: 'ru' | 'en'): string {
   return `${weekday}, ${day} ${month}`;
 }
 
-function getPointOnPolyline(points: THREE.Vector3[], totalLength: number, distance: number): THREE.Vector3 | null {
+function getPointOnPolyline(points: Vector3[], totalLength: number, distance: number): Vector3 | null {
   if (points.length === 0) return null;
   if (points.length === 1) return points[0].clone();
   if (distance <= 0) return points[0].clone();
@@ -94,7 +92,7 @@ function getPointOnPolyline(points: THREE.Vector3[], totalLength: number, distan
     const segLen = a.distanceTo(b);
     if (distance <= traveled + segLen) {
       const t = (distance - traveled) / segLen;
-      return new THREE.Vector3().lerpVectors(a, b, Math.min(t, 1));
+      return new Vector3().lerpVectors(a, b, Math.min(t, 1));
     }
     traveled += segLen;
   }
@@ -112,12 +110,12 @@ export function AnimatedRouteLine({
   speed?: number;
   dashSize?: number;
 }) {
-  const markerRef = useRef<THREE.Mesh>(null);
+  const markerRef = useRef<Mesh>(null);
   const progress = useRef(0);
   const completedRef = useRef(false);
 
   const vectors = useMemo(
-    () => points.map((p) => new THREE.Vector3(p[0], p[1], p[2])),
+    () => points.map((p) => new Vector3(p[0], p[1], p[2])),
     [points],
   );
 
@@ -133,10 +131,10 @@ export function AnimatedRouteLine({
   }, [vectors]);
 
   const dashes = useMemo(() => {
-    if (totalLength === 0 || vectors.length < 2) return [] as { a: THREE.Vector3; b: THREE.Vector3 }[];
+    if (totalLength === 0 || vectors.length < 2) return [] as { a: Vector3; b: Vector3 }[];
     const step = DASH_LENGTH + GAP_LENGTH;
     const count = Math.max(1, Math.floor(totalLength / step));
-    const result: { a: THREE.Vector3; b: THREE.Vector3 }[] = [];
+    const result: { a: Vector3; b: Vector3 }[] = [];
     for (let i = 0; i < count; i++) {
       const startDist = i * step;
       const endDist = Math.min(startDist + DASH_LENGTH, totalLength);
@@ -152,21 +150,21 @@ export function AnimatedRouteLine({
   const instancedMesh = useMemo(() => {
     if (dashes.length === 0) return null;
     const radius = Math.max(0.1, dashSize);
-    const geometry = new THREE.CylinderGeometry(radius, radius, 1, 12);
-    const material = new THREE.MeshStandardMaterial({
+    const geometry = new CylinderGeometry(radius, radius, 1, 12);
+    const material = new MeshStandardMaterial({
       color: '#000000',
       emissive: '#000000',
       emissiveIntensity: 0.6,
     });
-    const mesh = new THREE.InstancedMesh(geometry, material, dashes.length);
+    const mesh = new InstancedMesh(geometry, material, dashes.length);
     mesh.count = 0;
 
-    const dummy = new THREE.Object3D();
-    const mid = new THREE.Vector3();
-    const dir = new THREE.Vector3();
-    const quat = new THREE.Quaternion();
-    const up = new THREE.Vector3(0, 1, 0);
-    const scale = new THREE.Vector3();
+    const dummy = new Object3D();
+    const mid = new Vector3();
+    const dir = new Vector3();
+    const quat = new Quaternion();
+    const up = new Vector3(0, 1, 0);
+    const scale = new Vector3();
 
     for (let i = 0; i < dashes.length; i++) {
       const { a, b } = dashes[i];
@@ -251,9 +249,9 @@ export function FloorScene({
   }, [gltf]);
 
   const { scale, center } = useMemo(() => {
-    const box = new THREE.Box3().setFromObject(scene);
-    const size = new THREE.Vector3();
-    const center = new THREE.Vector3();
+    const box = new Box3().setFromObject(scene);
+    const size = new Vector3();
+    const center = new Vector3();
     box.getSize(size);
     box.getCenter(center);
     let scale = 1;
@@ -369,6 +367,189 @@ class ErrorBoundary extends React.Component<
   }
 }
 
+function MallMapHeader({
+  lang,
+  onLangChange,
+  onOpenAdmin,
+  now,
+}: {
+  lang: 'ru' | 'en';
+  onLangChange: (next: 'ru' | 'en') => void;
+  onOpenAdmin?: () => void;
+  now: Date;
+}) {
+  return (
+    <header className={styles.header}>
+      <img src={logoGreenMall} alt="GreenMall" className={styles.logo} draggable={false} />
+      <div className={styles.headerRight}>
+        <div className={styles.dateTime}>
+          <span className={styles.time}>{formatTime(now)}</span>
+          <span className={styles.date}>{formatDate(now, lang)}</span>
+        </div>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          {onOpenAdmin ? (
+            <button className={styles.adminBtn} type="button" onClick={onOpenAdmin}>
+              Admin
+            </button>
+          ) : null}
+          <button className={styles.langSwitch} type="button" onClick={() => onLangChange(lang === 'en' ? 'ru' : 'en')}>
+            <img
+              src={lang === 'ru' ? translatorRu : translatorEn}
+              alt={lang === 'ru' ? 'Переключить на английский' : 'Switch to Russian'}
+              className={styles.translatorIcon}
+              draggable={false}
+            />
+          </button>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function FloorControls({
+  floors,
+  activeFloor,
+  onFloorChange,
+}: {
+  floors: number[];
+  activeFloor: number;
+  onFloorChange: (floor: number) => void;
+}) {
+  return (
+    <div className={styles.floorControls}>
+      {floors.map((floor) => (
+        <button
+          key={floor}
+          type="button"
+          className={`${styles.floorBtn} ${activeFloor === floor ? styles.floorBtnActive : ''}`}
+          onClick={() => onFloorChange(floor)}
+          aria-pressed={activeFloor === floor}
+        >
+          {floor}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function ZoomControls({
+  lang,
+  onZoomIn,
+  onZoomOut,
+  onShare,
+  shareLoading,
+  hasRoute,
+}: {
+  lang: 'ru' | 'en';
+  onZoomIn: () => void;
+  onZoomOut: () => void;
+  onShare: () => void;
+  shareLoading: boolean;
+  hasRoute: boolean;
+}) {
+  return (
+    <div className={styles.zoomControls}>
+      <button
+        type="button"
+        className={styles.qrBtn}
+        aria-label={lang === 'en' ? 'Share route via QR' : 'Поделиться маршрутом через QR'}
+        onClick={onShare}
+        disabled={shareLoading || !hasRoute}
+      >
+        <img src={lang === 'en' ? qrCodeEngIcon : qrCodeIcon} alt="QR" />
+      </button>
+      <button type="button" className={styles.zoomBtn} aria-label="Уменьшить" onClick={onZoomOut}>
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M5 12h14" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+        </svg>
+      </button>
+      <button type="button" className={styles.zoomBtn} aria-label="Увеличить" onClick={onZoomIn}>
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
+function ShareQrModal({
+  lang,
+  shareToken,
+  shareLoading,
+  shareError,
+  shareUrl,
+  onClose,
+}: {
+  lang: 'ru' | 'en';
+  shareToken: string | null;
+  shareLoading: boolean;
+  shareError: string | null;
+  shareUrl: string;
+  onClose: () => void;
+}) {
+  if (!shareToken && !shareLoading && !shareError) return null;
+
+  return (
+    <div className={styles.qrOverlay} onClick={onClose}>
+      <div className={styles.qrModal} onClick={(e) => e.stopPropagation()}>
+        <h3 className={styles.qrModalTitle}>
+          {lang === 'en' ? 'Scan to open on phone' : 'Отсканируйте, чтобы открыть на телефоне'}
+        </h3>
+        {shareLoading ? (
+          <p className={styles.qrModalHint}>
+            {lang === 'en' ? 'Generating code…' : 'Генерация кода…'}
+          </p>
+        ) : shareError ? (
+          <p className={styles.qrModalError}>{shareError}</p>
+        ) : shareToken ? (
+          <>
+            <div className={styles.qrCodeBox}>
+              <QRCodeSVG value={shareUrl} size={220} level="M" />
+            </div>
+            <p className={styles.qrModalHint}>
+              {lang === 'en'
+                ? 'Open the camera and scan — the route will open in your browser.'
+                : 'Откройте камеру и отсканируйте — маршрут откроется в браузере.'}
+            </p>
+          </>
+        ) : null}
+        <button type="button" className={styles.qrModalClose} onClick={onClose}>
+          {lang === 'en' ? 'Close' : 'Закрыть'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function CameraController({ activeFloor, controlsRef }: { activeFloor: number; controlsRef: React.RefObject<any> }) {
+  const { camera } = useThree();
+  const cameraRef = useRef(camera);
+  cameraRef.current = camera;
+
+  useEffect(() => {
+    const y = activeFloor === 0 ? 120000 : 600;
+    const controls = controlsRef.current;
+    const cam = cameraRef.current;
+    if (controls && cam) {
+      cam.position.set(0, y, 0.001);
+      controls.target.set(0, 0, 0);
+      controls.update();
+      cam.updateProjectionMatrix();
+    }
+    console.log('[CameraController] init', {
+      activeFloor,
+      x: cam?.position.x,
+      y: cam?.position.y,
+      z: cam?.position.z,
+      target: controls?.target
+        ? { x: controls.target.x, y: controls.target.y, z: controls.target.z }
+        : null,
+    });
+  }, [activeFloor, controlsRef]);
+
+  return null;
+}
+
 export default function MallMap({ onOpenAdmin, widgetRefreshKey }: { onOpenAdmin?: () => void; widgetRefreshKey?: number } = {}) {
   const [now, setNow] = useState(() => new Date());
 
@@ -391,21 +572,18 @@ export default function MallMap({ onOpenAdmin, widgetRefreshKey }: { onOpenAdmin
   const controlsRef = useRef<any>(null);
   const prevZoomRef = useRef<number>(2);
 
-  const cameraConfig = useMemo(() => ({
-    position: [0, 600, 0.001] as [number, number, number],
-    fov: 50,
-    near: 0.1,
-    far: 100000000,
-  }), []);
+  const cameraConfig = useMemo(() => {
+    const y = activeFloor === 0 ? 120000 : 600;
+    return {
+      position: [0, y, 0.001] as [number, number, number],
+      fov: 50,
+      near: 0.1,
+      far: 100000000,
+    };
+  }, [activeFloor]);
 
   const canvasStyle = useMemo(() => ({ background: 'transparent' }), []);
 
-  useEffect(() => {
-    const controls = controlsRef.current?.current;
-    if (!controls) return;
-    controls.target.set(0, 0, 0);
-    controls.update();
-  }, [activeFloor]);
   const [routeNodes, setRouteNodes] = useState<ApiRouteNode[]>([]);
   const [routeEdges, setRouteEdges] = useState<ApiRouteEdge[]>([]);
   const [activeRoute, setActiveRoute] = useState<ApiRouteToStoreResponse | null>(null);
@@ -415,6 +593,8 @@ export default function MallMap({ onOpenAdmin, widgetRefreshKey }: { onOpenAdmin
   const [shareToken, setShareToken] = useState<string | null>(null);
   const [shareLoading, setShareLoading] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
+
+  const [showRouteToast, setShowRouteToast] = useState(false);
 
   useEffect(() => {
     fetchFloors()
@@ -476,17 +656,27 @@ export default function MallMap({ onOpenAdmin, widgetRefreshKey }: { onOpenAdmin
       connectedIds.add(edge.toNodeId);
     }
 
-    const startNode =
-      routeNodes.find((n) => n.type === 'PANEL' && connectedIds.has(n.id)) ??
-      routeNodes.find((n) => n.type === 'PANEL') ??
-      routeNodes.find((n) => n.type === 'ENTRANCE' && connectedIds.has(n.id)) ??
-      routeNodes.find((n) => n.type === 'ENTRANCE') ??
-      routeNodes.find((n) => n.type === 'INFO_DESK' && connectedIds.has(n.id)) ??
-      routeNodes.find((n) => n.type === 'INFO_DESK') ??
-      routeNodes.find((n) => n.type === 'STORE_ANCHOR' && connectedIds.has(n.id)) ??
-      routeNodes.find((n) => n.type === 'STORE_ANCHOR') ??
-      routeNodes.find((n) => n.type === 'ROUTE_POINT' && connectedIds.has(n.id)) ??
-      routeNodes.find((n) => n.type === 'ROUTE_POINT');
+    const nodesByType = new Map<string, ApiRouteNode[]>();
+    for (const node of routeNodes) {
+      const list = nodesByType.get(node.type) ?? [];
+      list.push(node);
+      nodesByType.set(node.type, list);
+    }
+
+    const typePriority: ApiRouteNode['type'][] = [
+      'PANEL',
+      'ENTRANCE',
+      'INFO_DESK',
+      'STORE_ANCHOR',
+      'ROUTE_POINT',
+    ];
+
+    let startNode: ApiRouteNode | undefined;
+    for (const type of typePriority) {
+      const candidates = nodesByType.get(type) ?? [];
+      startNode = candidates.find((n) => connectedIds.has(n.id)) ?? candidates[0];
+      if (startNode) break;
+    }
 
     if (!startNode) {
       setRouteError('Нет узла стойки/входа на этом этаже для начала маршрута');
@@ -536,21 +726,21 @@ export default function MallMap({ onOpenAdmin, widgetRefreshKey }: { onOpenAdmin
     : '';
 
   useEffect(() => {
-    const controls = controlsRef.current?.current;
+    const controls = controlsRef.current;
     if (!controls) {
       prevZoomRef.current = zoom;
       return;
     }
     const ratio = zoom / prevZoomRef.current;
     if (ratio !== 1 && ratio > 0) {
-      controls.dollyIn(ratio);
+      controls.dollyIn(1 / ratio);
       controls.update();
     }
     prevZoomRef.current = zoom;
   }, [zoom]);
 
 
-  const localModelUrl = LOCAL_FLOOR_MODELS[activeFloor] ?? null;
+  const localModelUrl = getLocalFloorModelUrl(activeFloor);
   const modelUrl = localModelUrl ?? currentModelUrl;
 
   const planMetrics = useMemo(() => {
@@ -561,6 +751,16 @@ export default function MallMap({ onOpenAdmin, widgetRefreshKey }: { onOpenAdmin
       height: floor.height ?? 600,
     };
   }, [floors, activeFloor]);
+
+  useEffect(() => {
+    setShowRouteToast(true);
+  }, []);
+
+  useEffect(() => {
+    if (activeRoute) {
+      setShowRouteToast(false);
+    }
+  }, [activeRoute]);
 
   useEffect(() => {
     console.log('[MallMap] Floor changed:', {
@@ -579,40 +779,12 @@ export default function MallMap({ onOpenAdmin, widgetRefreshKey }: { onOpenAdmin
 
   return (
     <div className={styles.page}>
-      <header className={styles.header}>
-        <img src={logoGreenMall} alt="GreenMall" className={styles.logo} draggable={false} />
-
-        <div className={styles.headerRight}>
-          <div className={styles.dateTime}>
-            <span className={styles.time}>{formatTime(now)}</span>
-            <span className={styles.date}>{formatDate(now, lang)}</span>
-          </div>
-
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            {onOpenAdmin ? (
-              <button
-                className={styles.adminBtn}
-                type="button"
-                onClick={onOpenAdmin}
-              >
-                Admin
-              </button>
-            ) : null}
-            <button
-              className={styles.langSwitch}
-              type="button"
-              onClick={() => setLang((p) => (p === 'en' ? 'ru' : 'en'))}
-            >
-              <img
-                src={lang === 'ru' ? translatorRu : translatorEn}
-                alt={lang === 'ru' ? 'Переключить на английский' : 'Switch to Russian'}
-                className={styles.translatorIcon}
-                draggable={false}
-              />
-            </button>
-          </div>
-        </div>
-      </header>
+      <MallMapHeader
+        lang={lang}
+        onLangChange={setLang}
+        onOpenAdmin={onOpenAdmin}
+        now={now}
+      />
 
       <div className={styles.mapArea}>
         <MallWidget
@@ -667,16 +839,18 @@ export default function MallMap({ onOpenAdmin, widgetRefreshKey }: { onOpenAdmin
                   enableRotate
                   enableZoom
                   enablePan
+                  enableDamping={false}
                   mouseButtons={{
-                    LEFT: THREE.MOUSE.ROTATE,
-                    MIDDLE: THREE.MOUSE.DOLLY,
-                    RIGHT: THREE.MOUSE.PAN,
+                    LEFT: MOUSE.ROTATE,
+                    MIDDLE: MOUSE.DOLLY,
+                    RIGHT: MOUSE.PAN,
                   }}
                   touches={{
-                    ONE: THREE.TOUCH.ROTATE,
-                    TWO: THREE.TOUCH.DOLLY_PAN,
+                    ONE: TOUCH.ROTATE,
+                    TWO: TOUCH.DOLLY_PAN,
                   }}
                 />
+                <CameraController activeFloor={activeFloor} controlsRef={controlsRef} />
               </Canvas>
             </ErrorBoundary>
           )}
@@ -697,85 +871,32 @@ export default function MallMap({ onOpenAdmin, widgetRefreshKey }: { onOpenAdmin
           </div>
         ) : null}
 
-        <div className={styles.floorControls}>
-          {FLOORS.map((floor) => (
-            <button
-              key={floor}
-              type="button"
-              className={`${styles.floorBtn} ${activeFloor === floor ? styles.floorBtnActive : ''}`}
-              onClick={() => setActiveFloor(floor)}
-              aria-pressed={activeFloor === floor}
-            >
-              {floor}
-            </button>
-          ))}
-        </div>
+        {showRouteToast && !activeRoute && !routeLoading && !routeError ? (
+          <div className={styles.routeToast}>
+            Выберите магазин, чтобы построить маршрут
+          </div>
+        ) : null}
 
-        <div className={styles.zoomControls}>
-          <button
-            type="button"
-            className={styles.qrBtn}
-            aria-label={lang === 'en' ? 'Share route via QR' : 'Поделиться маршрутом через QR'}
-            onClick={() => void handleShareRoute()}
-            disabled={shareLoading || !activeRoute}
-          >
-            <img src={lang === 'en' ? qrCodeEngIcon : qrCodeIcon} alt="QR" />
-          </button>
-          <button type="button" className={styles.zoomBtn} aria-label="Уменьшить" onClick={() => handleZoom(-0.1)}>
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M5 12h14" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
-            </svg>
-          </button>
-          <button type="button" className={styles.zoomBtn} aria-label="Увеличить" onClick={() => handleZoom(0.1)}>
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-        </div>
+        <FloorControls floors={FLOORS} activeFloor={activeFloor} onFloorChange={setActiveFloor} />
+
+        <ZoomControls
+          lang={lang}
+          onZoomIn={() => handleZoom(0.2)}
+          onZoomOut={() => handleZoom(-0.2)}
+          onShare={() => void handleShareRoute()}
+          shareLoading={shareLoading}
+          hasRoute={!!activeRoute}
+        />
       </div>
 
-      {shareToken || shareLoading || shareError ? (
-        <div className={styles.qrOverlay} onClick={() => setShareToken(null)}>
-          <div className={styles.qrModal} onClick={(e) => e.stopPropagation()}>
-            <h3 className={styles.qrModalTitle}>
-              {lang === 'en' ? 'Scan to open on phone' : 'Отсканируйте, чтобы открыть на телефоне'}
-            </h3>
-            {shareLoading ? (
-              <p className={styles.qrModalHint}>
-                {lang === 'en' ? 'Generating code…' : 'Генерация кода…'}
-              </p>
-            ) : shareError ? (
-              <p className={styles.qrModalError}>{shareError}</p>
-            ) : shareToken ? (
-              <>
-                <div className={styles.qrCodeBox}>
-                  <QRCodeSVG value={shareUrl} size={220} level="M" />
-                </div>
-                <p className={styles.qrModalHint}>
-                  {lang === 'en'
-                    ? 'Open the camera and scan — the route will open in your browser.'
-                    : 'Откройте камеру и отсканируйте — маршрут откроется в браузере.'}
-                </p>
-              </>
-            ) : null}
-            <button
-              type="button"
-              className={styles.qrModalClose}
-              onClick={() => setShareToken(null)}
-            >
-              {lang === 'en' ? 'Close' : 'Закрыть'}
-            </button>
-          </div>
-        </div>
-      ) : null}
+      <ShareQrModal
+        lang={lang}
+        shareToken={shareToken}
+        shareLoading={shareLoading}
+        shareError={shareError}
+        shareUrl={shareUrl}
+        onClose={() => setShareToken(null)}
+      />
     </div>
   );
 }
-
-
-
-
-
-
-
-

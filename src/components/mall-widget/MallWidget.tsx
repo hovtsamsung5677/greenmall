@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Category, SubcategoryItem } from "./types";
 import { SearchIcon, ChevronUpIcon, BackIcon, FloorIcon } from "./icons";
 
@@ -123,15 +123,15 @@ export default function MallWidget({
     return map;
   }, [categoriesProp, internalCategories]);
 
+  const loadDataRef = useRef<() => void>(() => {});
+
   useEffect(() => {
-    console.log('[MallWidget] mount/refresh useEffect', { categoriesProp: !!categoriesProp, lang, refreshKey });
     if (categoriesProp) return;
 
     let cancelled = false;
     let intervalId: ReturnType<typeof setInterval> | undefined;
 
-    async function loadCategories() {
-      console.log('[MallWidget] loadCategories start', { categoriesProp: !!categoriesProp, lang, refreshKey });
+    async function loadData() {
       setLoading(true);
       setLoadError(false);
       try {
@@ -139,8 +139,7 @@ export default function MallWidget({
           fetchCategories(),
           fetchStores(),
         ]);
-         console.log('[MallWidget] loaded', { categories: apiCategories.length, stores: apiStores.length });
-         if (cancelled) return;
+        if (cancelled) return;
 
         const storesByCategory = new Map<string, ApiStore[]>();
         const storesByIdMap = new Map<string, ApiStore>();
@@ -199,10 +198,11 @@ export default function MallWidget({
       }
     }
 
-    void loadCategories();
+    loadDataRef.current = loadData;
+    void loadData();
     intervalId = setInterval(() => {
-      void loadCategories();
-    }, 30000);
+      void loadData();
+    }, 6000);
 
     return () => {
       cancelled = true;
@@ -211,84 +211,9 @@ export default function MallWidget({
   }, [categoriesProp, lang]);
 
   useEffect(() => {
-    console.log('[MallWidget] refreshKey useEffect', { categoriesProp: !!categoriesProp, lang, refreshKey });
     if (categoriesProp || refreshKey == null) return;
-
-    let cancelled = false;
-
-    async function reload() {
-      setLoading(true);
-      setLoadError(false);
-      try {
-        const [apiCategories, apiStores] = await Promise.all([
-          fetchCategories(),
-          fetchStores(),
-        ]);
-        if (cancelled) return;
-
-        const storesByCategory = new Map<string, ApiStore[]>();
-        const storesByIdMap = new Map<string, ApiStore>();
-        const storesWithoutCategory: ApiStore[] = [];
-        for (const store of apiStores) {
-          if (store.category?.id) {
-            const list = storesByCategory.get(store.category.id) ?? [];
-            list.push(store);
-            storesByCategory.set(store.category.id, list);
-          } else {
-            storesWithoutCategory.push(store);
-          }
-          storesByIdMap.set(store.id, store);
-        }
-
-         const mapped = apiCategories.map((category) => {
-           const categoryStores = storesByCategory.get(category.id) ?? [];
-           return {
-             id: category.id,
-             title: translateCategory(category.slug, category.name, lang),
-             icon: category.icon ?? category.slug,
-             items: categoryStores.map((store) => ({
-               name: translateStore(store.slug, store.name, lang),
-               count: 1,
-               storeId: store.id,
-               store,
-             })),
-           } satisfies Category & { items: (SubcategoryItem & { storeId: string; store: ApiStore })[] };
-         });
-
-        if (storesWithoutCategory.length > 0) {
-          const uncategorized: Category = {
-            id: '__uncategorized',
-            title: lang === 'ru' ? 'Другое' : 'Other',
-            icon: 'infrastructure',
-            items: storesWithoutCategory.map((store) => ({
-              name: translateStore(store.slug, store.name, lang),
-              count: 1,
-              storeId: store.id,
-              store,
-            })),
-          };
-          mapped.push(uncategorized);
-        }
-
-        setInternalCategories(mapped);
-      } catch (error) {
-        if (!cancelled) {
-          console.error('MallWidget: failed to reload categories', error);
-          setLoadError(true);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    }
-
-    void reload();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [categoriesProp, lang, refreshKey]);
+    void loadDataRef.current();
+  }, [categoriesProp, refreshKey]);
 
   function openCategory(cat: Category) {
     setCurrentCategory(cat);

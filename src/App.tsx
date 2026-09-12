@@ -14,11 +14,11 @@ function getRouteTokenFromHash(): string | null {
 
 function App() {
   const [showMap, setShowMap] = useState(false);
-  const [showAdmin, setShowAdmin] = useState(false);
   const [widgetRefreshKey, setWidgetRefreshKey] = useState(0);
   const [shareToken, setShareToken] = useState<string | null>(
     () => getRouteTokenFromHash(),
   );
+  const [isAdmin, setIsAdmin] = useState(() => window.location.pathname === '/admin');
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const resetTimer = useCallback(() => {
@@ -37,11 +37,16 @@ function App() {
       setShareToken(getRouteTokenFromHash());
     };
 
+    const onPopState = () => {
+      setIsAdmin(window.location.pathname === '/admin');
+    };
+
     const events = ['mousedown', 'mousemove', 'keydown', 'touchstart', 'scroll'];
     events.forEach((event) => {
       document.addEventListener(event, resetTimer);
     });
     window.addEventListener('hashchange', onHashChange);
+    window.addEventListener('popstate', onPopState);
 
     return () => {
       if (timerRef.current) {
@@ -51,16 +56,22 @@ function App() {
         document.removeEventListener(event, resetTimer);
       });
       window.removeEventListener('hashchange', onHashChange);
+      window.removeEventListener('popstate', onPopState);
     };
   }, [resetTimer]);
 
   function openAdmin() {
-    setShowAdmin(true);
+    window.history.pushState({}, '', '/admin');
+    setIsAdmin(true);
+  }
+
+  function openMap() {
+    setShowMap(true);
   }
 
   function closeAdmin() {
     console.log('[App] closeAdmin, current widgetRefreshKey', widgetRefreshKey);
-    setShowAdmin(false);
+    window.history.back();
     setWidgetRefreshKey((prev) => {
       const next = prev + 1;
       console.log('[App] widgetRefreshKey', prev, '->', next);
@@ -72,7 +83,7 @@ function App() {
     return <RouteShareView token={shareToken} />;
   }
 
-  if (showAdmin) {
+  if (isAdmin) {
     return <AdminPage onClose={closeAdmin} />;
   }
 
@@ -80,7 +91,7 @@ function App() {
     <MallMap onOpenAdmin={openAdmin} widgetRefreshKey={widgetRefreshKey} />
   ) : (
     <LoadingScreen
-      onContinue={() => setShowMap(true)}
+      onContinue={openMap}
       onOpenAdmin={openAdmin}
     />
   );

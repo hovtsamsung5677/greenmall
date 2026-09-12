@@ -13,6 +13,7 @@ import {
 } from '../../api/routeEdges';
 import { fetchFloors, fetchFloorScene } from '../../api/floors';
 import { fetchAllMapObjects, fetchMapObjects } from '../../api/mapObjects';
+import { resolveModelUrl } from '../../utils/floors';
 import type {
   ApiFloor,
   ApiRouteNode,
@@ -22,36 +23,6 @@ import type {
 } from '../../api/types';
 import RouteEditor3D, { type RouteEditorMode } from './RouteEditor3D';
 import styles from './RouteAdminPanel.module.css';
-
-const API_BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000/api'
-).replace(/\/api$/, '');
-
-const localFloorModelModules = import.meta.glob('../../../floors/*.glb', {
-  eager: true,
-  query: '?url',
-  import: 'default',
-}) as Record<string, string>;
-
-const LOCAL_FLOOR_MODELS: Record<number, string> = Object.entries(
-  localFloorModelModules,
-).reduce<Record<number, string>>((acc, [path, url]) => {
-  const match = /(-?\d+)_floor\.glb$/i.exec(path);
-  if (match) {
-    acc[Number(match[1])] = url;
-  }
-  return acc;
-}, {});
-
-function resolveModelUrl(floorNumber: number, assetUrl: string | null): string | null {
-  if (LOCAL_FLOOR_MODELS[floorNumber]) {
-    return LOCAL_FLOOR_MODELS[floorNumber];
-  }
-  if (assetUrl) {
-    return assetUrl.startsWith('http') ? assetUrl : `${API_BASE_URL}${assetUrl}`;
-  }
-  return null;
-}
 
 const NODE_TYPE_LABELS: Record<ApiRouteNodeType, string> = {
   ROUTE_POINT: 'Точка маршрута',

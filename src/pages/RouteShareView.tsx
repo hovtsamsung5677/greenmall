@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo, Suspense, useRef } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
-import * as THREE from 'three';
 import type { Group } from 'three';
 import { FloorScene, type PlanMetrics } from './MallMap';
 import { fetchFloors, fetchFloorScene } from '../api/floors';
 import { getSharedRoute } from '../api/sharedRoutes';
+import { getLocalFloorModelUrl } from '../utils/floors';
 import type {
   ApiFloor,
   ApiFloorScene,
@@ -21,8 +21,6 @@ const FLOOR_PLACEHOLDER_COLOR: Record<number, string> = {
   3: '#A3907C',
   4: '#7C97A3',
 };
-
-const LOCAL_FLOOR_MODELS: Record<number, string> = {};
 
 const BASE_HEIGHT = 1200;
 const MIN_HEIGHT = 400;
@@ -127,7 +125,7 @@ export default function RouteShareView({ token }: { token: string }) {
       .finally(() => setLoading(false));
   }, [activeFloor, floors]);
 
-  const localModelUrl = LOCAL_FLOOR_MODELS[activeFloor] ?? null;
+  const localModelUrl = getLocalFloorModelUrl(activeFloor);
   const modelUrl = localModelUrl ?? currentModelUrl;
 
   const planMetrics = useMemo<PlanMetrics | null>(() => {

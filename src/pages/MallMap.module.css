@@ -685,6 +685,24 @@
   color: #fca5a5;
 }
 
+.routeToast {
+  position: absolute;
+  left: 50%;
+  bottom: 100px;
+  transform: translateX(-50%);
+  z-index: 6;
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  max-width: 90vw;
+  text-align: center;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
 /* Share route QR modal */
 
 .qrOverlay {
