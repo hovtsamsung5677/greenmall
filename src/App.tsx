@@ -19,6 +19,7 @@ function App() {
     () => getRouteTokenFromHash(),
   );
   const [isAdmin, setIsAdmin] = useState(() => window.location.pathname === '/admin');
+  const [justOpened, setJustOpened] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const resetTimer = useCallback(() => {
@@ -27,6 +28,7 @@ function App() {
     }
     timerRef.current = setTimeout(() => {
       setShowMap(false);
+      setJustOpened(false);
     }, IDLE_TIMEOUT);
   }, []);
 
@@ -66,7 +68,11 @@ function App() {
   }
 
   function openMap() {
+    if (document.pointerLockElement) {
+      document.exitPointerLock();
+    }
     setShowMap(true);
+    setJustOpened(true);
   }
 
   function closeAdmin() {
@@ -88,7 +94,7 @@ function App() {
   }
 
   return showMap ? (
-    <MallMap onOpenAdmin={openAdmin} widgetRefreshKey={widgetRefreshKey} />
+    <MallMap onOpenAdmin={openAdmin} widgetRefreshKey={widgetRefreshKey} justOpened={justOpened} />
   ) : (
     <LoadingScreen
       onContinue={openMap}

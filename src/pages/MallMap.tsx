@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useMemo, Suspense, useRef } from 'react';
+﻿import { useState, useEffect, useLayoutEffect, useMemo, Suspense, useRef } from 'react';
 import React from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
@@ -14,9 +14,7 @@ import {
   Object3D,
   Quaternion,
   MOUSE,
-  TOUCH,
-  Sphere,
-  MathUtils,
+  TOUCH
 } from 'three';
 import type { Group } from 'three';
 import { QRCodeSVG } from 'qrcode.react';
@@ -521,28 +519,42 @@ function ShareQrModal({
   );
 }
 
-function CameraController({ activeFloor, controlsRef }: { activeFloor: number; controlsRef: React.RefObject<any> }) {
+function CameraController({ activeFloor, controlsRef, justOpened }: { activeFloor: number; controlsRef: React.RefObject<any>; justOpened?: boolean }) {
   const { camera } = useThree();
   const cameraRef = useRef(camera);
   cameraRef.current = camera;
 
   useEffect(() => {
-    const controls = controlsRef.current;
-    const cam = cameraRef.current;
-    if (!controls || !cam) return;
+    if (!justOpened) return;
 
-    const y = activeFloor === 0 ? 120000 : 900;
+    const resetCamera = () => {
+      const controls = controlsRef.current;
+      const cam = cameraRef.current;
+      if (!controls || !cam) return;
 
-    controls.target.set(0, 0, 0);
-    controls.update();
-    cam.position.set(0, y, 0.001);
-    cam.updateProjectionMatrix();
-  }, [activeFloor, controlsRef]);
+      const y = activeFloor === 0 ? 120000 : 900;
+
+      controls.target.set(0, 0, 0);
+      cam.position.set(0, y, 0.001);
+      cam.updateProjectionMatrix();
+      controls.update();
+
+      if (typeof controls.reset === 'function') {
+        controls.reset();
+      }
+    };
+
+    const delays = [50, 150, 300, 500];
+    const timeoutIds = delays.map((delay) => setTimeout(resetCamera, delay));
+    return () => {
+      timeoutIds.forEach(clearTimeout);
+    };
+  }, [activeFloor, controlsRef, justOpened]);
 
   return null;
 }
 
-export default function MallMap({ onOpenAdmin, widgetRefreshKey }: { onOpenAdmin?: () => void; widgetRefreshKey?: number } = {}) {
+export default function MallMap({ onOpenAdmin, widgetRefreshKey, justOpened }: { onOpenAdmin?: () => void; widgetRefreshKey?: number; justOpened?: boolean } = {}) {
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -560,9 +572,10 @@ export default function MallMap({ onOpenAdmin, widgetRefreshKey }: { onOpenAdmin
   const [canvasError, setCanvasError] = useState(false);
   const [currentModelUrl, setCurrentModelUrl] = useState<string | null>(null);
   const modelGroupRef = useRef<Group | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const controlsRef = useRef<any>(null);
   const prevZoomRef = useRef<number>(2);
+  const [controlsEnabled, setControlsEnabled] = useState(false);
+  const viewportRef = useRef<HTMLDivElement | null>(null);
 
   const cameraConfig = useMemo(() => {
     const y = activeFloor === 0 ? 120000 : 900;
@@ -718,6 +731,12 @@ export default function MallMap({ onOpenAdmin, widgetRefreshKey }: { onOpenAdmin
     : '';
 
   useEffect(() => {
+    if (justOpened) {
+      prevZoomRef.current = zoom;
+    }
+  }, [justOpened, zoom]);
+
+  useEffect(() => {
     const controls = controlsRef.current;
     if (!controls) {
       prevZoomRef.current = zoom;
@@ -731,6 +750,17 @@ export default function MallMap({ onOpenAdmin, widgetRefreshKey }: { onOpenAdmin
     prevZoomRef.current = zoom;
   }, [zoom]);
 
+  useLayoutEffect(() => {
+    if (!justOpened) return;
+    setControlsEnabled(false);
+
+    const t = setTimeout(() => {
+      setControlsEnabled(true);
+    }, 500);
+    return () => {
+      clearTimeout(t);
+    };
+  }, [justOpened]);
 
   const localModelUrl = getLocalFloorModelUrl(activeFloor);
   const modelUrl = localModelUrl ?? currentModelUrl;
@@ -793,7 +823,7 @@ export default function MallMap({ onOpenAdmin, widgetRefreshKey }: { onOpenAdmin
           }}
         />
 
-        <div className={styles.modelViewport}>
+        <div ref={viewportRef} className={styles.modelViewport}>
           {!modelUrl ? (
             <div
               className={styles.modelPlaceholder}
@@ -808,6 +838,7 @@ export default function MallMap({ onOpenAdmin, widgetRefreshKey }: { onOpenAdmin
           ) : (
             <ErrorBoundary onError={() => setModelError(true)}>
               <Canvas
+                key={activeFloor}
                 camera={cameraConfig}
                 style={canvasStyle}
               >
@@ -829,9 +860,7 @@ export default function MallMap({ onOpenAdmin, widgetRefreshKey }: { onOpenAdmin
                   ref={controlsRef}
                   makeDefault
                   target={[0, 0, 0]}
-                  enableRotate
-                  enableZoom
-                  enablePan
+                  enabled={controlsEnabled}
                   enableDamping={false}
                   mouseButtons={{
                     LEFT: MOUSE.ROTATE,
@@ -843,7 +872,7 @@ export default function MallMap({ onOpenAdmin, widgetRefreshKey }: { onOpenAdmin
                     TWO: TOUCH.DOLLY_PAN,
                   }}
                 />
-                <CameraController activeFloor={activeFloor} controlsRef={controlsRef} />
+                <CameraController activeFloor={activeFloor} controlsRef={controlsRef} justOpened={justOpened} />
               </Canvas>
             </ErrorBoundary>
           )}
