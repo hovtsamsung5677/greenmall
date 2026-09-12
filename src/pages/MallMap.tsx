@@ -527,24 +527,16 @@ function CameraController({ activeFloor, controlsRef }: { activeFloor: number; c
   cameraRef.current = camera;
 
   useEffect(() => {
-    const y = activeFloor === 0 ? 120000 : 600;
     const controls = controlsRef.current;
     const cam = cameraRef.current;
-    if (controls && cam) {
-      cam.position.set(0, y, 0.001);
-      controls.target.set(0, 0, 0);
-      controls.update();
-      cam.updateProjectionMatrix();
-    }
-    console.log('[CameraController] init', {
-      activeFloor,
-      x: cam?.position.x,
-      y: cam?.position.y,
-      z: cam?.position.z,
-      target: controls?.target
-        ? { x: controls.target.x, y: controls.target.y, z: controls.target.z }
-        : null,
-    });
+    if (!controls || !cam) return;
+
+    const y = activeFloor === 0 ? 120000 : 900;
+
+    controls.target.set(0, 0, 0);
+    controls.update();
+    cam.position.set(0, y, 0.001);
+    cam.updateProjectionMatrix();
   }, [activeFloor, controlsRef]);
 
   return null;
@@ -573,7 +565,7 @@ export default function MallMap({ onOpenAdmin, widgetRefreshKey }: { onOpenAdmin
   const prevZoomRef = useRef<number>(2);
 
   const cameraConfig = useMemo(() => {
-    const y = activeFloor === 0 ? 120000 : 600;
+    const y = activeFloor === 0 ? 120000 : 900;
     return {
       position: [0, y, 0.001] as [number, number, number],
       fov: 50,
@@ -822,17 +814,18 @@ export default function MallMap({ onOpenAdmin, widgetRefreshKey }: { onOpenAdmin
                 <ambientLight intensity={0.8} />
                 <directionalLight position={[10, 20, 10]} intensity={1.2} />
                 <Suspense fallback={null}>
-                  <FloorScene
-                    key={modelUrl}
-                    url={modelUrl}
-                    groupRef={modelGroupRef}
-                    metrics={planMetrics}
-                    route={activeRoute}
-                    activeFloor={activeFloor}
-                    onReachTransfer={(nextFloor) => setActiveFloor(nextFloor)}
-                  />
+                <FloorScene
+                  key={modelUrl}
+                  url={modelUrl}
+                  groupRef={modelGroupRef}
+                  metrics={planMetrics}
+                  route={activeRoute}
+                  activeFloor={activeFloor}
+                  onReachTransfer={(nextFloor) => setActiveFloor(nextFloor)}
+                />
                 </Suspense>
                 <OrbitControls
+                  key={activeFloor}
                   ref={controlsRef}
                   makeDefault
                   target={[0, 0, 0]}
@@ -876,6 +869,23 @@ export default function MallMap({ onOpenAdmin, widgetRefreshKey }: { onOpenAdmin
             Выберите магазин, чтобы построить маршрут
           </div>
         ) : null}
+
+        <div className={styles.debugOverlay}>
+          <strong>Debug</strong>
+          <div>activeFloor: {activeFloor}</div>
+          <div>
+            camera: {(() => {
+              const c = controlsRef.current;
+              if (!c) return 'no controls';
+              const t = c.target;
+              const p = c.object?.position;
+              return `pos=(${p?.x?.toFixed(1)}, ${p?.y?.toFixed(1)}, ${p?.z?.toFixed(1)}) target=(${t?.x?.toFixed(1)}, ${t?.y?.toFixed(1)}, ${t?.z?.toFixed(1)})`;
+            })()}
+          </div>
+          <div>zoom: {zoom}</div>
+          <div>modelUrl: {modelUrl ?? 'none'}</div>
+          <div>metrics: {planMetrics ? `w=${planMetrics.width} h=${planMetrics.height}` : 'none'}</div>
+        </div>
 
         <FloorControls floors={FLOORS} activeFloor={activeFloor} onFloorChange={setActiveFloor} />
 

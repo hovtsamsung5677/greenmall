@@ -703,6 +703,23 @@
   white-space: nowrap;
 }
 
+.debugOverlay {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 50;
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  pointer-events: none;
+  white-space: pre-line;
+  max-width: 420px;
+}
+
 /* Share route QR modal */
 
 .qrOverlay {

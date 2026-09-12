@@ -116,6 +116,7 @@ select.input {
   font-family: inherit;
   color: var(--text);
   background-color: #fff;
+  box-sizing: border-box;
 }
 
 .textarea {
