@@ -13,6 +13,34 @@ function getRouteTokenFromHash(): string | null {
   return match ? match[1] : null;
 }
 
+function RouteLoadingSplash() {
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: '#f3f4d7',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontFamily: 'inherit',
+      }}
+    >
+      <div
+        style={{
+          width: 48,
+          height: 48,
+          border: '4px solid rgba(122, 143, 20, 0.2)',
+          borderTopColor: '#7A8F14',
+          borderRadius: '50%',
+          animation: 'spin 0.9s linear infinite',
+        }}
+      />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+}
+
 function App() {
   const [showMap, setShowMap] = useState(false);
   const [widgetRefreshKey, setWidgetRefreshKey] = useState(0);
@@ -63,6 +91,13 @@ function App() {
     };
   }, [resetTimer]);
 
+  // Prefetch: пока пользователь читает LoadingScreen, браузер в фоне
+  // скачивает MallMap + three.js (311 kB gzip). К моменту тапа чанки
+  // уже в кеше, и Suspense разрешается мгновенно — без видимой задержки.
+  useEffect(() => {
+    void import('./pages/MallMap');
+  }, []);
+
   function openAdmin() {
     window.history.pushState({}, '', '/admin');
     setIsAdmin(true);
@@ -88,7 +123,7 @@ function App() {
 
   if (shareToken) {
     return (
-      <Suspense fallback={<LoadingScreen onContinue={openMap} onOpenAdmin={openAdmin} />}>
+      <Suspense fallback={<RouteLoadingSplash />}>
         <RouteShareView token={shareToken} />
       </Suspense>
     );
@@ -96,21 +131,22 @@ function App() {
 
   if (isAdmin) {
     return (
-      <Suspense fallback={<LoadingScreen onContinue={openMap} onOpenAdmin={openAdmin} />}>
+      <Suspense fallback={<RouteLoadingSplash />}>
         <AdminPage onClose={closeAdmin} />
       </Suspense>
     );
   }
 
   return showMap ? (
-    <Suspense fallback={<LoadingScreen onContinue={openMap} onOpenAdmin={openAdmin} />}>
-      <MallMap onOpenAdmin={openAdmin} widgetRefreshKey={widgetRefreshKey} justOpened={justOpened} />
+    <Suspense fallback={<RouteLoadingSplash />}>
+      <MallMap
+        onOpenAdmin={openAdmin}
+        widgetRefreshKey={widgetRefreshKey}
+        justOpened={justOpened}
+      />
     </Suspense>
   ) : (
-    <LoadingScreen
-      onContinue={openMap}
-      onOpenAdmin={openAdmin}
-    />
+    <LoadingScreen onContinue={openMap} onOpenAdmin={openAdmin} />
   );
 }
 
