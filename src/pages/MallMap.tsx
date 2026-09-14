@@ -557,24 +557,26 @@ export default function MallMap({
           </div>
         ) : null}
 
-        <div className={styles.debugOverlay}>
-          <strong>Debug</strong>
-          <div>activeFloor: {activeFloor}</div>
-          <div>
-            camera: {(() => {
-              const c = controlsRef.current;
-              if (!c) return 'no controls';
-              const t = c.target;
-              const p = c.object?.position;
-              return `pos=(${p?.x?.toFixed(1)}, ${p?.y?.toFixed(1)}, ${p?.z?.toFixed(1)}) target=(${t?.x?.toFixed(1)}, ${t?.y?.toFixed(1)}, ${t?.z?.toFixed(1)})`;
-            })()}
+        {import.meta.env.DEV ? (
+          <div className={styles.debugOverlay}>
+            <strong>Debug</strong>
+            <div>activeFloor: {activeFloor}</div>
+            <div>
+              camera: {(() => {
+                const c = controlsRef.current;
+                if (!c) return 'no controls';
+                const t = c.target;
+                const p = c.object?.position;
+                return `pos=(${p?.x?.toFixed(1)}, ${p?.y?.toFixed(1)}, ${p?.z?.toFixed(1)}) target=(${t?.x?.toFixed(1)}, ${t?.y?.toFixed(1)}, ${t?.z?.toFixed(1)})`;
+              })()}
+            </div>
+            <div>zoom: {zoom}</div>
+            <div>modelUrl: {modelUrl ?? 'none'}</div>
+            <div>gltf: {gltf ? 'loaded' : gltfLoading ? 'loading' : 'idle'}</div>
+            <div>canvasKey: {canvasKey}</div>
+            <div>metrics: {planMetrics ? `w=${planMetrics.width} h=${planMetrics.height}` : 'none'}</div>
           </div>
-          <div>zoom: {zoom}</div>
-          <div>modelUrl: {modelUrl ?? 'none'}</div>
-          <div>gltf: {gltf ? 'loaded' : gltfLoading ? 'loading' : 'idle'}</div>
-          <div>canvasKey: {canvasKey}</div>
-          <div>metrics: {planMetrics ? `w=${planMetrics.width} h=${planMetrics.height}` : 'none'}</div>
-        </div>
+        ) : null}
 
         <FloorControls floors={FLOORS} activeFloor={activeFloor} onFloorChange={setActiveFloor} />
 
