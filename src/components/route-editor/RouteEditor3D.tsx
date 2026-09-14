@@ -199,10 +199,12 @@ export default function RouteEditor3D({
   const modelGroupRef = useRef<Group | null>(null);
   const [error, setError] = useState(false);
 
-  if (!modelUrl) {
+  if (!modelUrl || !modelUrl.endsWith('.glb')) {
     return (
       <div style={{ padding: 24, color: '#64748B' }}>
-        Нет 3D-модели этажа для редактирования.
+        {!modelUrl
+          ? 'Нет 3D-модели этажа для редактирования.'
+          : `Некорректный URL модели: ${modelUrl}`}
       </div>
     );
   }

@@ -13,7 +13,7 @@ import {
 } from '@api/routeEdges';
 import { fetchFloors, fetchFloorScene } from '@api/floors';
 import { fetchAllMapObjects, fetchMapObjects } from '@api/mapObjects';
-import { resolveModelUrl } from '@utils/floors';
+import { getLocalFloorModelUrl, resolveModelUrl } from '@utils/floors';
 import type {
   ApiFloor,
   ApiRouteNode,
@@ -86,9 +86,16 @@ export default function RouteAdminPanel() {
     setModelUrl(null);
     const floor = floors.find((f) => f.id === floorId);
     fetchFloorScene(floorId)
-      .then((scene) =>
-        setModelUrl(resolveModelUrl(floor?.number ?? 0, scene.floor.modelAsset?.url ?? null)),
-      )
+      .then((scene) => {
+        const floorNumber = floor?.number;
+        const assetUrl = scene.floor.modelAsset?.url ?? null;
+        if (floorNumber != null && floorNumber >= 0) {
+          setModelUrl(resolveModelUrl(floorNumber, assetUrl));
+        } else {
+          console.warn('[RouteAdminPanel] invalid floor number', floorNumber, 'for', floorId, 'fallback to floor 0');
+          setModelUrl(getLocalFloorModelUrl(0) ?? assetUrl);
+        }
+      })
       .catch(() => setModelUrl(null));
   }, [floorId, floors]);
 

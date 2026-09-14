@@ -48,7 +48,7 @@ import TenantsTab, {
 } from '@components/admin/TenantsTab';
 import styles from '@styles/AdminPage.module.css';
 
-const RouteAdminPanel = lazy(() => import('../components/route-editor/RouteAdminPanel'));
+const RouteAdminPanel = lazy(() => import('@components/route-editor/RouteAdminPanel'));
 const RouteSharePreview = lazy(() => import('./RouteSharePreview'));
 
 class RouteAdminErrorBoundary extends React.Component<
