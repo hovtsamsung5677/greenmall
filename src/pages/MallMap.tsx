@@ -1,22 +1,5 @@
-﻿import { useState, useEffect, useLayoutEffect, useMemo, Suspense, useRef } from 'react';
+﻿import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import React from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
-import { useLoader } from '@react-three/fiber';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import {
-  Vector3,
-  Mesh,
-  Box3,
-  MeshStandardMaterial,
-  CylinderGeometry,
-  InstancedMesh,
-  Object3D,
-  Quaternion,
-  MOUSE,
-  TOUCH
-} from 'three';
-import type { Group } from 'three';
 import { QRCodeSVG } from 'qrcode.react';
 import styles from './MallMap.module.css';
 
@@ -40,12 +23,21 @@ import type {
   ApiRouteToStoreResponse,
 } from '../api/types';
 
+import { useCachedGLTF, clearGLTFCache } from './MallMap/gltfCache';
+import { SceneCanvas, makeCameraConfig, type CameraConfig } from './MallMap/SceneCanvas';
+import type { PlanMetrics } from './MallMap/FloorScene';
+
+// === Реэкспорт для обратной совместимости (RouteSharePreview и др.) ===
+export { FloorScene, AnimatedRouteLine } from './MallMap/FloorScene';
+export type { PlanMetrics } from './MallMap/FloorScene';
+
+// ==================== Константы и утилиты ====================
+
 const WEEKDAYS_RU = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 const MONTHS_RU = [
   'Янв', 'Фев', 'Март', 'Апр', 'Май', 'Июнь',
   'Июль', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек',
 ];
-
 const WEEKDAYS_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS_EN = [
   'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -62,6 +54,9 @@ const FLOOR_PLACEHOLDER_COLOR: Record<number, string> = {
   4: '#7C97A3',
 };
 
+// Включите для диагностики: покажет оси X/Y/Z в начале координат.
+const DEBUG_3D = false;
+
 function formatTime(date: Date): string {
   const hh = String(date.getHours()).padStart(2, '0');
   const mm = String(date.getMinutes()).padStart(2, '0');
@@ -77,299 +72,10 @@ function formatDate(date: Date, lang: 'ru' | 'en'): string {
   return `${weekday}, ${day} ${month}`;
 }
 
-function getPointOnPolyline(points: Vector3[], totalLength: number, distance: number): Vector3 | null {
-  if (points.length === 0) return null;
-  if (points.length === 1) return points[0].clone();
-  if (distance <= 0) return points[0].clone();
-  if (distance >= totalLength) return points[points.length - 1].clone();
-
-  let traveled = 0;
-  for (let i = 0; i < points.length - 1; i++) {
-    const a = points[i];
-    const b = points[i + 1];
-    const segLen = a.distanceTo(b);
-    if (distance <= traveled + segLen) {
-      const t = (distance - traveled) / segLen;
-      return new Vector3().lerpVectors(a, b, Math.min(t, 1));
-    }
-    traveled += segLen;
-  }
-  return points[points.length - 1].clone();
-}
-
-export function AnimatedRouteLine({
-  points,
-  onComplete,
-  speed = 2.5,
-  dashSize = 4,
-}: {
-  points: [number, number, number][];
-  onComplete?: () => void;
-  speed?: number;
-  dashSize?: number;
-}) {
-  const markerRef = useRef<Mesh>(null);
-  const progress = useRef(0);
-  const completedRef = useRef(false);
-
-  const vectors = useMemo(
-    () => points.map((p) => new Vector3(p[0], p[1], p[2])),
-    [points],
-  );
-
-  const DASH_LENGTH = 10;
-  const GAP_LENGTH = 5;
-
-  const totalLength = useMemo(() => {
-    let len = 0;
-    for (let i = 0; i < vectors.length - 1; i++) {
-      len += vectors[i].distanceTo(vectors[i + 1]);
-    }
-    return len;
-  }, [vectors]);
-
-  const dashes = useMemo(() => {
-    if (totalLength === 0 || vectors.length < 2) return [] as { a: Vector3; b: Vector3 }[];
-    const step = DASH_LENGTH + GAP_LENGTH;
-    const count = Math.max(1, Math.floor(totalLength / step));
-    const result: { a: Vector3; b: Vector3 }[] = [];
-    for (let i = 0; i < count; i++) {
-      const startDist = i * step;
-      const endDist = Math.min(startDist + DASH_LENGTH, totalLength);
-      const a = getPointOnPolyline(vectors, totalLength, startDist);
-      const b = getPointOnPolyline(vectors, totalLength, endDist);
-      if (a && b) {
-        result.push({ a, b });
-      }
-    }
-    return result;
-  }, [vectors, totalLength]);
-
-  const instancedMesh = useMemo(() => {
-    if (dashes.length === 0) return null;
-    const radius = Math.max(0.1, dashSize);
-    const geometry = new CylinderGeometry(radius, radius, 1, 12);
-    const material = new MeshStandardMaterial({
-      color: '#000000',
-      emissive: '#000000',
-      emissiveIntensity: 0.6,
-    });
-    const mesh = new InstancedMesh(geometry, material, dashes.length);
-    mesh.count = 0;
-
-    const dummy = new Object3D();
-    const mid = new Vector3();
-    const dir = new Vector3();
-    const quat = new Quaternion();
-    const up = new Vector3(0, 1, 0);
-    const scale = new Vector3();
-
-    for (let i = 0; i < dashes.length; i++) {
-      const { a, b } = dashes[i];
-      const length = Math.max(0.01, a.distanceTo(b));
-      mid.addVectors(a, b).multiplyScalar(0.5);
-      dir.subVectors(b, a);
-      dir.normalize();
-      quat.setFromUnitVectors(up, dir);
-      scale.set(1, length, 1);
-
-      dummy.position.copy(mid);
-      dummy.quaternion.copy(quat);
-      dummy.scale.copy(scale);
-      dummy.updateMatrix();
-      mesh.setMatrixAt(i, dummy.matrix);
-    }
-    mesh.instanceMatrix.needsUpdate = true;
-    return mesh;
-  }, [dashes, dashSize]);
-
-  useEffect(() => {
-    progress.current = 0;
-    completedRef.current = false;
-  }, [points]);
-
-  useFrame((_, delta) => {
-    if (!instancedMesh || dashes.length === 0) return;
-
-    if (progress.current < 1) {
-      progress.current = Math.min(1, progress.current + delta / speed);
-    }
-
-    const visibleCount = Math.max(0, Math.min(dashes.length, Math.floor(progress.current * dashes.length)));
-    if (instancedMesh.count !== visibleCount) {
-      instancedMesh.count = visibleCount;
-    }
-
-    const markerDist = progress.current * totalLength;
-    const markerPos = getPointOnPolyline(vectors, totalLength, markerDist);
-    if (markerRef.current && markerPos) {
-      markerRef.current.position.copy(markerPos);
-    }
-
-    if (progress.current >= 1 && !completedRef.current) {
-      completedRef.current = true;
-      onComplete?.();
-    }
-  });
-
-  if (!instancedMesh) return null;
-
-  return (
-    <group>
-      <primitive object={instancedMesh} />
-      <mesh ref={markerRef}>
-        <sphereGeometry args={[dashSize * 1.2, 16, 16]} />
-        <meshStandardMaterial color="#000000" emissive="#000000" emissiveIntensity={0.6} />
-      </mesh>
-    </group>
-  );
-}
-
-export function FloorScene({
-  url,
-  groupRef,
-  metrics,
-  route,
-  activeFloor,
-  onReachTransfer,
-}: {
-  url: string;
-  groupRef?: React.RefObject<Group | null>;
-  metrics: PlanMetrics | null;
-  route: ApiRouteToStoreResponse | null;
-  activeFloor: number;
-  onReachTransfer?: (nextFloor: number) => void;
-}) {
-  const gltf = useLoader(GLTFLoader, url);
-  const scene = useMemo(() => {
-    const cloned = gltf.scene.clone(true);
-    return cloned;
-  }, [gltf]);
-
-  const { scale, center } = useMemo(() => {
-    const box = new Box3().setFromObject(scene);
-    const size = new Vector3();
-    const center = new Vector3();
-    box.getSize(size);
-    box.getCenter(center);
-    let scale = 1;
-    if (metrics && size.x > 0 && size.z > 0) {
-      const uniform = Math.min(metrics.width / size.x, metrics.height / size.z) || 1;
-      scale = uniform;
-    }
-    return { scale, center };
-  }, [scene, metrics]);
-  const stableCenter = useRef(center);
-  const stableScale = useRef(scale);
-
-  if (stableCenter.current !== center) {
-    stableCenter.current = center;
-  }
-  if (stableScale.current !== scale) {
-    stableScale.current = scale;
-  }
-
-  const planToScene = (p: { x: number; y: number; z?: number | null }): [number, number, number] => {
-    const w = metrics?.width ?? 1;
-    const h = metrics?.height ?? 1;
-    const sceneX = p.x - w / 2;
-    const sceneY = (p.z ?? 0) || 0;
-    const sceneZ = p.y - h / 2;
-    return [sceneX, sceneY, sceneZ];
-  };
-
-  const routeOverlay = useMemo(() => {
-    if (!route || route.routePath.length < 2) return null;
-    const segment = route.segments?.find((s) => s.floorNumber === activeFloor) ?? null;
-    if (!segment || segment.points.length < 2) return null;
-    const points = segment.points.map(planToScene);
-    const start = points[0];
-    const end = points[points.length - 1];
-
-    const handleComplete = () => {
-      const changes = route.floorChanges ?? [];
-      const change = changes.find((ch) => ch.fromFloor === activeFloor);
-      if (change) onReachTransfer?.(change.toFloor);
-    };
-
-    return (
-      <group>
-        <AnimatedRouteLine points={points} onComplete={handleComplete} />
-        <mesh position={start}>
-          <sphereGeometry args={[8, 16, 16]} />
-          <meshStandardMaterial color="#F59E0B" emissive="#F59E0B" emissiveIntensity={0.6} />
-        </mesh>
-        <mesh position={end}>
-          <sphereGeometry args={[8, 16, 16]} />
-          <meshStandardMaterial color="#EF4444" emissive="#EF4444" emissiveIntensity={0.6} />
-        </mesh>
-      </group>
-    );
-  }, [route, planToScene, activeFloor, onReachTransfer]);
-
-  return (
-    <>
-      <group
-        ref={groupRef}
-        scale={stableScale.current}
-        position={[-stableCenter.current.x * stableScale.current, -stableCenter.current.y * stableScale.current, -stableCenter.current.z * stableScale.current]}
-      >
-        <primitive object={scene} />
-      </group>
-      {routeOverlay}
-    </>
-  );
-}
-
-export interface PlanMetrics {
-  width: number;
-  height: number;
-}
-
-function ModelError({ onRetry }: { onRetry: () => void }) {
-  return (
-    <div className={styles.modelPlaceholder} style={{ backgroundColor: '#ffcccc' }}>
-      <span className={styles.modelPlaceholderLabel}>
-        Ошибка загрузки 3D-модели
-      </span>
-      <button onClick={onRetry} style={{ marginTop: 12, padding: '8px 16px', cursor: 'pointer' }}>
-        Повторить
-      </button>
-    </div>
-  );
-}
-
-class ErrorBoundary extends React.Component<
-  { children: React.ReactNode; onError: () => void },
-  { hasError: boolean }
-> {
-  constructor(props: { children: React.ReactNode; onError: () => void }) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError() {
-    return { hasError: true };
-  }
-
-  componentDidCatch(error: unknown) {
-    console.error('[ErrorBoundary] 3D render error', error);
-    this.props.onError();
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return null;
-    }
-    return this.props.children;
-  }
-}
+// ==================== Мелкие UI-компоненты ====================
 
 function MallMapHeader({
-  lang,
-  onLangChange,
-  onOpenAdmin,
-  now,
+  lang, onLangChange, onOpenAdmin, now,
 }: {
   lang: 'ru' | 'en';
   onLangChange: (next: 'ru' | 'en') => void;
@@ -390,7 +96,11 @@ function MallMapHeader({
               Admin
             </button>
           ) : null}
-          <button className={styles.langSwitch} type="button" onClick={() => onLangChange(lang === 'en' ? 'ru' : 'en')}>
+          <button
+            className={styles.langSwitch}
+            type="button"
+            onClick={() => onLangChange(lang === 'en' ? 'ru' : 'en')}
+          >
             <img
               src={lang === 'ru' ? translatorRu : translatorEn}
               alt={lang === 'ru' ? 'Переключить на английский' : 'Switch to Russian'}
@@ -405,13 +115,9 @@ function MallMapHeader({
 }
 
 function FloorControls({
-  floors,
-  activeFloor,
-  onFloorChange,
+  floors, activeFloor, onFloorChange,
 }: {
-  floors: number[];
-  activeFloor: number;
-  onFloorChange: (floor: number) => void;
+  floors: number[]; activeFloor: number; onFloorChange: (floor: number) => void;
 }) {
   return (
     <div className={styles.floorControls}>
@@ -431,19 +137,11 @@ function FloorControls({
 }
 
 function ZoomControls({
-  lang,
-  onZoomIn,
-  onZoomOut,
-  onShare,
-  shareLoading,
-  hasRoute,
+  lang, onZoomIn, onZoomOut, onShare, shareLoading, hasRoute,
 }: {
   lang: 'ru' | 'en';
-  onZoomIn: () => void;
-  onZoomOut: () => void;
-  onShare: () => void;
-  shareLoading: boolean;
-  hasRoute: boolean;
+  onZoomIn: () => void; onZoomOut: () => void; onShare: () => void;
+  shareLoading: boolean; hasRoute: boolean;
 }) {
   return (
     <div className={styles.zoomControls}>
@@ -471,12 +169,7 @@ function ZoomControls({
 }
 
 function ShareQrModal({
-  lang,
-  shareToken,
-  shareLoading,
-  shareError,
-  shareUrl,
-  onClose,
+  lang, shareToken, shareLoading, shareError, shareUrl, onClose,
 }: {
   lang: 'ru' | 'en';
   shareToken: string | null;
@@ -519,45 +212,55 @@ function ShareQrModal({
   );
 }
 
-function CameraController({ activeFloor, controlsRef, justOpened }: { activeFloor: number; controlsRef: React.RefObject<any>; justOpened?: boolean }) {
-  const { camera } = useThree();
-  const cameraRef = useRef(camera);
-  cameraRef.current = camera;
-
-  useEffect(() => {
-    if (!justOpened) return;
-
-    const resetCamera = () => {
-      const controls = controlsRef.current;
-      const cam = cameraRef.current;
-      if (!controls || !cam) return;
-
-      const y = activeFloor === 0 ? 120000 : 900;
-
-      controls.target.set(0, 0, 0);
-      cam.position.set(0, y, 0.001);
-      cam.updateProjectionMatrix();
-
-      controls.update();
-    };
-
-    const delays = [50, 150, 300, 500];
-    const timeoutIds = delays.map((delay) => setTimeout(resetCamera, delay));
-    return () => {
-      timeoutIds.forEach(clearTimeout);
-    };
-  }, [activeFloor, controlsRef, justOpened]);
-
-  return null;
+function ModelError({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className={styles.modelPlaceholder} style={{ backgroundColor: '#ffcccc' }}>
+      <span className={styles.modelPlaceholderLabel}>Ошибка загрузки 3D-модели</span>
+      <button onClick={onRetry} style={{ marginTop: 12, padding: '8px 16px', cursor: 'pointer' }}>
+        Повторить
+      </button>
+    </div>
+  );
 }
 
-export default function MallMap({ onOpenAdmin, widgetRefreshKey, justOpened }: { onOpenAdmin?: () => void; widgetRefreshKey?: number; justOpened?: boolean } = {}) {
-  const [now, setNow] = useState(() => new Date());
+class ErrorBoundary extends React.Component<
+  { children: React.ReactNode; onError: () => void },
+  { hasError: boolean }
+> {
+  constructor(props: { children: React.ReactNode; onError: () => void }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error: unknown) {
+    console.error('[ErrorBoundary] 3D render error', error);
+    this.props.onError();
+  }
+  render() {
+    if (this.state.hasError) return null;
+    return this.props.children;
+  }
+}
 
+// ==================== MallMap ====================
+
+export default function MallMap({
+  onOpenAdmin,
+  widgetRefreshKey,
+  justOpened,
+}: {
+  onOpenAdmin?: () => void;
+  widgetRefreshKey?: number;
+  justOpened?: boolean;
+} = {}) {
+  const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000 * 15);
     return () => clearInterval(timer);
   }, []);
+
   const [lang, setLang] = useState<'ru' | 'en'>('ru');
   const [activeFloor, setActiveFloor] = useState<number>(1);
   const [zoom, setZoom] = useState<number>(2);
@@ -568,22 +271,20 @@ export default function MallMap({ onOpenAdmin, widgetRefreshKey, justOpened }: {
   const [modelError, setModelError] = useState(false);
   const [canvasError, setCanvasError] = useState(false);
   const [currentModelUrl, setCurrentModelUrl] = useState<string | null>(null);
-  const modelGroupRef = useRef<Group | null>(null);
+
   const controlsRef = useRef<any>(null);
-  const prevZoomRef = useRef<number>(2);
   const [controlsEnabled, setControlsEnabled] = useState(false);
   const viewportRef = useRef<HTMLDivElement | null>(null);
 
-  const cameraConfig = useMemo(() => {
-    const y = activeFloor === 0 ? 120000 : 900;
-    return {
-      position: [0, y, 0.001] as [number, number, number],
-      fov: 50,
-      near: 0.1,
-      far: 100000000,
-    };
-  }, [activeFloor]);
+  // Флаг: Canvas уже был успешно показан хотя бы раз — больше не размонтируем.
+  const [canvasReady, setCanvasReady] = useState(false);
 
+  // Ключ Canvas. Инкрементируется при потере WebGL-контекста (например, после AFK),
+  // чтобы React полностью пересоздал Canvas с новым контекстом. Модель мгновенно
+  // отрисуется из gltfPromiseCache.
+  const [canvasKey, setCanvasKey] = useState(0);
+
+  const cameraConfig: CameraConfig = useMemo(() => makeCameraConfig(activeFloor), [activeFloor]);
   const canvasStyle = useMemo(() => ({ background: 'transparent' }), []);
 
   const [routeNodes, setRouteNodes] = useState<ApiRouteNode[]>([]);
@@ -595,13 +296,12 @@ export default function MallMap({ onOpenAdmin, widgetRefreshKey, justOpened }: {
   const [shareToken, setShareToken] = useState<string | null>(null);
   const [shareLoading, setShareLoading] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
-
   const [showRouteToast, setShowRouteToast] = useState(false);
 
+  // ---------- загрузка данных ----------
+
   useEffect(() => {
-    fetchFloors()
-      .then(setFloors)
-      .catch(() => setFloors([]));
+    fetchFloors().then(setFloors).catch(() => setFloors([]));
   }, []);
 
   useEffect(() => {
@@ -611,7 +311,6 @@ export default function MallMap({ onOpenAdmin, widgetRefreshKey, justOpened }: {
     setLoading(true);
     setModelError(false);
     setCanvasError(false);
-    console.log('[MallMap] Loading scene for floor', { activeFloor, floorId: floor.id });
     fetchFloorScene(floor.id)
       .then((data) => {
         setScene(data);
@@ -647,6 +346,8 @@ export default function MallMap({ onOpenAdmin, widgetRefreshKey, justOpened }: {
       });
   }, [activeFloor, floors]);
 
+  // ---------- построение маршрута ----------
+
   async function handleBuildRouteToStore(storeSlug: string) {
     if (!floors.length) return;
     const floor = floors.find((f) => f.number === activeFloor);
@@ -657,29 +358,21 @@ export default function MallMap({ onOpenAdmin, widgetRefreshKey, justOpened }: {
       connectedIds.add(edge.fromNodeId);
       connectedIds.add(edge.toNodeId);
     }
-
     const nodesByType = new Map<string, ApiRouteNode[]>();
     for (const node of routeNodes) {
       const list = nodesByType.get(node.type) ?? [];
       list.push(node);
       nodesByType.set(node.type, list);
     }
-
     const typePriority: ApiRouteNode['type'][] = [
-      'PANEL',
-      'ENTRANCE',
-      'INFO_DESK',
-      'STORE_ANCHOR',
-      'ROUTE_POINT',
+      'PANEL', 'ENTRANCE', 'INFO_DESK', 'STORE_ANCHOR', 'ROUTE_POINT',
     ];
-
     let startNode: ApiRouteNode | undefined;
     for (const type of typePriority) {
       const candidates = nodesByType.get(type) ?? [];
       startNode = candidates.find((n) => connectedIds.has(n.id)) ?? candidates[0];
       if (startNode) break;
     }
-
     if (!startNode) {
       setRouteError('Нет узла стойки/входа на этом этаже для начала маршрута');
       return;
@@ -688,10 +381,7 @@ export default function MallMap({ onOpenAdmin, widgetRefreshKey, justOpened }: {
     setRouteLoading(true);
     setRouteError(null);
     try {
-      const route = await buildRouteToStore({
-        fromNodeId: startNode.id,
-        storeSlug,
-      });
+      const route = await buildRouteToStore({ fromNodeId: startNode.id, storeSlug });
       setActiveRoute(route);
     } catch (err) {
       setActiveRoute(null);
@@ -701,9 +391,13 @@ export default function MallMap({ onOpenAdmin, widgetRefreshKey, justOpened }: {
     }
   }
 
+  // ---------- зум ----------
+
   const handleZoom = (delta: number) => {
     setZoom((prev) => Math.min(3, Math.max(0.4, +(prev + delta).toFixed(2))));
   };
+
+  // ---------- шаринг ----------
 
   async function handleShareRoute() {
     if (!activeRoute) {
@@ -727,42 +421,27 @@ export default function MallMap({ onOpenAdmin, widgetRefreshKey, justOpened }: {
     ? `${(import.meta.env.VITE_SHARE_BASE_URL ?? window.location.origin).replace(/\/+$/, '')}/#/route/${shareToken}`
     : '';
 
-  useEffect(() => {
-    if (justOpened) {
-      prevZoomRef.current = zoom;
-    }
-  }, [justOpened, zoom]);
-
-  useEffect(() => {
-    const controls = controlsRef.current;
-    if (!controls) {
-      prevZoomRef.current = zoom;
-      return;
-    }
-    const ratio = zoom / prevZoomRef.current;
-    if (ratio !== 1 && ratio > 0) {
-      controls.dollyIn(1 / ratio);
-      controls.update();
-    }
-    prevZoomRef.current = zoom;
-  }, [zoom]);
+  // ---------- включение контролов после открытия ----------
 
   useLayoutEffect(() => {
     if (!justOpened) return;
     setControlsEnabled(false);
-
-    const t = setTimeout(() => {
-      setControlsEnabled(true);
-    }, 500);
-    return () => {
-      clearTimeout(t);
-    };
+    const t = setTimeout(() => setControlsEnabled(true), 500);
+    return () => clearTimeout(t);
   }, [justOpened]);
+
+  // ---------- модель ----------
 
   const localModelUrl = getLocalFloorModelUrl(activeFloor);
   const modelUrl = localModelUrl ?? currentModelUrl;
 
-  const planMetrics = useMemo(() => {
+  const { gltf, loading: gltfLoading, error: gltfError } = useCachedGLTF(modelUrl);
+
+  useEffect(() => {
+    if (gltf && !canvasReady) setCanvasReady(true);
+  }, [gltf, canvasReady]);
+
+  const planMetrics: PlanMetrics | null = useMemo(() => {
     const floor = floors.find((f) => f.number === activeFloor);
     if (!floor) return null;
     return {
@@ -771,39 +450,74 @@ export default function MallMap({ onOpenAdmin, widgetRefreshKey, justOpened }: {
     };
   }, [floors, activeFloor]);
 
+  useEffect(() => setShowRouteToast(true), []);
   useEffect(() => {
-    setShowRouteToast(true);
-  }, []);
-
-  useEffect(() => {
-    if (activeRoute) {
-      setShowRouteToast(false);
-    }
+    if (activeRoute) setShowRouteToast(false);
   }, [activeRoute]);
-
-  useEffect(() => {
-    console.log('[MallMap] Floor changed:', {
-      activeFloor,
-      modelUrl,
-      source: localModelUrl ? 'local' : currentModelUrl ? 'api' : 'none',
-      loading,
-      floorsCount: floors.length,
-    });
-  }, [activeFloor, modelUrl, localModelUrl, currentModelUrl, loading, floors.length]);
 
   const retryModel = () => {
     setModelError(false);
     setCanvasError(false);
+    if (modelUrl) clearGLTFCache(modelUrl);
   };
+
+  // ---------- рендер вьюпорта ----------
+
+  let viewport: React.ReactNode;
+  if (!modelUrl) {
+    viewport = (
+      <div
+        className={styles.modelPlaceholder}
+        style={{ backgroundColor: FLOOR_PLACEHOLDER_COLOR[activeFloor] }}
+      >
+        <span className={styles.modelPlaceholderLabel}>
+          {loading ? 'Загрузка...' : `3D-модель · этаж ${activeFloor}`}
+        </span>
+      </div>
+    );
+  } else if (gltfError || modelError || canvasError) {
+    viewport = <ModelError onRetry={retryModel} />;
+  } else if (!canvasReady && !gltf) {
+    viewport = (
+      <div
+        className={styles.modelPlaceholder}
+        style={{ backgroundColor: FLOOR_PLACEHOLDER_COLOR[activeFloor] }}
+      >
+        <span className={styles.modelPlaceholderLabel}>
+          {gltfLoading ? 'Загрузка модели…' : `3D-модель · этаж ${activeFloor}`}
+        </span>
+      </div>
+    );
+  } else {
+    viewport = (
+      <ErrorBoundary onError={() => setCanvasError(true)}>
+        <SceneCanvas
+          key={canvasKey}
+          gltf={gltf}
+          metrics={planMetrics}
+          route={activeRoute}
+          activeFloor={activeFloor}
+          onReachTransfer={(nextFloor) => setActiveFloor(nextFloor)}
+          controlsRef={controlsRef}
+          controlsEnabled={controlsEnabled}
+          cameraConfig={cameraConfig}
+          canvasStyle={canvasStyle}
+          justOpened={justOpened}
+          zoom={zoom}
+          debug={DEBUG_3D}
+          onContextLost={() => {
+            // Форсируем ремоунт Canvas со свежим WebGL-контекстом.
+            // Модель мгновенно отрисуется из gltfPromiseCache.
+            setCanvasKey((k) => k + 1);
+          }}
+        />
+      </ErrorBoundary>
+    );
+  }
 
   return (
     <div className={styles.page}>
-      <MallMapHeader
-        lang={lang}
-        onLangChange={setLang}
-        onOpenAdmin={onOpenAdmin}
-        now={now}
-      />
+      <MallMapHeader lang={lang} onLangChange={setLang} onOpenAdmin={onOpenAdmin} now={now} />
 
       <div className={styles.mapArea}>
         <MallWidget
@@ -814,65 +528,12 @@ export default function MallMap({ onOpenAdmin, widgetRefreshKey, justOpened }: {
           onExpand={() => setFiltersOpen(true)}
           onCollapse={() => setFiltersOpen(false)}
           onPickStore={(store) => {
-            if (store?.slug) {
-              void handleBuildRouteToStore(store.slug);
-            }
+            if (store?.slug) void handleBuildRouteToStore(store.slug);
           }}
         />
 
         <div ref={viewportRef} className={styles.modelViewport}>
-          {!modelUrl ? (
-            <div
-              className={styles.modelPlaceholder}
-              style={{ backgroundColor: FLOOR_PLACEHOLDER_COLOR[activeFloor] }}
-            >
-              <span className={styles.modelPlaceholderLabel}>
-                {loading ? 'Загрузка...' : `3D-модель · этаж ${activeFloor}`}
-              </span>
-            </div>
-          ) : modelError || canvasError ? (
-            <ModelError onRetry={retryModel} />
-          ) : (
-            <ErrorBoundary onError={() => setModelError(true)}>
-              <Canvas
-                key={activeFloor}
-                camera={cameraConfig}
-                style={canvasStyle}
-              >
-                <ambientLight intensity={0.8} />
-                <directionalLight position={[10, 20, 10]} intensity={1.2} />
-                <Suspense fallback={null}>
-                <FloorScene
-                  key={modelUrl}
-                  url={modelUrl}
-                  groupRef={modelGroupRef}
-                  metrics={planMetrics}
-                  route={activeRoute}
-                  activeFloor={activeFloor}
-                  onReachTransfer={(nextFloor) => setActiveFloor(nextFloor)}
-                />
-                </Suspense>
-                <OrbitControls
-                  key={activeFloor}
-                  ref={controlsRef}
-                  makeDefault
-                  target={[0, 0, 0]}
-                  enabled={controlsEnabled}
-                  enableDamping={false}
-                  mouseButtons={{
-                    LEFT: MOUSE.ROTATE,
-                    MIDDLE: MOUSE.DOLLY,
-                    RIGHT: MOUSE.PAN,
-                  }}
-                  touches={{
-                    ONE: TOUCH.ROTATE,
-                    TWO: TOUCH.DOLLY_PAN,
-                  }}
-                />
-                <CameraController activeFloor={activeFloor} controlsRef={controlsRef} justOpened={justOpened} />
-              </Canvas>
-            </ErrorBoundary>
-          )}
+          {viewport}
         </div>
 
         {(routeLoading || routeError || activeRoute) ? (
@@ -910,6 +571,8 @@ export default function MallMap({ onOpenAdmin, widgetRefreshKey, justOpened }: {
           </div>
           <div>zoom: {zoom}</div>
           <div>modelUrl: {modelUrl ?? 'none'}</div>
+          <div>gltf: {gltf ? 'loaded' : gltfLoading ? 'loading' : 'idle'}</div>
+          <div>canvasKey: {canvasKey}</div>
           <div>metrics: {planMetrics ? `w=${planMetrics.width} h=${planMetrics.height}` : 'none'}</div>
         </div>
 

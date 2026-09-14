@@ -129,7 +129,6 @@ export default function MallWidget({
     if (categoriesProp) return;
 
     let cancelled = false;
-    let intervalId: ReturnType<typeof setInterval> | undefined;
 
     async function loadData() {
       setLoading(true);
@@ -200,13 +199,9 @@ export default function MallWidget({
 
     loadDataRef.current = loadData;
     void loadData();
-    intervalId = setInterval(() => {
-      void loadData();
-    }, 6000);
 
     return () => {
       cancelled = true;
-      if (intervalId) clearInterval(intervalId);
     };
   }, [categoriesProp, lang]);
 
