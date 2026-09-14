@@ -33,7 +33,8 @@
       "@pages/*": ["src/pages/*"],
       "@utils/*": ["src/utils/*"],
       "@assets/*": ["src/assets/*"],
-      "@styles/*": ["src/styles/*"]
+      "@styles/*": ["src/styles/*"],
+      "@hooks/*": ["src/hooks/*"]
     }
   },
   "include": ["src", "vite-env.d.ts", "vite.config.ts"]

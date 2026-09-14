@@ -840,3 +840,34 @@
   height: 100%;
   min-height: 0;
 }
+
+/* Error overlay for data loading failures */
+
+.errorOverlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+  color: #c0392b;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.retryBtn {
+  padding: 10px 20px;
+  border-radius: 999px;
+  border: 2px solid var(--brand, #C2C353);
+  background: #fff;
+  color: var(--brand, #C2C353);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.retryBtn:hover {
+  background-color: #f4f5e3;
+}

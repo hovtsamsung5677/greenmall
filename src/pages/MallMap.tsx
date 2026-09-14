@@ -9,15 +9,12 @@ import qrCodeEngIcon from '@assets/icons/qr_code_eng.webp';
 import translatorRu from '@assets/icons/переводчик рус.svg';
 import translatorEn from '@assets/icons/переводчик англ.svg';
 import MallWidget from '@components/mall-widget/MallWidget';
-import { fetchFloors, fetchFloorScene } from '@api/floors';
 import { fetchPublicRouteNodes } from '@api/routeNodes';
 import { fetchPublicRouteEdges } from '@api/routeEdges';
 import { buildRouteToStore } from '@api/routes';
 import { createSharedRoute } from '@api/sharedRoutes';
-import { getLocalFloorModelUrl } from '@utils/floors';
+import { useFloorScene } from '@hooks/useFloorScene';
 import type {
-  ApiFloor,
-  ApiFloorScene,
   ApiRouteNode,
   ApiRouteEdge,
   ApiRouteToStoreResponse,
@@ -43,8 +40,6 @@ const MONTHS_EN = [
   'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
 ];
-
-const FLOORS = [0, 1, 2, 3, 4];
 
 const FLOOR_PLACEHOLDER_COLOR: Record<number, string> = {
   0: '#9BA0AB',
@@ -265,12 +260,18 @@ export default function MallMap({
   const [activeFloor, setActiveFloor] = useState<number>(1);
   const [zoom, setZoom] = useState<number>(2);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [floors, setFloors] = useState<ApiFloor[]>([]);
-  const [scene, setScene] = useState<ApiFloorScene | null>(null);
-  const [loading, setLoading] = useState(false);
   const [modelError, setModelError] = useState(false);
   const [canvasError, setCanvasError] = useState(false);
-  const [currentModelUrl, setCurrentModelUrl] = useState<string | null>(null);
+
+  const {
+    floors,
+    floorsError,
+    scene,
+    sceneError,
+    loading,
+    modelUrl,
+    retry,
+  } = useFloorScene(activeFloor);
 
   const controlsRef = useRef<any>(null);
   const [controlsEnabled, setControlsEnabled] = useState(false);
@@ -286,6 +287,14 @@ export default function MallMap({
 
   const cameraConfig: CameraConfig = useMemo(() => makeCameraConfig(activeFloor), [activeFloor]);
   const canvasStyle = useMemo(() => ({ background: 'transparent' }), []);
+  const floorNumbers = useMemo(() => [...floors].sort((a, b) => a.number - b.number).map((f) => f.number), [floors]);
+
+  useEffect(() => {
+    if (!floors.length) return;
+    if (!floors.some((f) => f.number === activeFloor)) {
+      setActiveFloor(floors[0].number);
+    }
+  }, [floors, activeFloor]);
 
   const [routeNodes, setRouteNodes] = useState<ApiRouteNode[]>([]);
   const [routeEdges, setRouteEdges] = useState<ApiRouteEdge[]>([]);
@@ -299,30 +308,6 @@ export default function MallMap({
   const [showRouteToast, setShowRouteToast] = useState(false);
 
   // ---------- загрузка данных ----------
-
-  useEffect(() => {
-    fetchFloors().then(setFloors).catch(() => setFloors([]));
-  }, []);
-
-  useEffect(() => {
-    if (!floors.length) return;
-    const floor = floors.find((f) => f.number === activeFloor);
-    if (!floor) return;
-    setLoading(true);
-    setModelError(false);
-    setCanvasError(false);
-    fetchFloorScene(floor.id)
-      .then((data) => {
-        setScene(data);
-        setCurrentModelUrl(data.floor.modelAsset?.url ?? null);
-      })
-      .catch((err) => {
-        console.error('[MallMap] Failed to load floor scene', err);
-        setScene(null);
-        setCurrentModelUrl(null);
-      })
-      .finally(() => setLoading(false));
-  }, [activeFloor, floors]);
 
   useEffect(() => {
     setModelError(false);
@@ -432,9 +417,6 @@ export default function MallMap({
 
   // ---------- модель ----------
 
-  const localModelUrl = getLocalFloorModelUrl(activeFloor);
-  const modelUrl = localModelUrl ?? currentModelUrl;
-
   const { gltf, loading: gltfLoading, error: gltfError } = useCachedGLTF(modelUrl);
 
   useEffect(() => {
@@ -459,6 +441,14 @@ export default function MallMap({
     setModelError(false);
     setCanvasError(false);
     if (modelUrl) clearGLTFCache(modelUrl);
+  };
+
+  const retryFloors = () => {
+    retry();
+  };
+
+  const retryScene = () => {
+    retry();
   };
 
   // ---------- рендер вьюпорта ----------
@@ -533,7 +523,19 @@ export default function MallMap({
         />
 
         <div ref={viewportRef} className={styles.modelViewport}>
-          {viewport}
+          {floorsError ? (
+            <div className={styles.errorOverlay}>
+              <p>{floorsError}</p>
+              <button type="button" className={styles.retryBtn} onClick={retryFloors}>Повторить</button>
+            </div>
+          ) : sceneError ? (
+            <div className={styles.errorOverlay}>
+              <p>{sceneError}</p>
+              <button type="button" className={styles.retryBtn} onClick={retryScene}>Повторить</button>
+            </div>
+          ) : (
+            viewport
+          )}
         </div>
 
         {(routeLoading || routeError || activeRoute) ? (
@@ -578,7 +580,7 @@ export default function MallMap({
           </div>
         ) : null}
 
-        <FloorControls floors={FLOORS} activeFloor={activeFloor} onFloorChange={setActiveFloor} />
+        <FloorControls floors={floorNumbers} activeFloor={activeFloor} onFloorChange={setActiveFloor} />
 
         <ZoomControls
           lang={lang}

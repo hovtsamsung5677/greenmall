@@ -1,5 +1,16 @@
 import { createRoot } from 'react-dom/client';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from '@/App';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 function showFatalError(message: string, stack?: string) {
   const existing = document.getElementById('fatal-error-banner');
@@ -20,4 +31,8 @@ window.addEventListener('unhandledrejection', (e) => {
   showFatalError(reason?.message ?? String(e.reason), reason?.stack);
 });
 
-createRoot(document.getElementById('root')!).render(<App />);
+createRoot(document.getElementById('root')!).render(
+  <QueryClientProvider client={queryClient}>
+    <App />
+  </QueryClientProvider>,
+);
