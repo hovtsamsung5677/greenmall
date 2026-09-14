@@ -537,11 +537,8 @@ function CameraController({ activeFloor, controlsRef, justOpened }: { activeFloo
       controls.target.set(0, 0, 0);
       cam.position.set(0, y, 0.001);
       cam.updateProjectionMatrix();
-      controls.update();
 
-      if (typeof controls.reset === 'function') {
-        controls.reset();
-      }
+      controls.update();
     };
 
     const delays = [50, 150, 300, 500];
