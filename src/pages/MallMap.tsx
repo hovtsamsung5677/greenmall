@@ -23,13 +23,13 @@ import type {
   ApiRouteToStoreResponse,
 } from '../api/types';
 
-import { useCachedGLTF, clearGLTFCache } from './MallMap/gltfCache';
-import { SceneCanvas, makeCameraConfig, type CameraConfig } from './MallMap/SceneCanvas';
-import type { PlanMetrics } from './MallMap/FloorScene';
+import { useCachedGLTF, clearGLTFCache } from '../components/MallMap/gltfCache';
+import { SceneCanvas, makeCameraConfig, type CameraConfig } from '../components/MallMap/SceneCanvas';
+import type { PlanMetrics } from '../components/MallMap/FloorScene';
 
 // === Реэкспорт для обратной совместимости (RouteSharePreview и др.) ===
-export { FloorScene, AnimatedRouteLine } from './MallMap/FloorScene';
-export type { PlanMetrics } from './MallMap/FloorScene';
+export { FloorScene, AnimatedRouteLine } from '../components//MallMap/FloorScene';
+export type { PlanMetrics } from '../components/MallMap/FloorScene';
 
 // ==================== Константы и утилиты ====================
 

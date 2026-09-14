@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, Suspense, useRef } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import type { Group } from 'three';
 import { FloorScene, type PlanMetrics } from './MallMap';
-import { useCachedGLTF } from './MallMap/gltfCache';
+import { useCachedGLTF } from '../components/MallMap/gltfCache';
 import { fetchFloors, fetchFloorScene } from '../api/floors';
 import { getSharedRoute } from '../api/sharedRoutes';
 import { getLocalFloorModelUrl } from '../utils/floors';
