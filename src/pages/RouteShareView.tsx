@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, Suspense, useRef } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import type { Group } from 'three';
 import { FloorScene, type PlanMetrics } from './MallMap';
+import { useCachedGLTF } from './MallMap/gltfCache';
 import { fetchFloors, fetchFloorScene } from '../api/floors';
 import { getSharedRoute } from '../api/sharedRoutes';
 import { getLocalFloorModelUrl } from '../utils/floors';
@@ -10,7 +11,7 @@ import type {
   ApiFloorScene,
   ApiRouteToStoreResponse,
 } from '../api/types';
-import logoGreenMall from '../assets/icons/logo2.png';
+import logoGreenMall from '../assets/icons/logo2.webp';
 import styles from './MallMap.module.css';
 
 const FLOORS = [0, 1, 2, 3, 4];
@@ -127,6 +128,7 @@ export default function RouteShareView({ token }: { token: string }) {
 
   const localModelUrl = getLocalFloorModelUrl(activeFloor);
   const modelUrl = localModelUrl ?? currentModelUrl;
+  const { gltf, loading: gltfLoading, error: gltfError } = useCachedGLTF(modelUrl);
 
   const planMetrics = useMemo<PlanMetrics | null>(() => {
     const floor = floors.find((f) => f.number === activeFloor);
@@ -218,7 +220,16 @@ export default function RouteShareView({ token }: { token: string }) {
                 {loading ? 'Загрузка...' : `3D-модель · этаж ${activeFloor}`}
               </span>
             </div>
-          ) : modelError || canvasError ? (
+          ) : gltfLoading || !gltf ? (
+            <div
+              className={styles.modelPlaceholder}
+              style={{ backgroundColor: FLOOR_PLACEHOLDER_COLOR[activeFloor] }}
+            >
+              <span className={styles.modelPlaceholderLabel}>
+                Загрузка 3D-модели...
+              </span>
+            </div>
+          ) : gltfError ? (
             <ModelError />
           ) : (
             <Canvas
@@ -230,7 +241,7 @@ export default function RouteShareView({ token }: { token: string }) {
               <Suspense fallback={null}>
                 <FloorScene
                   key={modelUrl}
-                  url={modelUrl}
+                  gltf={gltf}
                   groupRef={modelGroupRef}
                   metrics={planMetrics}
                   route={route}

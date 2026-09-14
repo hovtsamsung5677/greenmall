@@ -1,9 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import styles from './LoadingScreen.module.css';
 
-import logoGreenMall from '../assets/icons/logo_greenmall.png';
-import fingerIcon from '../assets/icons/finger_icon.png';
-import bgPattern from '../assets/fons/fon_ecran_loading.png';
+import logoGreenMall from '../assets/icons/logo_greenmall.webp';
+import fingerIcon from '../assets/icons/finger_icon.webp';
+import bgPattern from '../assets/fons/fon_ecran_loading.webp';
 import translatorRu from '../assets/icons/переводчик рус.svg';
 import translatorEn from '../assets/icons/переводчик англ.svg';
 
@@ -49,6 +49,24 @@ export default function LoadingScreen({ onContinue, onOpenAdmin }: LoadingScreen
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000 * 15);
     return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      import('../pages/MallMap');
+    }, 1000);
+    return () => clearTimeout(timeout);
+  }, []);
+
+  useEffect(() => {
+    const link = document.createElement('link');
+    link.rel = 'preload';
+    link.as = 'image';
+    link.href = logoGreenMall;
+    document.head.appendChild(link);
+    return () => {
+      document.head.removeChild(link);
+    };
   }, []);
 
   const toggleLang = useCallback((e: React.MouseEvent) => {

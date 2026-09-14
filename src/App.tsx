@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
 import LoadingScreen from './pages/LoadingScreen';
-import MallMap from './pages/MallMap';
-import AdminPage from './pages/AdminPage';
-import RouteShareView from './pages/RouteShareView';
+
+const MallMap = lazy(() => import('./pages/MallMap'));
+const AdminPage = lazy(() => import('./pages/AdminPage'));
+const RouteShareView = lazy(() => import('./pages/RouteShareView'));
 
 const IDLE_TIMEOUT = 60000;
 
@@ -86,15 +87,25 @@ function App() {
   }
 
   if (shareToken) {
-    return <RouteShareView token={shareToken} />;
+    return (
+      <Suspense fallback={<LoadingScreen onContinue={openMap} onOpenAdmin={openAdmin} />}>
+        <RouteShareView token={shareToken} />
+      </Suspense>
+    );
   }
 
   if (isAdmin) {
-    return <AdminPage onClose={closeAdmin} />;
+    return (
+      <Suspense fallback={<LoadingScreen onContinue={openMap} onOpenAdmin={openAdmin} />}>
+        <AdminPage onClose={closeAdmin} />
+      </Suspense>
+    );
   }
 
   return showMap ? (
-    <MallMap onOpenAdmin={openAdmin} widgetRefreshKey={widgetRefreshKey} justOpened={justOpened} />
+    <Suspense fallback={<LoadingScreen onContinue={openMap} onOpenAdmin={openAdmin} />}>
+      <MallMap onOpenAdmin={openAdmin} widgetRefreshKey={widgetRefreshKey} justOpened={justOpened} />
+    </Suspense>
   ) : (
     <LoadingScreen
       onContinue={openMap}

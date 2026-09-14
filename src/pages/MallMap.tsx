@@ -3,9 +3,9 @@ import React from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import styles from './MallMap.module.css';
 
-import logoGreenMall from '../assets/icons/logo2.png';
-import qrCodeIcon from '../assets/icons/qr_code.png';
-import qrCodeEngIcon from '../assets/icons/qr_code_eng.png';
+import logoGreenMall from '../assets/icons/logo2.webp';
+import qrCodeIcon from '../assets/icons/qr_code.webp';
+import qrCodeEngIcon from '../assets/icons/qr_code_eng.webp';
 import translatorRu from '../assets/icons/переводчик рус.svg';
 import translatorEn from '../assets/icons/переводчик англ.svg';
 import MallWidget from '../components/mall-widget/MallWidget';

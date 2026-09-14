@@ -76,8 +76,9 @@
 .bgPattern {
   position: absolute;
   inset: 0;
-  background-repeat: no-repeat;
-  background-size: cover;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.12) 1px, transparent 1px);
+  background-size: 16px 16px;
+  background-repeat: repeat;
   background-position: center;
   opacity: 0.95;
   pointer-events: none;

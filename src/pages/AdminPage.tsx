@@ -1,10 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, lazy, Suspense } from 'react';
 import React from 'react';
 import { fetchCategories, fetchStores } from '../api/categories';
 import { fetchFloors } from '../api/floors';
 import { fetchFileAssets, uploadFileAsset, resolveAssetUrl } from '../api/fileAssets';
-import RouteAdminPanel from '../components/route-editor/RouteAdminPanel';
-import RouteSharePreview from './RouteSharePreview';
 import { fetchAdminTenants } from '../api/admin';
 import {
   createAdminCategory,
@@ -39,6 +37,9 @@ import type {
   ApiTenant,
 } from '../api/types';
 import styles from './AdminPage.module.css';
+
+const RouteAdminPanel = lazy(() => import('../components/route-editor/RouteAdminPanel'));
+const RouteSharePreview = lazy(() => import('./RouteSharePreview'));
 
 class RouteAdminErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -822,10 +823,14 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
 
       {tab === 'routes' ? (
         <RouteAdminErrorBoundary>
-          <RouteAdminPanel />
+          <Suspense fallback={<div className={styles.loading}>Загрузка редактора…</div>}>
+            <RouteAdminPanel />
+          </Suspense>
         </RouteAdminErrorBoundary>
       ) : tab === 'mobile' ? (
-        <RouteSharePreview />
+        <Suspense fallback={<div className={styles.loading}>Загрузка QR-страницы…</div>}>
+          <RouteSharePreview />
+        </Suspense>
       ) : (
         <>
       {error ? <p className={styles.error}>{error}</p> : null}

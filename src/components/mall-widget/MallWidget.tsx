@@ -19,8 +19,6 @@ import toiletsIcon from "../../assets/icons/туалеты.svg";
 import parkingIcon from "../../assets/icons/парковка.svg";
 import styles from "./MallWidget.module.css";
 
-import patternImg from "../../assets/fons/fon_ecran_loading.png";
-
 import { fetchCategories, fetchStores } from "../../api/categories";
 import { resolveAssetUrl } from "../../api/fileAssets";
 import type { ApiCategory, ApiStore, ApiFileAsset } from "../../api/types";
@@ -286,7 +284,7 @@ export default function MallWidget({
 
   return (
     <div className={`${styles.widget} ${screen === "store-detail" ? styles.widgetStoreDetail : ""}`}>
-      <div className={styles.bgPattern} style={{ backgroundImage: `url(${patternImg})` }} />
+      <div className={styles.bgPattern} />
       <div className={styles.topbar}>
          {screen === "categories" ? (
            <>
