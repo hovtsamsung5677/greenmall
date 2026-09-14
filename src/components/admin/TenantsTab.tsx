@@ -1,7 +1,7 @@
 import type React from 'react';
-import type { ApiTenant, ApiFileAsset } from '../../api/types';
-import { resolveAssetUrl } from '../../api/fileAssets';
-import styles from '../AdminPage.module.css';
+import type { ApiTenant, ApiFileAsset } from '@api/types';
+import { resolveAssetUrl } from '@api/fileAssets';
+import styles from '@styles/AdminPage.module.css';
 
 export type AdminTenantForm = {
   name: string;

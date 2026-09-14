@@ -5,7 +5,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { useLoader } from '@react-three/fiber';
 import { Object3D, Vector3, Box3, MOUSE } from 'three';
 import type { Group } from 'three';
-import type { ApiRouteNode, ApiRouteEdge, ApiRouteNodeType } from '../../api/types';
+import type { ApiRouteNode, ApiRouteEdge, ApiRouteNodeType } from '@api/types';
 
 export interface FloorPlanMetrics {
   width: number;

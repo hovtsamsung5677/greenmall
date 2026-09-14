@@ -2,26 +2,26 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Category, SubcategoryItem } from "./types";
 import { SearchIcon, ChevronUpIcon, BackIcon, FloorIcon } from "./icons";
 
-import clothingIcon from "../../assets/icons/Одежда.svg";
-import shoesIcon from "../../assets/icons/обувь.svg";
-import electronicsIcon from "../../assets/icons/техника.svg";
-import beautyIcon from "../../assets/icons/красота и здоровье.svg";
-import sportIcon from "../../assets/icons/спорт.svg";
-import homeGoodsIcon from "../../assets/icons/товары для дома.svg";
-import cafesIcon from "../../assets/icons/кафе и рестораны.svg";
-import groceriesIcon from "../../assets/icons/продукты.svg";
-import kidsIcon from "../../assets/icons/детские товары.svg";
-import entertainmentIcon from "../../assets/icons/развлечения.svg";
-import servicesIcon from "../../assets/icons/услуги.svg";
-import infrastructureIcon from "../../assets/icons/инфраструктура.svg";
-import atmsIcon from "../../assets/icons/банкомат.svg";
-import toiletsIcon from "../../assets/icons/туалеты.svg";
-import parkingIcon from "../../assets/icons/парковка.svg";
-import styles from "./MallWidget.module.css";
+import clothingIcon from "@assets/icons/Одежда.svg";
+import shoesIcon from "@assets/icons/обувь.svg";
+import electronicsIcon from "@assets/icons/техника.svg";
+import beautyIcon from "@assets/icons/красота и здоровье.svg";
+import sportIcon from "@assets/icons/спорт.svg";
+import homeGoodsIcon from "@assets/icons/товары для дома.svg";
+import cafesIcon from "@assets/icons/кафе и рестораны.svg";
+import groceriesIcon from "@assets/icons/продукты.svg";
+import kidsIcon from "@assets/icons/детские товары.svg";
+import entertainmentIcon from "@assets/icons/развлечения.svg";
+import servicesIcon from "@assets/icons/услуги.svg";
+import infrastructureIcon from "@assets/icons/инфраструктура.svg";
+import atmsIcon from "@assets/icons/банкомат.svg";
+import toiletsIcon from "@assets/icons/туалеты.svg";
+import parkingIcon from "@assets/icons/парковка.svg";
+import styles from "@styles/MallWidget.module.css";
 
-import { fetchCategories, fetchStores } from "../../api/categories";
-import { resolveAssetUrl } from "../../api/fileAssets";
-import type { ApiCategory, ApiStore, ApiFileAsset } from "../../api/types";
+import { fetchCategories, fetchStores } from "@api/categories";
+import { resolveAssetUrl } from "@api/fileAssets";
+import type { ApiCategory, ApiStore, ApiFileAsset } from "@api/types";
 
 const ICON_MAP: Record<string, string | React.ComponentType<{ className?: string }>> = {
   clothing: clothingIcon,

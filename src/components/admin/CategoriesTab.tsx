@@ -1,6 +1,6 @@
 import type React from 'react';
-import type { ApiCategory } from '../../api/types';
-import styles from '../AdminPage.module.css';
+import type { ApiCategory } from '@api/types';
+import styles from '@styles/AdminPage.module.css';
 
 export type AdminCategoryForm = {
   name: string;

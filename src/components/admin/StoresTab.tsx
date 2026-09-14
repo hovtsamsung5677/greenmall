@@ -1,8 +1,8 @@
 import type React from 'react';
-import type { ApiStore, ApiCategory, ApiTenant, ApiFloor, ApiFileAsset } from '../../api/types';
-import type { UpdateStoreInput, CreateStoreInput } from '../../api/admin';
-import { resolveAssetUrl } from '../../api/fileAssets';
-import styles from '../AdminPage.module.css';
+import type { ApiStore, ApiCategory, ApiTenant, ApiFloor, ApiFileAsset } from '@api/types';
+import type { UpdateStoreInput, CreateStoreInput } from '@api/admin';
+import { resolveAssetUrl } from '@api/fileAssets';
+import styles from '@styles/AdminPage.module.css';
 
 export type DayKey = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
 export type DayHours = { open: boolean; from: string; to: string };

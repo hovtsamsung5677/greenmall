@@ -1,4 +1,4 @@
-import type { ApiStore } from '../../api/types';
+import type { ApiStore } from '@api/types';
 
 export interface SubcategoryItem {
   name: string;

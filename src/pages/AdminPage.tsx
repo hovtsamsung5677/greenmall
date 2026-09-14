@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState, lazy, Suspense } from 'react';
 import React from 'react';
-import { fetchCategories, fetchStores } from '../api/categories';
-import { fetchFloors } from '../api/floors';
-import { fetchFileAssets, uploadFileAsset, resolveAssetUrl } from '../api/fileAssets';
-import { fetchAdminTenants } from '../api/admin';
+import { fetchCategories, fetchStores } from '@api/categories';
+import { fetchFloors } from '@api/floors';
+import { fetchFileAssets, uploadFileAsset, resolveAssetUrl } from '@api/fileAssets';
+import { fetchAdminTenants } from '@api/admin';
 import {
   createAdminCategory,
   createAdminStore,
@@ -23,30 +23,30 @@ import {
   type UpdateCategoryInput,
   type UpdateStoreInput,
   type UpdateTenantInput,
-} from '../api/admin';
+} from '@api/admin';
 import {
   fetchCurrentUser,
   setAccessToken,
   type AdminUser,
-} from '../api/client';
+} from '@api/client';
 import type {
   ApiCategory,
   ApiStore,
   ApiFloor,
   ApiFileAsset,
   ApiTenant,
-} from '../api/types';
-import CategoriesTab, { emptyCategoryForm, type AdminCategoryForm } from '../components/admin/CategoriesTab';
+} from '@api/types';
+import CategoriesTab, { emptyCategoryForm, type AdminCategoryForm } from '@components/admin/CategoriesTab';
 import StoresTab, {
   emptyStoreForm,
   serializeWorkingHours,
   type AdminStoreForm,
-} from '../components/admin/StoresTab';
+} from '@components/admin/StoresTab';
 import TenantsTab, {
   emptyTenantForm,
   type AdminTenantForm,
-} from '../components/admin/TenantsTab';
-import styles from './AdminPage.module.css';
+} from '@components/admin/TenantsTab';
+import styles from '@styles/AdminPage.module.css';
 
 const RouteAdminPanel = lazy(() => import('../components/route-editor/RouteAdminPanel'));
 const RouteSharePreview = lazy(() => import('./RouteSharePreview'));

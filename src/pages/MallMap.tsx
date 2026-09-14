@@ -1,35 +1,35 @@
 ﻿import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import React from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import styles from './MallMap.module.css';
+import styles from '@styles/MallMap.module.css';
 
-import logoGreenMall from '../assets/icons/logo2.webp';
-import qrCodeIcon from '../assets/icons/qr_code.webp';
-import qrCodeEngIcon from '../assets/icons/qr_code_eng.webp';
-import translatorRu from '../assets/icons/переводчик рус.svg';
-import translatorEn from '../assets/icons/переводчик англ.svg';
-import MallWidget from '../components/mall-widget/MallWidget';
-import { fetchFloors, fetchFloorScene } from '../api/floors';
-import { fetchPublicRouteNodes } from '../api/routeNodes';
-import { fetchPublicRouteEdges } from '../api/routeEdges';
-import { buildRouteToStore } from '../api/routes';
-import { createSharedRoute } from '../api/sharedRoutes';
-import { getLocalFloorModelUrl } from '../utils/floors';
+import logoGreenMall from '@assets/icons/logo2.webp';
+import qrCodeIcon from '@assets/icons/qr_code.webp';
+import qrCodeEngIcon from '@assets/icons/qr_code_eng.webp';
+import translatorRu from '@assets/icons/переводчик рус.svg';
+import translatorEn from '@assets/icons/переводчик англ.svg';
+import MallWidget from '@components/mall-widget/MallWidget';
+import { fetchFloors, fetchFloorScene } from '@api/floors';
+import { fetchPublicRouteNodes } from '@api/routeNodes';
+import { fetchPublicRouteEdges } from '@api/routeEdges';
+import { buildRouteToStore } from '@api/routes';
+import { createSharedRoute } from '@api/sharedRoutes';
+import { getLocalFloorModelUrl } from '@utils/floors';
 import type {
   ApiFloor,
   ApiFloorScene,
   ApiRouteNode,
   ApiRouteEdge,
   ApiRouteToStoreResponse,
-} from '../api/types';
+} from '@api/types';
 
-import { useCachedGLTF, clearGLTFCache } from '../components/MallMap/gltfCache';
-import { SceneCanvas, makeCameraConfig, type CameraConfig } from '../components/MallMap/SceneCanvas';
-import type { PlanMetrics } from '../components/MallMap/FloorScene';
+import { useCachedGLTF, clearGLTFCache } from '@components/MallMap/gltfCache';
+import { SceneCanvas, makeCameraConfig, type CameraConfig } from '@components/MallMap/SceneCanvas';
+import type { PlanMetrics } from '@components/MallMap/FloorScene';
 
 // === Реэкспорт для обратной совместимости (RouteSharePreview и др.) ===
-export { FloorScene, AnimatedRouteLine } from '../components//MallMap/FloorScene';
-export type { PlanMetrics } from '../components/MallMap/FloorScene';
+export { FloorScene, AnimatedRouteLine } from '@components/MallMap/FloorScene';
+export type { PlanMetrics } from '@components/MallMap/FloorScene';
 
 // ==================== Константы и утилиты ====================
 

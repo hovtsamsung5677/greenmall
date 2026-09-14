@@ -12,7 +12,7 @@ import {
 } from 'three';
 import type { Group } from 'three';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import type { ApiRouteToStoreResponse } from '../../api/types';
+import type { ApiRouteToStoreResponse } from '@api/types';
 
 export interface PlanMetrics {
   width: number;

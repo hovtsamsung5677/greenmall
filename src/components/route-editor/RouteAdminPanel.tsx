@@ -5,24 +5,24 @@ import {
   updateRouteNode,
   deleteRouteNode,
   type CreateRouteNodeInput,
-} from '../../api/routeNodes';
+} from '@api/routeNodes';
 import {
   fetchRouteEdges,
   createRouteEdge,
   deleteRouteEdge,
-} from '../../api/routeEdges';
-import { fetchFloors, fetchFloorScene } from '../../api/floors';
-import { fetchAllMapObjects, fetchMapObjects } from '../../api/mapObjects';
-import { resolveModelUrl } from '../../utils/floors';
+} from '@api/routeEdges';
+import { fetchFloors, fetchFloorScene } from '@api/floors';
+import { fetchAllMapObjects, fetchMapObjects } from '@api/mapObjects';
+import { resolveModelUrl } from '@utils/floors';
 import type {
   ApiFloor,
   ApiRouteNode,
   ApiRouteEdge,
   ApiRouteNodeType,
   ApiMapObject,
-} from '../../api/types';
+} from '@api/types';
 import RouteEditor3D, { type RouteEditorMode } from './RouteEditor3D';
-import styles from './RouteAdminPanel.module.css';
+import styles from '@styles/RouteAdminPanel.module.css';
 
 const NODE_TYPE_LABELS: Record<ApiRouteNodeType, string> = {
   ROUTE_POINT: 'Точка маршрута',

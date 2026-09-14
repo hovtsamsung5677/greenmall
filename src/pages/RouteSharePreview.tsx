@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import type { Group } from 'three';
-import { FloorScene, type PlanMetrics } from './MallMap';
-import { useCachedGLTF } from '../components/MallMap/gltfCache';
-import { fetchFloors, fetchFloorScene } from '../api/floors';
-import { getLocalFloorModelUrl } from '../utils/floors';
-import type { ApiFloor, ApiFloorScene } from '../api/types';
-import logoGreenMall from '../assets/icons/logo2.webp';
-import styles from './MallMap.module.css';
+import { FloorScene, type PlanMetrics } from '@pages/MallMap';
+import { useCachedGLTF } from '@components/MallMap/gltfCache';
+import { fetchFloors, fetchFloorScene } from '@api/floors';
+import { getLocalFloorModelUrl } from '@utils/floors';
+import type { ApiFloor, ApiFloorScene } from '@api/types';
+import logoGreenMall from '@assets/icons/logo2.webp';
+import styles from '@styles/MallMap.module.css';
 
 const FLOORS = [0, 1, 2, 3, 4];
 

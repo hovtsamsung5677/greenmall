@@ -1,11 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
-import styles from './LoadingScreen.module.css';
+import styles from '@styles/LoadingScreen.module.css';
 
-import logoGreenMall from '../assets/icons/logo_greenmall.webp';
-import fingerIcon from '../assets/icons/finger_icon.webp';
-import bgPattern from '../assets/fons/fon_ecran_loading.webp';
-import translatorRu from '../assets/icons/переводчик рус.svg';
-import translatorEn from '../assets/icons/переводчик англ.svg';
+import logoGreenMall from '@assets/icons/logo_greenmall.webp';
+import fingerIcon from '@assets/icons/finger_icon.webp';
+import bgPattern from '@assets/fons/fon_ecran_loading.webp';
+import translatorRu from '@assets/icons/переводчик рус.svg';
+import translatorEn from '@assets/icons/переводчик англ.svg';
 
 const WEEKDAYS_RU = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 const MONTHS_RU = [

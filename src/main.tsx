@@ -1,5 +1,5 @@
 import { createRoot } from 'react-dom/client';
-import App from './App';
+import App from '@/App';
 
 function showFatalError(message: string, stack?: string) {
   const existing = document.getElementById('fatal-error-banner');

@@ -4,7 +4,7 @@ import { OrbitControls } from '@react-three/drei';
 import { MOUSE, TOUCH } from 'three';
 import type { Group } from 'three';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import type { ApiRouteToStoreResponse } from '../../api/types';
+import type { ApiRouteToStoreResponse } from '@api/types';
 import { FloorScene, type PlanMetrics } from './FloorScene';
 
 export const CAMERA_HEIGHT_DEFAULT = 900;

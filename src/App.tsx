@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
-import LoadingScreen from './pages/LoadingScreen';
+import LoadingScreen from '@pages/LoadingScreen';
 
-const MallMap = lazy(() => import('./pages/MallMap'));
-const AdminPage = lazy(() => import('./pages/AdminPage'));
-const RouteShareView = lazy(() => import('./pages/RouteShareView'));
+const MallMap = lazy(() => import('@pages/MallMap'));
+const AdminPage = lazy(() => import('@pages/AdminPage'));
+const RouteShareView = lazy(() => import('@pages/RouteShareView'));
 
 const IDLE_TIMEOUT = 60000;
 
