@@ -1,10 +1,12 @@
+import axios from 'axios';
+
 const BASE_URL = (
   import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000/api'
 ).replace(/\/+$/, '');
 
 async function request<T>(
   path: string,
-  options: RequestInit = {},
+  options: Parameters<typeof axios.request>[0] = {},
   sendAuth = true,
 ): Promise<T> {
   const headers: Record<string, string> = {
@@ -19,19 +21,22 @@ async function request<T>(
     }
   }
 
-  const response = await fetch(`${BASE_URL}${path}`, {
-    ...options,
-    headers,
-  });
-
-  if (!response.ok) {
-    const text = await response.text().catch(() => '');
-    throw new Error(
-      `API request failed: ${response.status} ${response.statusText}${text ? `: ${text.slice(0, 200)}` : ''}`
-    );
+  try {
+    const response = await axios.request<T>({
+      ...options,
+      url: `${BASE_URL}${path}`,
+      headers,
+    });
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      const text = typeof error.response.data === 'string' ? error.response.data.slice(0, 200) : JSON.stringify(error.response.data).slice(0, 200);
+      throw new Error(
+        `API request failed: ${error.response.status} ${error.response.statusText}${text ? `: ${text}` : ''}`
+      );
+    }
+    throw error;
   }
-
-  return response.json() as Promise<T>;
 }
 
 export async function apiGet<T>(path: string): Promise<T> {
@@ -55,7 +60,7 @@ export async function apiPost<T>(
     path,
     {
       method: 'POST',
-      body: JSON.stringify(body),
+      data: JSON.stringify(body),
       headers,
     },
     sendAuth,
@@ -75,7 +80,7 @@ export async function apiPatch<T>(
     path,
     {
       method: 'PATCH',
-      body: JSON.stringify(body),
+      data: JSON.stringify(body),
       headers,
     },
     sendAuth,

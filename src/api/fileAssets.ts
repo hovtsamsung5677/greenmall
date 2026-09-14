@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { apiGet, apiPost, apiPatch, apiDelete, getAccessToken } from './client';
 import type { ApiFileAsset } from './types';
 
@@ -56,25 +57,24 @@ export async function uploadFileAsset(file: File, kind?: string): Promise<ApiFil
   const baseUrl = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000/api').replace(/\/$/, '');
   const origin = baseUrl.replace(/\/api$/, '');
 
-  const response = await fetch(`${baseUrl}/admin/file-assets/upload`, {
-    method: 'POST',
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: form,
-  });
-
-  if (!response.ok) {
-    const text = await response.text().catch(() => 'Upload failed');
-    throw new Error(text || `Upload failed with status ${response.status}`);
+  try {
+    const response = await axios.post<ApiFileAsset>(`${baseUrl}/admin/file-assets/upload`, form, {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+    const asset = response.data;
+    if (asset.url && asset.url.startsWith('/')) {
+      asset.url = `${origin}${asset.url}`;
+    }
+    return asset;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      const text = typeof error.response.data === 'string' ? error.response.data : JSON.stringify(error.response.data);
+      throw new Error(text || `Upload failed with status ${error.response.status}`);
+    }
+    throw error;
   }
-
-  const asset = await response.json();
-  if (asset.url && asset.url.startsWith('/')) {
-    asset.url = `${origin}${asset.url}`;
-  }
-
-  return asset;
 }
 
 export function updateFileAsset(id: string, dto: UpdateFileAssetInput): Promise<ApiFileAsset> {
