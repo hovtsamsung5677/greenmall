@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { API_ORIGIN } from './env';
 import { apiGet, apiPost, apiPatch, apiDelete, getAccessToken } from './client';
 import type { ApiFileAsset } from './types';
 
@@ -29,9 +30,7 @@ export interface UpdateFileAssetInput {
 
 export function resolveAssetUrl(url: string | null | undefined): string {
   if (!url || !url.startsWith('/')) return url ?? '';
-  const baseUrl = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000/api').replace(/\/$/, '');
-  const origin = baseUrl.replace(/\/api$/, '');
-  return `${origin}${url}`;
+  return `${API_ORIGIN}${url}`;
 }
 
 export function fetchFileAssets(): Promise<ApiFileAsset[]> {

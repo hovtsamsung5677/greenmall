@@ -417,7 +417,10 @@ export default function MallWidget({
                   ) : null}
                   <button
                     className={styles.routeBtn}
-                    onClick={() => selectedStore && onPickStore?.(selectedStore)}
+                    onClick={() => {
+                      console.log('[MallWidget] routeBtn clicked', { selectedStore: selectedStore?.slug, hasOnPickStore: Boolean(onPickStore) });
+                      selectedStore && onPickStore?.(selectedStore);
+                    }}
                   >
                     {lang === 'ru' ? 'Продолжить маршрут' : 'Continue route'}
                   </button>

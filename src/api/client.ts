@@ -1,8 +1,5 @@
 import axios from 'axios';
-
-const BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000/api'
-).replace(/\/+$/, '');
+import { API_BASE_URL as BASE_URL } from './env';
 
 async function request<T>(
   path: string,

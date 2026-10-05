@@ -130,15 +130,15 @@ export function SceneCanvas({
       <ambientLight intensity={0.8} />
       <directionalLight position={[10, 20, 10]} intensity={1.2} />
       {gltf ? (
-        <FloorScene
-          gltf={gltf}
-          groupRef={groupRef}
-          metrics={metrics}
-          route={route}
-          activeFloor={activeFloor}
-          onReachTransfer={onReachTransfer}
-          debug={debug}
-        />
+          <FloorScene
+            gltf={gltf}
+            groupRef={groupRef}
+            metrics={metrics}
+            route={route}
+            activeFloor={activeFloor}
+            onReachTransfer={onReachTransfer}
+            debug={debug}
+          />
       ) : null}
       <OrbitControls
         ref={controlsRef}

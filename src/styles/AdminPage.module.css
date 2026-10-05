@@ -71,6 +71,10 @@
   }
 }
 
+.fullWidth {
+  grid-column: 1 / -1;
+}
+
 .panel {
   background-color: var(--panel-bg);
   border: 1px solid var(--border);

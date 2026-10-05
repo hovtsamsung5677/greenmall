@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import React from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import styles from '@styles/MallMap.module.css';
@@ -13,7 +13,10 @@ import { fetchPublicRouteNodes } from '@api/routeNodes';
 import { fetchPublicRouteEdges } from '@api/routeEdges';
 import { buildRouteToStore } from '@api/routes';
 import { createSharedRoute } from '@api/sharedRoutes';
+import { fetchActiveHeaderBanner, type HeaderBanner } from '@api/headerBanners';
+import { resolveAssetUrl } from '@api/fileAssets';
 import { useFloorScene } from '@hooks/useFloorScene';
+import { buildShareUrl, isUnreachableFromPhone } from '@utils/shareUrl';
 import type {
   ApiRouteNode,
   ApiRouteEdge,
@@ -70,16 +73,32 @@ function formatDate(date: Date, lang: 'ru' | 'en'): string {
 // ==================== Мелкие UI-компоненты ====================
 
 function MallMapHeader({
-  lang, onLangChange, onOpenAdmin, now,
+  lang, onLangChange, onOpenAdmin, now, banner,
 }: {
   lang: 'ru' | 'en';
   onLangChange: (next: 'ru' | 'en') => void;
   onOpenAdmin?: () => void;
   now: Date;
+  banner: HeaderBanner | null;
 }) {
   return (
     <header className={styles.header}>
       <img src={logoGreenMall} alt="GreenMall" className={styles.logo} draggable={false} />
+      {banner && banner.asset ? (
+        <div className={styles.headerBanner}>
+          <img
+            src={resolveAssetUrl(banner.asset.url)}
+            alt={banner.title}
+            className={styles.headerBannerImage}
+            onClick={() => {
+              if (banner.linkUrl) {
+                window.open(banner.linkUrl, '_blank', 'noopener,noreferrer');
+              }
+            }}
+            style={{ cursor: banner.linkUrl ? 'pointer' : 'default' }}
+          />
+        </div>
+      ) : null}
       <div className={styles.headerRight}>
         <div className={styles.dateTime}>
           <span className={styles.time}>{formatTime(now)}</span>
@@ -189,9 +208,20 @@ function ShareQrModal({
           <p className={styles.qrModalError}>{shareError}</p>
         ) : shareToken ? (
           <>
-            <div className={styles.qrCodeBox}>
-              <QRCodeSVG value={shareUrl} size={220} level="M" />
-            </div>
+            {isUnreachableFromPhone(shareUrl) ? (
+              <p className={styles.qrModalError}>
+                QR-код ведёт на loopback-адрес и с телефона не откроется. Откройте карту на
+                компьютере по LAN-адресу вида {'http://<ip-компьютера>:5173'} и постройте
+                маршрут заново.
+              </p>
+            ) : (
+              <div className={styles.qrCodeBox}>
+                <QRCodeSVG value={shareUrl} size={220} level="M" />
+              </div>
+            )}
+            <p className={styles.qrModalHint}>
+              Если камера не открывает ссылку — введите вручную: <code>{shareUrl}</code>
+            </p>
             <p className={styles.qrModalHint}>
               {lang === 'en'
                 ? 'Open the camera and scan — the route will open in your browser.'
@@ -262,6 +292,7 @@ export default function MallMap({
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [modelError, setModelError] = useState(false);
   const [canvasError, setCanvasError] = useState(false);
+  const [headerBanner, setHeaderBanner] = useState<HeaderBanner | null>(null);
 
   const {
     floors,
@@ -331,9 +362,22 @@ export default function MallMap({
       });
   }, [activeFloor, floors]);
 
+  useEffect(() => {
+    fetchActiveHeaderBanner()
+      .then(setHeaderBanner)
+      .catch(() => setHeaderBanner(null));
+  }, []);
+
   // ---------- построение маршрута ----------
 
   async function handleBuildRouteToStore(storeSlug: string) {
+    console.log('[MallMap] handleBuildRouteToStore', {
+      activeFloor,
+      floorsCount: floors.length,
+      routeNodesCount: routeNodes.length,
+      routeEdgesCount: routeEdges.length,
+      storeSlug,
+    });
     if (!floors.length) return;
     const floor = floors.find((f) => f.number === activeFloor);
     if (!floor) return;
@@ -343,40 +387,55 @@ export default function MallMap({
       connectedIds.add(edge.fromNodeId);
       connectedIds.add(edge.toNodeId);
     }
-    const nodesByType = new Map<string, ApiRouteNode[]>();
-    for (const node of routeNodes) {
-      const list = nodesByType.get(node.type) ?? [];
-      list.push(node);
-      nodesByType.set(node.type, list);
-    }
-    const typePriority: ApiRouteNode['type'][] = [
-      'PANEL', 'ENTRANCE', 'INFO_DESK', 'STORE_ANCHOR', 'ROUTE_POINT',
-    ];
-    let startNode: ApiRouteNode | undefined;
-    for (const type of typePriority) {
-      const candidates = nodesByType.get(type) ?? [];
-      startNode = candidates.find((n) => connectedIds.has(n.id)) ?? candidates[0];
-      if (startNode) break;
-    }
+
+    const startNode =
+      routeNodes.find((n) => n.type === 'PANEL' && connectedIds.has(n.id)) ??
+      routeNodes.find((n) => n.type === 'PANEL') ??
+      routeNodes.find((n) => n.type === 'ENTRANCE' && connectedIds.has(n.id)) ??
+      routeNodes.find((n) => n.type === 'ENTRANCE') ??
+      routeNodes.find((n) => n.type === 'INFO_DESK' && connectedIds.has(n.id)) ??
+      routeNodes.find((n) => n.type === 'INFO_DESK') ??
+      routeNodes.find((n) => n.type === 'STORE_ANCHOR' && connectedIds.has(n.id)) ??
+      routeNodes.find((n) => n.type === 'STORE_ANCHOR') ??
+      routeNodes.find((n) => n.type === 'ROUTE_POINT' && connectedIds.has(n.id)) ??
+      routeNodes.find((n) => n.type === 'ROUTE_POINT');
+
+    console.log('[MallMap] startNode', {
+      found: Boolean(startNode),
+      startNodeId: startNode?.id,
+      startNodeType: startNode?.type,
+    });
+
     if (!startNode) {
-      setRouteError('Нет узла стойки/входа на этом этаже для начала маршрута');
+      setRouteError('Не найден вход/панель/точка на текущем этаже');
       return;
     }
 
     setRouteLoading(true);
     setRouteError(null);
+    setActiveRoute(null);
     try {
-      const route = await buildRouteToStore({ fromNodeId: startNode.id, storeSlug });
+      const route = await buildRouteToStore({
+        fromNodeId: startNode.id,
+        storeSlug,
+      });
+      console.log('[MallMap] buildRouteToStore resolved', {
+        routePathLength: route.routePath.length,
+        segmentsCount: route.segments?.length,
+        floorChangesCount: route.floorChanges?.length,
+        instructionsCount: route.instructions?.length,
+      });
       setActiveRoute(route);
     } catch (err) {
+      console.log('[MallMap] buildRouteToStore failed', err);
       setActiveRoute(null);
       setRouteError(err instanceof Error ? err.message : 'Не удалось построить маршрут');
     } finally {
       setRouteLoading(false);
-    }
-  }
+     }
+   }
 
-  // ---------- зум ----------
+ // ---------- зум ----------
 
   const handleZoom = (delta: number) => {
     setZoom((prev) => Math.min(3, Math.max(0.4, +(prev + delta).toFixed(2))));
@@ -402,9 +461,10 @@ export default function MallMap({
     }
   }
 
-  const shareUrl = shareToken
-    ? `${(import.meta.env.VITE_SHARE_BASE_URL ?? window.location.origin).replace(/\/+$/, '')}/#/route/${shareToken}`
-    : '';
+  const shareUrl = useMemo(
+    () => (shareToken ? buildShareUrl(shareToken) : ''),
+    [shareToken],
+  );
 
   // ---------- включение контролов после открытия ----------
 
@@ -496,8 +556,6 @@ export default function MallMap({
           zoom={zoom}
           debug={DEBUG_3D}
           onContextLost={() => {
-            // Форсируем ремоунт Canvas со свежим WebGL-контекстом.
-            // Модель мгновенно отрисуется из gltfPromiseCache.
             setCanvasKey((k) => k + 1);
           }}
         />
@@ -507,7 +565,7 @@ export default function MallMap({
 
   return (
     <div className={styles.page}>
-      <MallMapHeader lang={lang} onLangChange={setLang} onOpenAdmin={onOpenAdmin} now={now} />
+      <MallMapHeader lang={lang} onLangChange={setLang} onOpenAdmin={onOpenAdmin} now={now} banner={headerBanner} />
 
       <div className={styles.mapArea}>
         <MallWidget
@@ -556,27 +614,6 @@ export default function MallMap({
         {showRouteToast && !activeRoute && !routeLoading && !routeError ? (
           <div className={styles.routeToast}>
             Выберите магазин, чтобы построить маршрут
-          </div>
-        ) : null}
-
-        {import.meta.env.DEV ? (
-          <div className={styles.debugOverlay}>
-            <strong>Debug</strong>
-            <div>activeFloor: {activeFloor}</div>
-            <div>
-              camera: {(() => {
-                const c = controlsRef.current;
-                if (!c) return 'no controls';
-                const t = c.target;
-                const p = c.object?.position;
-                return `pos=(${p?.x?.toFixed(1)}, ${p?.y?.toFixed(1)}, ${p?.z?.toFixed(1)}) target=(${t?.x?.toFixed(1)}, ${t?.y?.toFixed(1)}, ${t?.z?.toFixed(1)})`;
-              })()}
-            </div>
-            <div>zoom: {zoom}</div>
-            <div>modelUrl: {modelUrl ?? 'none'}</div>
-            <div>gltf: {gltf ? 'loaded' : gltfLoading ? 'loading' : 'idle'}</div>
-            <div>canvasKey: {canvasKey}</div>
-            <div>metrics: {planMetrics ? `w=${planMetrics.width} h=${planMetrics.height}` : 'none'}</div>
           </div>
         ) : null}
 

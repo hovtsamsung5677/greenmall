@@ -1,13 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
+import * as THREE from 'three';
 import {
+  BackSide,
   Box3,
   CylinderGeometry,
+  FrontSide,
   InstancedMesh,
-  Mesh,
   MeshStandardMaterial,
   Object3D,
-  Quaternion,
   Vector3,
 } from 'three';
 import type { Group } from 'three';
@@ -20,6 +21,13 @@ export interface PlanMetrics {
 }
 
 // ==================== AnimatedRouteLine ====================
+
+// Линия маршрута — чёрная прерывистая. Чтобы она читалась и на светлом, и на
+// тёмном полу, каждый штрих оборачивается тонким белым «кожухом» (casing) —
+// приём из 2D-картографии: тёмная линия с контрастной обводкой.
+const ROUTE_COLOR = '#000000';
+const ROUTE_CASING_COLOR = '#FFFFFF';
+const ROUTE_CASING_RATIO = 1.3;
 
 function getPointOnPolyline(
   points: Vector3[],
@@ -56,9 +64,16 @@ export function AnimatedRouteLine({
   speed?: number;
   dashSize?: number;
 }) {
-  const markerRef = useRef<Mesh>(null);
+  const markerRef = useRef<Group>(null);
   const progress = useRef(0);
   const completedRef = useRef(false);
+
+  // Ключ по содержимому, а не по ссылке на массив: ререндер родителя не должен
+  // перезапускать анимацию маршрута с нуля.
+  const pointsKey = useMemo(
+    () => points.map((p) => `${p[0]},${p[1]},${p[2]}`).join('|'),
+    [points],
+  );
 
   const vectors = useMemo(
     () => points.map((p) => new Vector3(p[0], p[1], p[2])),
@@ -91,51 +106,58 @@ export function AnimatedRouteLine({
     return result;
   }, [vectors, totalLength]);
 
-  const instancedMesh = useMemo(() => {
+  const dashMeshes = useMemo(() => {
     if (dashes.length === 0) return null;
     const radius = Math.max(0.1, dashSize);
-    const geometry = new CylinderGeometry(radius, radius, 1, 12);
-    const material = new MeshStandardMaterial({
-      color: '#000000',
-      emissive: '#000000',
-      emissiveIntensity: 0.6,
-    });
-    const mesh = new InstancedMesh(geometry, material, dashes.length);
-    mesh.count = 0;
-
-    const dummy = new Object3D();
-    const mid = new Vector3();
-    const dir = new Vector3();
-    const quat = new Quaternion();
     const up = new Vector3(0, 1, 0);
-    const scale = new Vector3();
 
-    for (let i = 0; i < dashes.length; i++) {
-      const { a, b } = dashes[i];
+    // Матрицы считаем один раз и переиспользуем для обоих слоёв: кожух и линия
+    // совпадают по геометрии, различается только радиус.
+    const matrices = dashes.map(({ a, b }) => {
       const length = Math.max(0.01, a.distanceTo(b));
-      mid.addVectors(a, b).multiplyScalar(0.5);
-      dir.subVectors(b, a);
-      dir.normalize();
-      quat.setFromUnitVectors(up, dir);
-      scale.set(1, length, 1);
-
-      dummy.position.copy(mid);
-      dummy.quaternion.copy(quat);
-      dummy.scale.copy(scale);
+      const dummy = new Object3D();
+      dummy.position.addVectors(a, b).multiplyScalar(0.5);
+      dummy.quaternion.setFromUnitVectors(up, new Vector3().subVectors(b, a).normalize());
+      dummy.scale.set(1, length, 1);
       dummy.updateMatrix();
-      mesh.setMatrixAt(i, dummy.matrix);
-    }
-    mesh.instanceMatrix.needsUpdate = true;
-    return mesh;
+      return dummy.matrix.clone();
+    });
+
+    const buildMesh = (meshRadius: number, color: string, isCasing: boolean) => {
+      const geometry = new CylinderGeometry(meshRadius, meshRadius, 1, 12);
+      const material = new MeshStandardMaterial({
+        color,
+        roughness: 0.45,
+        metalness: 0,
+        // Кожух — это «вывернутый» цилиндр: рисуем только его задние стенки.
+        // Иначе сплошной кожух большего радиуса просто закрыл бы собой
+        // чёрную линию, лежащую внутри него. Задние стенки видны только там,
+        // где чёрной линии нет, — получается белая обводка.
+        side: isCasing ? BackSide : FrontSide,
+      });
+      const mesh = new InstancedMesh(geometry, material, dashes.length);
+      mesh.count = 0;
+      mesh.frustumCulled = false;
+      for (let i = 0; i < matrices.length; i += 1) {
+        mesh.setMatrixAt(i, matrices[i]);
+      }
+      mesh.instanceMatrix.needsUpdate = true;
+      return mesh;
+    };
+
+    return {
+      casing: buildMesh(radius * ROUTE_CASING_RATIO, ROUTE_CASING_COLOR, true),
+      line: buildMesh(radius, ROUTE_COLOR, false),
+    };
   }, [dashes, dashSize]);
 
   useEffect(() => {
     progress.current = 0;
     completedRef.current = false;
-  }, [points]);
+  }, [pointsKey, dashMeshes]);
 
   useFrame((_, delta) => {
-    if (!instancedMesh || dashes.length === 0) return;
+    if (!dashMeshes || dashes.length === 0) return;
 
     if (progress.current < 1) {
       progress.current = Math.min(1, progress.current + delta / speed);
@@ -145,8 +167,9 @@ export function AnimatedRouteLine({
       0,
       Math.min(dashes.length, Math.floor(progress.current * dashes.length)),
     );
-    if (instancedMesh.count !== visibleCount) {
-      instancedMesh.count = visibleCount;
+    if (dashMeshes.line.count !== visibleCount) {
+      dashMeshes.line.count = visibleCount;
+      dashMeshes.casing.count = visibleCount;
     }
 
     const markerDist = progress.current * totalLength;
@@ -161,15 +184,22 @@ export function AnimatedRouteLine({
     }
   });
 
-  if (!instancedMesh) return null;
+  if (!dashMeshes) return null;
 
   return (
     <group>
-      <primitive object={instancedMesh} />
-      <mesh ref={markerRef}>
-        <sphereGeometry args={[dashSize * 1.2, 16, 16]} />
-        <meshStandardMaterial color="#000000" emissive="#000000" emissiveIntensity={0.6} />
-      </mesh>
+      <primitive object={dashMeshes.casing} />
+      <primitive object={dashMeshes.line} />
+      <group ref={markerRef}>
+        <mesh>
+          <sphereGeometry args={[dashSize * 1.2 * ROUTE_CASING_RATIO, 16, 16]} />
+          <meshStandardMaterial color={ROUTE_CASING_COLOR} side={BackSide} roughness={0.45} />
+        </mesh>
+        <mesh>
+          <sphereGeometry args={[dashSize * 1.2, 16, 16]} />
+          <meshStandardMaterial color={ROUTE_COLOR} roughness={0.45} />
+        </mesh>
+      </group>
     </group>
   );
 }
@@ -195,16 +225,20 @@ export function FloorScene({
 }) {
   const scene = useMemo(() => gltf.scene.clone(true), [gltf]);
 
-  // 1) Считаем bbox и масштаб.
-  const { uniformScale } = useMemo(() => {
+  // 1) Считаем bbox, масштаб и итоговый размер модели в МИРОВЫХ единицах.
+  //    Модель приводится к plan-габаритам (width x height) и центрируется,
+  //    поэтому её мировые габариты равны size * uniformScale.
+  const { uniformScale, modelWorldSize } = useMemo(() => {
     const box = new Box3().setFromObject(scene);
     const size = new Vector3();
     box.getSize(size);
     if (metrics && size.x > 0 && size.z > 0) {
       const s = Math.min(metrics.width / size.x, metrics.height / size.z);
-      if (isFinite(s) && s > 0) return { uniformScale: s };
+      if (isFinite(s) && s > 0) {
+        return { uniformScale: s, modelWorldSize: size.clone().multiplyScalar(s) };
+      }
     }
-    return { uniformScale: 1 };
+    return { uniformScale: 1, modelWorldSize: size.clone() };
   }, [scene, metrics]);
 
   // 2) Центрирование делаем ВНУТРИ группы, ПОСЛЕ её масштаба.
@@ -218,20 +252,35 @@ export function FloorScene({
     return c;
   }, [scene]);
 
+  // planToScene уже отдаёт координаты в мировой системе (габарит этажа,
+  // центрированный по X/Z). Дополнительного масштабирования/смещения не нужно.
   const planToScene = useCallback(
     (p: { x: number; y: number; z?: number | null }): [number, number, number] => {
       const w = metrics?.width ?? 1;
       const h = metrics?.height ?? 1;
-      return [p.x - w / 2, (p.z ?? 0) || 0, p.y - h / 2];
+      return [p.x - w / 2, p.z ?? 0, p.y - h / 2];
     },
     [metrics],
   );
 
+  // Маршрут рисуется ПОВЕРХ модели: поднимаем его над верхней границей плиты
+  // перекрытия, иначе линия оказывается внутри геометрии пола и не видна.
+  const routeLiftY = useMemo(() => {
+    const halfHeight = modelWorldSize.y / 2;
+    const clearance = Math.max(6, (metrics?.width ?? 900) * 0.01);
+    return halfHeight + clearance;
+  }, [modelWorldSize.y, metrics?.width]);
+
   const routeOverlay = useMemo(() => {
-    if (!route || route.routePath.length < 2) return null;
-    const segment = route.segments?.find((s) => s.floorNumber === activeFloor) ?? null;
-    if (!segment || segment.points.length < 2) return null;
-    const points = segment.points.map(planToScene);
+    if (!route || route.routePath.length < 1) return null;
+    // Этаж может встречаться в маршруте несколько раз (спуск/подъём) —
+    // склеиваем все чанки этого этажа в один непрерывный путь.
+    const floorSegments = (route.segments ?? []).filter(
+      (s) => s.floorNumber === activeFloor,
+    );
+    if (floorSegments.length === 0) return null;
+    const points = floorSegments.flatMap((s) => s.points.map(planToScene));
+    if (points.length < 1) return null;
     const start = points[0];
     const end = points[points.length - 1];
 
@@ -254,19 +303,18 @@ export function FloorScene({
         </mesh>
       </group>
     );
-  }, [route, planToScene, activeFloor, onReachTransfer]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route, planToScene, activeFloor]);
 
   return (
     <>
       {debug && <axesHelper args={[500]} />}
-      {/* Внешняя группа — только масштаб. */}
       <group ref={groupRef} scale={uniformScale}>
-        {/* Внутренняя группа — только смещение к центру. */}
         <group position={[-center.x, -center.y, -center.z]}>
           <primitive object={scene} />
         </group>
       </group>
-      {routeOverlay}
+      {routeOverlay ? <group position={[0, routeLiftY, 0]}>{routeOverlay}</group> : null}
     </>
   );
 }

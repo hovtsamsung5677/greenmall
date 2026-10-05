@@ -195,6 +195,24 @@ export type ApiRouteNodeType =
   | 'INFO_DESK'
   | 'OTHER';
 
+export interface ApiHeaderBanner {
+  id: string;
+  title: string;
+  subtitle: string | null;
+  linkUrl: string | null;
+  asset: {
+    id: string;
+    filename: string;
+    url: string;
+    mimeType: string | null;
+  } | null;
+  isActive: boolean;
+  sortOrder: number;
+  placement: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ApiRouteNode {
   id: string;
   floorId: string;

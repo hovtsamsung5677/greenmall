@@ -46,6 +46,7 @@ import TenantsTab, {
   emptyTenantForm,
   type AdminTenantForm,
 } from '@components/admin/TenantsTab';
+import BannersTab, { type BannersTabProps } from '@components/admin/BannersTab';
 import styles from '@styles/AdminPage.module.css';
 
 const RouteAdminPanel = lazy(() => import('@components/route-editor/RouteAdminPanel'));
@@ -82,7 +83,7 @@ class RouteAdminErrorBoundary extends React.Component<
   }
 }
 
-type Tab = 'categories' | 'stores' | 'tenants' | 'routes' | 'mobile';
+type Tab = 'categories' | 'stores' | 'tenants' | 'routes' | 'mobile' | 'banners';
 
 export interface AdminPageProps {
   onClose?: () => void;
@@ -608,6 +609,13 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
         >
           QR-страница
         </button>
+        <button
+          type="button"
+          className={`${styles.tab} ${tab === 'banners' ? styles.tabActive : ''}`}
+          onClick={() => setTab('banners')}
+        >
+          Баннеры
+        </button>
       </nav>
 
       {tab === 'routes' ? (
@@ -714,6 +722,16 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
                   onTenantLogoUpload={handleTenantLogoUpload}
                   uploadingTenantLogo={uploadingTenantLogo}
                   tenantLogoFileInputRef={tenantLogoFileInputRef}
+                />
+              )}
+              {tab === 'banners' && (
+                <BannersTab
+                  stores={stores}
+                  fileAssets={fileAssets}
+                  actionLoading={actionLoading}
+                  error={error}
+                  setError={setError}
+                  onRefresh={loadData}
                 />
               )}
             </div>
