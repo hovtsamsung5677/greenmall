@@ -10,31 +10,34 @@
 
   min-height: 100vh;
   min-height: 100dvh;
+  width: 100%;
+  max-width: 2400px;
+  margin: 0 auto;
   background-color: var(--bg);
   color: var(--text);
   font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
-  padding: 24px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
 }
 
 .heading {
   margin: 0;
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 800;
 }
 
 .userInfo {
   margin: 4px 0 0;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--muted);
 }
 
@@ -47,8 +50,8 @@
   border: 1px solid var(--border);
   background-color: #fff;
   color: var(--muted);
-  border-radius: 10px;
-  padding: 10px 18px;
+  border-radius: 12px;
+  padding: 10px 16px;
   font-weight: 700;
   cursor: pointer;
 }
@@ -62,7 +65,7 @@
 .layout {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 16px;
+  gap: 14px;
 }
 
 @media (min-width: 900px) {
@@ -78,33 +81,33 @@
 .panel {
   background-color: var(--panel-bg);
   border: 1px solid var(--border);
-  border-radius: 18px;
-  padding: 18px;
+  border-radius: 16px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .panelTitle {
   margin: 0;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 800;
 }
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .label {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--muted);
 }
@@ -114,9 +117,9 @@
 select.input {
   width: 100%;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 10px;
   padding: 10px 12px;
-  font-size: 15px;
+  font-size: 14px;
   font-family: inherit;
   color: var(--text);
   background-color: #fff;
@@ -124,34 +127,34 @@ select.input {
 }
 
 .textarea {
-  min-height: 90px;
+  min-height: 80px;
   resize: vertical;
 }
 
 .checkboxRow {
   display: flex;
-  gap: 16px;
+  gap: 14px;
   flex-wrap: wrap;
 }
 
 .checkboxField {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
+  gap: 6px;
+  font-size: 13px;
   font-weight: 600;
 }
 
 .actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
 .primaryBtn {
   border: none;
   border-radius: 12px;
-  padding: 10px 18px;
+  padding: 10px 16px;
   background-color: var(--brand);
   color: #fff;
   font-weight: 800;
@@ -167,7 +170,7 @@ select.input {
 .ghostBtn {
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 10px 18px;
+  padding: 10px 16px;
   background-color: transparent;
   color: var(--text);
   font-weight: 700;
@@ -182,7 +185,7 @@ select.input {
   background-color: #fff;
   color: var(--danger);
   font-weight: 700;
-  font-size: 13px;
+  font-size: 12px;
   cursor: pointer;
 }
 
@@ -198,41 +201,41 @@ select.input {
   background-color: #fff;
   color: var(--brand-dark);
   font-weight: 700;
-  font-size: 13px;
+  font-size: 12px;
   cursor: pointer;
 }
 
 .list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 12px;
+  gap: 10px;
+  padding: 10px;
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: 12px;
   background-color: #fff;
 }
 
 .itemMain {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
 }
 
 .itemTitle {
   font-weight: 800;
-  font-size: 15px;
+  font-size: 14px;
 }
 
 .itemMeta {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--muted);
   margin-top: 4px;
 }
@@ -256,50 +259,50 @@ select.input {
 }
 
 .loginCard {
-  width: min(100%, 380px);
+  width: min(100%, 360px);
   margin: auto;
   background-color: var(--panel-bg);
   border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.loginTitle {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 800;
-}
-
-.loginSubtitle {
-  margin: -8px 0 0;
-  color: var(--muted);
-  font-size: 14px;
-}
-
-.loginForm {
+  border-radius: 16px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.hint {
+.loginTitle {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.loginSubtitle {
+  margin: -6px 0 0;
+  color: var(--muted);
   font-size: 12px;
+}
+
+.loginForm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.hint {
+  font-size: 11px;
   color: var(--muted);
 }
 
 .preview {
   border: 1px dashed var(--border);
-  border-radius: 14px;
-  padding: 14px;
+  border-radius: 12px;
+  padding: 12px;
   background-color: #fafaf5;
 }
 
 .previewTitle {
-  margin: 0 0 10px;
-  font-size: 13px;
+  margin: 0 0 8px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--muted);
   text-transform: uppercase;
@@ -308,9 +311,9 @@ select.input {
 
 .storePreviewCard {
   background: #fff;
-  border-radius: 16px;
+  border-radius: 14px;
   overflow: hidden;
-  max-width: 320px;
+  max-width: 280px;
 }
 
 .previewCover {
@@ -331,9 +334,9 @@ select.input {
 .whEditor {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 10px;
   padding: 12px;
   background-color: #fff;
 }
@@ -342,30 +345,30 @@ select.input {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
 .whOpen {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
+  gap: 6px;
+  font-size: 13px;
   font-weight: 600;
   flex: 1;
-  min-width: 130px;
+  min-width: 120px;
 }
 
 .whTimes {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .whTimes .input {
   width: auto;
   flex: 0 0 auto;
-  padding: 8px 10px;
+  padding: 6px 8px;
 }
 
 .whTimes .input:disabled {
@@ -378,17 +381,6 @@ select.input {
   font-weight: 700;
 }
 
-@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
-  .whEditor {
-    padding: 18px;
-    gap: 12px;
-    border-radius: 16px;
-  }
-  .whOpen {
-    font-size: 20px;
-  }
-}
-
 .previewLogo img {
   width: 100%;
   height: 100%;
@@ -397,7 +389,7 @@ select.input {
 }
 
 .previewBody {
-  padding: 14px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -407,11 +399,11 @@ select.input {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
 }
 
 .previewCategory {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--muted);
   text-transform: uppercase;
@@ -419,20 +411,20 @@ select.input {
 
 .previewName {
   margin: 2px 0 0;
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 800;
   color: var(--text);
 }
 
 .previewFloor {
   margin: 2px 0 0;
-  font-size: 14px;
+  font-size: 12px;
   color: var(--muted);
   font-weight: 600;
 }
 
 .previewHours {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--muted);
   text-align: right;
@@ -441,7 +433,7 @@ select.input {
 
 .coverField {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: stretch;
 }
 
@@ -452,12 +444,12 @@ select.input {
 
 .uploadBtn {
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 10px 14px;
+  border-radius: 10px;
+  padding: 10px 12px;
   background-color: #fff;
   color: var(--brand-dark);
   font-weight: 700;
-  font-size: 13px;
+  font-size: 12px;
   cursor: pointer;
   white-space: nowrap;
   font-family: inherit;
@@ -470,10 +462,10 @@ select.input {
 
 .coverPreview {
   width: 100%;
-  max-width: 320px;
+  max-width: 280px;
   aspect-ratio: 16 / 9;
   background: #ddd;
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
   border: 1px solid var(--border);
 }
@@ -488,145 +480,195 @@ select.input {
 .assetRow {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-top: 8px;
+  gap: 10px;
+  margin-top: 6px;
 }
 
 .assetThumb {
-  width: 64px;
-  height: 64px;
-  border-radius: 12px;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
   object-fit: contain;
   background: #f3f4f6;
   border: 1px solid var(--border);
 }
 
 .assetThumbEmpty {
-  width: 64px;
-  height: 64px;
-  border-radius: 12px;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: #f3f4f6;
   border: 1px dashed var(--border);
   color: #9ca3af;
-  font-size: 12px;
+  font-size: 11px;
 }
 
-/* Крупные инфопанели / киоски (напр. 43" 16:9 ≈ 1920x1080) */
-@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
-  .page {
-    padding: 40px;
-    gap: 24px;
-  }
-  .heading {
-    font-size: 40px;
-  }
-  .userInfo {
-    font-size: 20px;
-  }
-  .tab {
-    padding: 16px 28px;
-    font-size: 22px;
-    border-radius: 16px;
-  }
-  .panel {
-    border-radius: 28px;
-    padding: 28px;
-    gap: 18px;
-  }
-  .panelTitle {
-    font-size: 28px;
-  }
-  .label {
-    font-size: 20px;
-  }
-  .input,
-  .textarea,
-  select.input {
-    padding: 16px 18px;
-    font-size: 22px;
-    border-radius: 16px;
-  }
-  .textarea {
-    min-height: 140px;
-  }
-  .checkboxField {
-    font-size: 22px;
-    gap: 12px;
-  }
-  .primaryBtn,
-  .ghostBtn {
-    padding: 16px 28px;
-    font-size: 22px;
-    border-radius: 16px;
-  }
-  .dangerBtn,
-  .smallBtn {
-    padding: 12px 18px;
-    font-size: 20px;
-  }
-  .item {
-    padding: 18px;
-    border-radius: 20px;
-  }
-  .itemTitle {
-    font-size: 22px;
-  }
-  .itemMeta {
-    font-size: 18px;
-  }
-  .uploadBtn {
-    padding: 16px 22px;
-    font-size: 20px;
-    border-radius: 16px;
-  }
-  .loginCard {
-    width: min(100%, 560px);
-    padding: 40px;
-    border-radius: 28px;
-  }
-  .loginTitle {
-    font-size: 34px;
-  }
-  .loginSubtitle {
-    font-size: 20px;
-  }
-  .storePreviewCard {
-    max-width: 460px;
-  }
-  .previewName {
-    font-size: 28px;
-  }
-  .previewFloor {
-    font-size: 20px;
-  }
-  .previewHours {
-    font-size: 18px;
-  }
 .searchRow {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   align-items: center;
   flex-wrap: wrap;
 }
 
 .searchRow .input {
   flex: 1;
-  min-width: 220px;
+  min-width: 200px;
 }
 
 .searchCount {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--muted);
   font-weight: 700;
   white-space: nowrap;
 }
 
-@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
+/* Крупные инфопанели / киоски 1920×1080 и выше 16:9 */
+@media (min-width: 1920px) and (min-aspect-ratio: 16/9) {
+  .page {
+    padding: calc(24px * var(--k));
+    gap: calc(16px * var(--k));
+  }
+
+  .heading {
+    font-size: calc(22px * var(--k));
+  }
+
+  .userInfo {
+    font-size: calc(14px * var(--k));
+  }
+
+  .tab {
+    padding: calc(12px * var(--k)) calc(18px * var(--k));
+    font-size: calc(15px * var(--k));
+    border-radius: calc(14px * var(--k));
+  }
+
+  .panel {
+    border-radius: calc(18px * var(--k));
+    padding: calc(18px * var(--k));
+    gap: calc(12px * var(--k));
+  }
+
+  .panelTitle {
+    font-size: calc(18px * var(--k));
+  }
+
+  .label {
+    font-size: calc(13px * var(--k));
+  }
+
+  .input,
+  .textarea,
+  select.input {
+    padding: calc(12px * var(--k)) calc(14px * var(--k));
+    font-size: calc(15px * var(--k));
+    border-radius: calc(12px * var(--k));
+  }
+
+  .textarea {
+    min-height: calc(100px * var(--k));
+  }
+
+  .checkboxField {
+    font-size: calc(14px * var(--k));
+    gap: calc(8px * var(--k));
+  }
+
+  .primaryBtn,
+  .ghostBtn {
+    padding: calc(12px * var(--k)) calc(18px * var(--k));
+    font-size: calc(15px * var(--k));
+    border-radius: calc(14px * var(--k));
+  }
+
+  .dangerBtn,
+  .smallBtn {
+    padding: calc(10px * var(--k)) calc(14px * var(--k));
+    font-size: calc(13px * var(--k));
+  }
+
+  .item {
+    padding: calc(12px * var(--k));
+    border-radius: calc(14px * var(--k));
+  }
+
+  .itemTitle {
+    font-size: calc(15px * var(--k));
+  }
+
+  .itemMeta {
+    font-size: calc(13px * var(--k));
+  }
+
+  .uploadBtn {
+    padding: calc(12px * var(--k)) calc(16px * var(--k));
+    font-size: calc(13px * var(--k));
+    border-radius: calc(12px * var(--k));
+  }
+
+  .loginCard {
+    width: min(100%, 420px);
+    padding: calc(24px * var(--k));
+    border-radius: calc(18px * var(--k));
+  }
+
+  .loginTitle {
+    font-size: calc(22px * var(--k));
+  }
+
+  .loginSubtitle {
+    font-size: calc(13px * var(--k));
+  }
+
+  .storePreviewCard {
+    max-width: 340px;
+  }
+
+  .previewName {
+    font-size: calc(18px * var(--k));
+  }
+
+  .previewFloor {
+    font-size: calc(13px * var(--k));
+  }
+
+  .previewHours {
+    font-size: calc(12px * var(--k));
+  }
+
+  .whEditor {
+    padding: calc(14px * var(--k));
+    gap: calc(8px * var(--k));
+    border-radius: calc(12px * var(--k));
+  }
+
+  .whOpen {
+    font-size: calc(14px * var(--k));
+  }
+
+  .assetThumb {
+    width: calc(48px * var(--k));
+    height: calc(48px * var(--k));
+    border-radius: calc(10px * var(--k));
+  }
+
+  .assetThumbEmpty {
+    width: calc(48px * var(--k));
+    height: calc(48px * var(--k));
+    border-radius: calc(10px * var(--k));
+    font-size: calc(12px * var(--k));
+  }
+
   .searchCount {
-    font-size: 18px;
+    font-size: calc(14px * var(--k));
   }
 }
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
 }

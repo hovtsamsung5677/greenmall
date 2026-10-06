@@ -12,7 +12,7 @@ import {
   deleteRouteEdge,
 } from '@api/routeEdges';
 import { fetchFloors, fetchFloorScene } from '@api/floors';
-import { fetchAllMapObjects, fetchMapObjects } from '@api/mapObjects';
+import { fetchMapObjects } from '@api/mapObjects';
 import { resolveModelUrl } from '@utils/floors';
 import type {
   ApiFloor,
@@ -69,7 +69,7 @@ export default function RouteAdminPanel() {
     if (!floorId) return;
     setLoading(true);
     setError(null);
-    Promise.all([fetchRouteNodes(floorId), fetchRouteEdges(floorId), fetchAllMapObjects()])
+    Promise.all([fetchRouteNodes(floorId), fetchRouteEdges(floorId), fetchMapObjects(floorId, 200)])
       .then(([n, e, m]) => {
         setNodes(n);
         setEdges(e);

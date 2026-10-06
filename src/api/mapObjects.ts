@@ -13,14 +13,15 @@ export interface MapObjectUpsertInput {
 
 export type MapObjectUpdateInput = Partial<MapObjectUpsertInput>;
 
-export function fetchMapObjects(floorId: string): Promise<ApiMapObject[]> {
-  return apiGet<ApiMapObject[]>(
-    `/public/map-objects?floorId=${encodeURIComponent(floorId)}`,
-  );
+export function fetchMapObjects(floorId: string, limit = 200): Promise<ApiMapObject[]> {
+  const params = new URLSearchParams();
+  params.set('floorId', encodeURIComponent(floorId));
+  params.set('limit', String(limit));
+  return apiGet<ApiMapObject[]>(`/public/map-objects?${params.toString()}`);
 }
 
 export function fetchAllMapObjects(): Promise<ApiMapObject[]> {
-  return apiGet<ApiMapObject[]>('/public/map-objects?limit=100');
+  return apiGet<ApiMapObject[]>('/public/map-objects?limit=200');
 }
 
 export function createMapObject(

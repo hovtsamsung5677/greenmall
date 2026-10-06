@@ -23,34 +23,26 @@
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  gap: 12px;
-  padding: 20px 24px 0 0;
-}
-
-/* Крупные инфопанели / киоски */
-@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
-  .topBar {
-    gap: 22px;
-    padding: 32px 40px 0 0;
-  }
+  gap: 8px;
+  padding: 12px 14px 0 0;
 }
 
 .dateTime {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 4px;
+  gap: 2px;
   color: var(--brand);
   line-height: 1.1;
 }
 
 .time {
-  font-size: 21.6px;
+  font-size: 16px;
   font-weight: 800;
 }
 
 .date {
-  font-size: 15.6px;
+  font-size: 12px;
   font-weight: 600;
   opacity: 0.9;
 }
@@ -58,61 +50,31 @@
 .langSwitch {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   background: none;
   border: none;
   color: var(--brand);
-  font-size: 15.6px;
+  font-size: 12px;
   font-weight: 700;
   cursor: pointer;
   padding: 0;
 }
 
 .translatorIcon {
-  height: 30.24px;
+  height: 20px;
   width: auto;
   pointer-events: none;
 }
 
-/* Крупные инфопанели / киоски */
-@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
-  .translatorIcon {
-    height: 50.4px;
-  }
-}
-
-/* Крупные инфопанели / киоски */
-@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
-  .time {
-    font-size: 36px;
-  }
-  .date {
-    font-size: 26.4px;
-  }
-  .langSwitch {
-    font-size: 26.4px;
-    gap: 8px;
-  }
-}
-
 .adminBtn {
   border: 1px solid var(--brand);
-  border-radius: 9.6px;
-  padding: 4.8px 12px;
+  border-radius: 8px;
+  padding: 3px 8px;
   background: transparent;
   color: var(--brand);
-  font-size: 14.4px;
+  font-size: 11px;
   font-weight: 800;
   cursor: pointer;
-}
-
-/* Крупные инфопанели / киоски */
-@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
-  .adminBtn {
-    font-size: 24px;
-    padding: 9.6px 21.6px;
-    border-radius: 11.52px;
-  }
 }
 
 .center {
@@ -122,24 +84,17 @@
   justify-content: center;
   position: relative;
   z-index: 2;
-  padding: 0 16px;
+  padding: 0 12px;
 }
 
 .logo {
   max-width: 60%;
-  width: 340px;
+  width: clamp(180px, 20vw, 600px);
   height: auto;
   object-fit: contain;
   pointer-events: none;
   display: block;
   filter: none;
-}
-
-/* Крупные инфопанели / киоски (напр. 43" 16:9 ≈ 1920x1080) */
-@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
-  .logo {
-    width: 560px;
-  }
 }
 
 @keyframes pulse {
@@ -155,55 +110,77 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  margin-top: 18vh;
-  padding-bottom: 12%;
+  gap: 8px;
+  margin-top: 14vh;
+  padding-bottom: 10%;
   animation: pulse 1.5s ease-in-out infinite;
-}
-
-/* Крупные инфопанели / киоски */
-@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
-  .footer {
-    gap: 18px;
-    margin-top: 16vh;
-    padding-bottom: 12%;
-  }
 }
 
 .tapText {
   color: var(--brand);
-  font-size: 20px;
+  font-size: 14px;
   font-weight: 600;
 }
 
-/* Крупные инфопанели / киоски */
-@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
-  .tapText {
-    font-size: 36px;
-  }
-}
-
 .fingerIcon {
-  width: 26px;
-  height: 26px;
+  width: 18px;
+  height: 18px;
   flex-shrink: 0;
   object-fit: contain;
   pointer-events: none;
 }
 
-/* Крупные инфопанели / киоски */
-@media (min-width: 1920px), (min-height: 1080px) and (min-aspect-ratio: 16/9) {
+/* Крупные инфопанели / киоски 1920×1080 и выше 16:9 */
+@media (min-width: 1920px) and (min-aspect-ratio: 16/9) {
+  .topBar {
+    gap: calc(10px * var(--k));
+    padding: calc(16px * var(--k)) calc(20px * var(--k)) 0;
+  }
+
+  .time {
+    font-size: calc(18px * var(--k));
+  }
+  .date {
+    font-size: calc(12px * var(--k));
+  }
+  .langSwitch {
+    font-size: calc(12px * var(--k));
+    gap: calc(4px * var(--k));
+  }
+  .translatorIcon {
+    height: calc(22px * var(--k));
+  }
+  .adminBtn {
+    font-size: calc(12px * var(--k));
+    padding: calc(4px * var(--k)) calc(10px * var(--k));
+    border-radius: calc(8px * var(--k));
+  }
+
+  .logo {
+    width: clamp(200px, 20vw, 700px);
+  }
+
+  .footer {
+    gap: calc(10px * var(--k));
+    margin-top: 14vh;
+    padding-bottom: 10%;
+  }
+
+  .tapText {
+    font-size: calc(16px * var(--k));
+  }
+
   .fingerIcon {
-    width: 44px;
-    height: 44px;
+    width: calc(20px * var(--k));
+    height: calc(20px * var(--k));
   }
 }
 
 @media (max-width: 480px) {
   .logo {
-    width: 240px;
+    width: 200px;
   }
   .tapText {
-    font-size: 17px;
+    font-size: 14px;
   }
 }

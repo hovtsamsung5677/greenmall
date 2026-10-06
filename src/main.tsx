@@ -1,6 +1,7 @@
 import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from '@/App';
+import '@styles/global.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -11,6 +12,15 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+(function initKioskScale() {
+  try {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    document.documentElement.style.setProperty('--dpr', String(dpr));
+  } catch {
+    document.documentElement.style.setProperty('--dpr', '1');
+  }
+})();
 
 function showFatalError(message: string, stack?: string) {
   const existing = document.getElementById('fatal-error-banner');

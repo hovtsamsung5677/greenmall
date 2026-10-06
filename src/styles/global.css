@@ -1,0 +1,4 @@
+:root {
+  --dpr: 1;
+  --k: clamp(1, min(100vw * var(--dpr) / 1920, 100vh * var(--dpr) / 1080), 2);
+}

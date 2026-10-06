@@ -1,8 +1,20 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useReducer } from 'react';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 const gltfPromiseCache = new Map<string, Promise<GLTF>>();
+
+// Результаты и ошибки хранятся ОТДЕЛЬНО от промисов. Хук читает их синхронно во
+// время рендера, поэтому уже загруженная модель доступна в том же кадре, в котором
+// сменился URL. Без этого между этажами возникает кадр-заглушка: сначала React
+// отдаёт предыдущую модель, затем effect ставит loading, и только потом появляется
+// новая — на переходе это читается как мигание.
+const gltfResultCache = new Map<string, GLTF>();
+const gltfErrorCache = new Map<string, Error>();
+
+function toError(err: unknown): Error {
+  return err instanceof Error ? err : new Error(String(err));
+}
 
 export function loadGLTFCached(url: string): Promise<GLTF> {
   let promise = gltfPromiseCache.get(url);
@@ -12,13 +24,22 @@ export function loadGLTFCached(url: string): Promise<GLTF> {
       loader.load(url, resolve, undefined, reject);
     });
     gltfPromiseCache.set(url, promise);
-    promise.catch(() => gltfPromiseCache.delete(url));
+    promise
+      .then((gltf) => {
+        gltfResultCache.set(url, gltf);
+      })
+      .catch((err: unknown) => {
+        gltfErrorCache.set(url, toError(err));
+        gltfPromiseCache.delete(url);
+      });
   }
   return promise;
 }
 
 export function clearGLTFCache(url: string) {
   gltfPromiseCache.delete(url);
+  gltfResultCache.delete(url);
+  gltfErrorCache.delete(url);
 }
 
 export interface CachedGLTFState {
@@ -28,38 +49,24 @@ export interface CachedGLTFState {
 }
 
 export function useCachedGLTF(url: string | null): CachedGLTFState {
-  const [state, setState] = useState<CachedGLTFState>({
-    gltf: null,
-    loading: false,
-    error: null,
-  });
+  const [, rerender] = useReducer((n: number) => n + 1, 0);
 
   useEffect(() => {
-    if (!url) {
-      setState({ gltf: null, loading: false, error: null });
-      return;
-    }
+    if (!url) return;
+    if (gltfResultCache.has(url) || gltfErrorCache.has(url)) return;
     let cancelled = false;
-    setState({ gltf: null, loading: true, error: null });
-
-    loadGLTFCached(url)
-      .then((loaded) => {
-        if (cancelled) return;
-        setState({ gltf: loaded, loading: false, error: null });
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        setState({
-          gltf: null,
-          loading: false,
-          error: err instanceof Error ? err : new Error(String(err)),
-        });
-      });
-
+    const rerenderIfAlive = () => {
+      if (!cancelled) rerender();
+    };
+    void loadGLTFCached(url).then(rerenderIfAlive, rerenderIfAlive);
     return () => {
       cancelled = true;
     };
   }, [url]);
 
-  return state;
+  if (!url) return { gltf: null, loading: false, error: null };
+
+  const gltf = gltfResultCache.get(url) ?? null;
+  const error = gltfErrorCache.get(url) ?? null;
+  return { gltf, loading: gltf === null && error === null, error };
 }
