@@ -176,11 +176,34 @@ export interface ApiFloorScene {
   routeEdges: unknown[];
   categories: unknown[];
   stores: ApiSceneStore[];
+  textures: ApiFloorTexture[];
   meta: {
     schemaVersion: string;
     generatedAt: string;
     purpose: string;
   };
+}
+
+export interface ApiFloorTexture {
+  id: string;
+  floorId: string;
+  targetMesh: string;
+  materialSlot: string | null;
+  opacity: number | null;
+  blendMode: string | null;
+  positionX: number | null;
+  positionY: number | null;
+  scaleX: number | null;
+  scaleY: number | null;
+  rotation: number | null;
+  sortOrder: number;
+  asset: {
+    id: string;
+    filename: string;
+    url: string;
+    mimeType: string | null;
+    kind: string;
+  } | null;
 }
 
 export type ApiRouteNodeType =
@@ -354,5 +377,3 @@ export interface ApiRouteToStoreResponse extends ApiRouteResponse {
     primaryRouteNodeId: string | null;
   } | null;
 }
-
-
