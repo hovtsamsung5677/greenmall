@@ -162,86 +162,86 @@
 /* Крупные инфопанели / киоски 1920×1080 и выше 16:9 */
 @media (min-width: 1920px) and (min-aspect-ratio: 16/9) {
   .root {
-    gap: calc(12px * var(--k));
+    gap: calc(12px * var(--k-admin));
   }
 
   .toolbar {
-    gap: calc(12px * var(--k));
+    gap: calc(12px * var(--k-admin));
   }
 
   .field {
-    font-size: calc(13px * var(--k));
-    gap: calc(4px * var(--k));
+    font-size: calc(13px * var(--k-admin));
+    gap: calc(4px * var(--k-admin));
   }
 
   .select {
-    padding: calc(8px * var(--k)) calc(10px * var(--k));
-    border-radius: calc(10px * var(--k));
-    font-size: calc(14px * var(--k));
+    padding: calc(8px * var(--k-admin)) calc(10px * var(--k-admin));
+    border-radius: calc(10px * var(--k-admin));
+    font-size: calc(14px * var(--k-admin));
   }
 
   .modes {
-    gap: calc(8px * var(--k));
+    gap: calc(8px * var(--k-admin));
   }
 
   .modeBtn {
-    border-radius: calc(10px * var(--k));
-    padding: calc(10px * var(--k)) calc(14px * var(--k));
-    font-size: calc(14px * var(--k));
+    border-radius: calc(10px * var(--k-admin));
+    padding: calc(10px * var(--k-admin)) calc(14px * var(--k-admin));
+    font-size: calc(14px * var(--k-admin));
   }
 
   .hint {
-    font-size: calc(13px * var(--k));
+    font-size: calc(13px * var(--k-admin));
   }
 
   .error {
-    font-size: calc(13px * var(--k));
+    font-size: calc(13px * var(--k-admin));
   }
 
   .body {
-    gap: calc(12px * var(--k));
+    gap: calc(12px * var(--k-admin));
   }
 
   .canvasWrap {
-    border-radius: calc(14px * var(--k));
-    min-height: calc(500px * var(--k));
+    border-radius: calc(14px * var(--k-admin));
+    min-height: calc(500px * var(--k-admin));
   }
 
   .loading,
   .busy {
-    font-size: calc(14px * var(--k));
+    font-size: calc(14px * var(--k-admin));
   }
 
   .sidebar {
-    gap: calc(12px * var(--k));
+    gap: calc(12px * var(--k-admin));
   }
 
   .sideBlock {
-    border-radius: calc(14px * var(--k));
-    padding: calc(12px * var(--k));
-    max-height: calc(340px * var(--k));
+    border-radius: calc(14px * var(--k-admin));
+    padding: calc(12px * var(--k-admin));
+    max-height: calc(340px * var(--k-admin));
   }
 
   .sideTitle {
-    font-size: calc(14px * var(--k));
-    margin: 0 0 calc(8px * var(--k));
+    font-size: calc(14px * var(--k-admin));
+    margin: 0 0 calc(8px * var(--k-admin));
   }
 
   .list {
-    gap: calc(8px * var(--k));
+    gap: calc(8px * var(--k-admin));
   }
 
   .listItem {
-    padding: calc(8px * var(--k)) calc(10px * var(--k));
-    border-radius: calc(10px * var(--k));
-    font-size: calc(13px * var(--k));
+    padding: calc(8px * var(--k-admin)) calc(10px * var(--k-admin));
+    border-radius: calc(10px * var(--k-admin));
+    font-size: calc(13px * var(--k-admin));
   }
 
   .muted {
-    font-size: calc(12px * var(--k));
+    font-size: calc(12px * var(--k-admin));
   }
 
   .delBtn {
-    font-size: calc(14px * var(--k));
+    font-size: calc(14px * var(--k-admin));
   }
 }

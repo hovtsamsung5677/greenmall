@@ -50,6 +50,7 @@ import BannersTab, { type BannersTabProps } from '@components/admin/BannersTab';
 import styles from '@styles/AdminPage.module.css';
 
 const RouteAdminPanel = lazy(() => import('@components/route-editor/RouteAdminPanel'));
+const FloorIconsTab = lazy(() => import('@components/admin/FloorIconsTab'));
 const RouteSharePreview = lazy(() => import('./RouteSharePreview'));
 
 class RouteAdminErrorBoundary extends React.Component<
@@ -83,7 +84,7 @@ class RouteAdminErrorBoundary extends React.Component<
   }
 }
 
-type Tab = 'categories' | 'stores' | 'tenants' | 'routes' | 'mobile' | 'banners';
+type Tab = 'categories' | 'stores' | 'tenants' | 'routes' | 'mobile' | 'banners' | 'icons';
 
 export interface AdminPageProps {
   onClose?: () => void;
@@ -616,6 +617,13 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
         >
           Баннеры
         </button>
+        <button
+          type="button"
+          className={`${styles.tab} ${tab === 'icons' ? styles.tabActive : ''}`}
+          onClick={() => setTab('icons')}
+        >
+          Иконки на карте
+        </button>
       </nav>
 
       {tab === 'routes' ? (
@@ -627,6 +635,10 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
       ) : tab === 'mobile' ? (
         <Suspense fallback={<div className={styles.loading}>Загрузка QR-страницы…</div>}>
           <RouteSharePreview />
+        </Suspense>
+      ) : tab === 'icons' ? (
+        <Suspense fallback={<div className={styles.loading}>Загрузка редактора иконок…</div>}>
+          <FloorIconsTab />
         </Suspense>
       ) : (
         <>

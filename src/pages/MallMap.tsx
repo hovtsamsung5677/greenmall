@@ -15,6 +15,7 @@ import { fetchPublicRouteEdges } from '@api/routeEdges';
 import { buildRouteToStore } from '@api/routes';
 import { createSharedRoute } from '@api/sharedRoutes';
 import { fetchActiveHeaderBanner, type HeaderBanner } from '@api/headerBanners';
+import { fetchPublicFloorIcons } from '@api/floorIcons';
 import { resolveAssetUrl } from '@api/fileAssets';
 import { fetchFloorScene } from '@api/floors';
 import { useFloorScene } from '@hooks/useFloorScene';
@@ -24,6 +25,8 @@ import type {
   ApiRouteNode,
   ApiRouteEdge,
   ApiRouteToStoreResponse,
+  ApiFloorChange,
+  ApiFloorIcon,
 } from '@api/types';
 
 import { useCachedGLTF, clearGLTFCache } from '@components/MallMap/gltfCache';
@@ -347,6 +350,7 @@ export default function MallMap({
 
   const [routeNodes, setRouteNodes] = useState<ApiRouteNode[]>([]);
   const [routeEdges, setRouteEdges] = useState<ApiRouteEdge[]>([]);
+  const [floorIcons, setFloorIcons] = useState<ApiFloorIcon[]>([]);
   const [activeRoute, setActiveRoute] = useState<ApiRouteToStoreResponse | null>(null);
   const [routeError, setRouteError] = useState<string | null>(null);
   const [routeLoading, setRouteLoading] = useState(false);
@@ -383,6 +387,25 @@ export default function MallMap({
       });
   }, [activeFloor, floors]);
 
+  // Иконки, размещённые на 3D-модели этажа через админ-панель.
+  useEffect(() => {
+    if (!floors.length) return;
+    const floor = floors.find((f) => f.number === activeFloor);
+    if (!floor) return;
+    setFloorIcons([]);
+    let cancelled = false;
+    fetchPublicFloorIcons(floor.id)
+      .then((list) => {
+        if (!cancelled) setFloorIcons(list);
+      })
+      .catch(() => {
+        if (!cancelled) setFloorIcons([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeFloor, floors]);
+
   useEffect(() => {
     fetchActiveHeaderBanner()
       .then(setHeaderBanner)
@@ -394,10 +417,41 @@ export default function MallMap({
   // Этаж, на который маршрут уйдёт дальше с текущего. По нему модель
   // следующего этажа начинает грузиться заранее — задолго до того, как
   // посетитель дойдёт до лифта, иначе в момент перехода был бы кадр-заглушка.
+  const expandedFloorChanges = useMemo(() => {
+    if (!activeRoute?.floorChanges?.length || !floors.length) return [];
+    const floorNumbers = new Set(floors.map((f) => f.number));
+    const floorById = new Map(floors.map((f) => [f.number, f]));
+    return activeRoute.floorChanges.flatMap((change) => {
+      const diff = Math.abs(change.toFloor - change.fromFloor);
+      if (diff <= 1) return [change];
+      const direction = Math.sign(change.toFloor - change.fromFloor);
+      const steps: ApiFloorChange[] = [];
+      let current = change.fromFloor;
+      while (current !== change.toFloor) {
+        const next = current + direction;
+        if (!floorNumbers.has(next)) {
+          current = next;
+          continue;
+        }
+        const nextFloor = floorById.get(next);
+        steps.push({
+          fromFloor: current,
+          toFloor: next,
+          fromFloorId: floorById.get(current)?.id ?? change.fromFloorId,
+          toFloorId: nextFloor?.id ?? change.toFloorId,
+          nodeCode: change.nodeCode,
+          type: change.type,
+        });
+        current = next;
+      }
+      return steps;
+    });
+  }, [activeRoute, floors]);
+
   const nextFloorNumber = useMemo(() => {
-    const change = activeRoute?.floorChanges?.find((c) => c.fromFloor === activeFloor);
+    const change = expandedFloorChanges.find((c) => c.fromFloor === activeFloor);
     return change?.toFloor ?? null;
-  }, [activeRoute, activeFloor]);
+  }, [expandedFloorChanges, activeFloor]);
 
   const nextFloorId = useMemo(
     () => floors.find((f) => f.number === nextFloorNumber)?.id ?? null,
@@ -416,6 +470,14 @@ export default function MallMap({
   }, [nextFloorNumber, nextSceneQuery.data]);
 
   const { gltf: nextGltf } = useCachedGLTF(nextModelUrl);
+
+  const processedRoute = useMemo(() => {
+    if (!activeRoute) return null;
+    return {
+      ...activeRoute,
+      floorChanges: expandedFloorChanges,
+    };
+  }, [activeRoute, expandedFloorChanges]);
 
   // Геометрия перехода: вертикальная шахта от конца линии текущего этажа
   // к началу линии следующего. Обе точки считаются в системе координат
@@ -691,10 +753,11 @@ export default function MallMap({
           nextGltf={nextGltf}
           metrics={planMetrics}
           nextMetrics={transferPlan?.nextMetrics ?? planMetrics}
-          route={activeRoute}
+          route={processedRoute}
           activeFloor={activeFloor}
           transfer={transfer}
           shaft={transferPlan?.shaft ?? null}
+          icons={floorIcons}
           onReachTransfer={handleReachTransfer}
           onTransferComplete={handleTransferComplete}
           controlsRef={controlsRef}
@@ -776,7 +839,7 @@ export default function MallMap({
             </span>
             <span className={styles.transferOverlayHint}>
               {(() => {
-                const type = activeRoute?.floorChanges?.find(
+                const type = expandedFloorChanges.find(
                   (c) => c.fromFloor === activeFloor && c.toFloor === transferTarget,
                 )?.type;
                 const labels = type ? TRANSFER_TYPE_LABELS[type] : null;

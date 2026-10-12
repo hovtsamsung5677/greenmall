@@ -13,7 +13,8 @@ import {
 } from 'three';
 import type { Group, Matrix4 } from 'three';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import type { ApiRouteToStoreResponse } from '@api/types';
+import type { ApiRouteToStoreResponse, ApiFloorIcon } from '@api/types';
+import FloorIconLayer, { type FloorIconLayerMetrics } from './FloorIconLayer';
 
 export interface PlanMetrics {
   width: number;
@@ -354,6 +355,8 @@ export function FloorScene({
   onReachTransfer,
   upwardShaft = null,
   debug = false,
+  icons = [],
+  onIconClick,
 }: {
   gltf: GLTF;
   groupRef?: React.RefObject<Group | null>;
@@ -363,6 +366,8 @@ export function FloorScene({
   onReachTransfer?: (nextFloor: number) => void;
   upwardShaft?: UpwardShaft | null;
   debug?: boolean;
+  icons?: ApiFloorIcon[];
+  onIconClick?: (icon: ApiFloorIcon) => void;
 }) {
   const scene = useMemo(() => gltf.scene.clone(true), [gltf]);
 
@@ -454,6 +459,14 @@ export function FloorScene({
           <primitive object={scene} />
         </group>
       </group>
+      <FloorIconLayer
+        icons={icons}
+        metrics={metrics}
+        onIconClick={(id) => {
+          const icon = icons.find((i) => i.id === id);
+          if (icon) onIconClick?.(icon);
+        }}
+      />
       {routeOverlay || shaft ? (
         <group position={[0, routeLiftY, 0]}>
           {routeOverlay}

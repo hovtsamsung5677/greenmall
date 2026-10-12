@@ -4,7 +4,7 @@ import { OrbitControls } from '@react-three/drei';
 import { MOUSE, TOUCH } from 'three';
 import type { Group } from 'three';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import type { ApiRouteToStoreResponse } from '@api/types';
+import type { ApiRouteToStoreResponse, ApiFloorIcon } from '@api/types';
 import { FloorScene, type PlanMetrics, type UpwardShaft } from './FloorScene';
 import FloorStackStage from './FloorStackStage';
 
@@ -96,6 +96,7 @@ export function SceneCanvas({
   activeFloor,
   transfer = null,
   shaft = null,
+  icons = [],
   onReachTransfer,
   onTransferComplete,
   controlsRef,
@@ -115,6 +116,7 @@ export function SceneCanvas({
   activeFloor: number;
   transfer?: SceneTransfer | null;
   shaft?: UpwardShaft | null;
+  icons?: ApiFloorIcon[];
   onReachTransfer?: (nextFloor: number) => void;
   onTransferComplete?: () => void;
   controlsRef: React.RefObject<any>;
@@ -140,6 +142,7 @@ export function SceneCanvas({
       onReachTransfer={onReachTransfer}
       upwardShaft={shaft}
       debug={debug}
+      icons={icons}
     />
   ) : null;
 

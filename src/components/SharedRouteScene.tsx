@@ -4,7 +4,8 @@ import type { Group } from 'three';
 import { FloorScene, type PlanMetrics } from '@pages/MallMap';
 import { useCachedGLTF } from '@components/MallMap/gltfCache';
 import { useFloorScene } from '@hooks/useFloorScene';
-import type { ApiRouteToStoreResponse } from '@api/types';
+import type { ApiRouteToStoreResponse, ApiFloorIcon } from '@api/types';
+import { fetchPublicFloorIcons } from '@api/floorIcons';
 import styles from '@styles/MallMap.module.css';
 
 const FLOOR_PLACEHOLDER_COLOR: Record<number, string> = {
@@ -120,6 +121,25 @@ export default function SharedRouteScene({
     };
   }, [floors, activeFloor]);
 
+  // Иконки, размещённые на 3D-модели этажа через админ-панель.
+  const [floorIcons, setFloorIcons] = useState<ApiFloorIcon[]>([]);
+
+  useEffect(() => {
+    const floor = floors.find((f) => f.number === activeFloor);
+    if (!floor) return;
+    let cancelled = false;
+    fetchPublicFloorIcons(floor.id)
+      .then((list) => {
+        if (!cancelled) setFloorIcons(list);
+      })
+      .catch(() => {
+        if (!cancelled) setFloorIcons([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeFloor, floors]);
+
   const handleZoom = (delta: number) => {
     setZoom((prev) => Math.min(3, Math.max(0.4, +(prev + delta).toFixed(2))));
   };
@@ -199,6 +219,7 @@ export default function SharedRouteScene({
             metrics={planMetrics}
             route={route}
             activeFloor={activeFloor}
+            icons={floorIcons}
             onReachTransfer={(nextFloor) => setActiveFloor(nextFloor)}
           />
           <TopDownControls zoom={zoom} targetRef={targetRef} />

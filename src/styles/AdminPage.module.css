@@ -528,99 +528,99 @@ select.input {
 /* Крупные инфопанели / киоски 1920×1080 и выше 16:9 */
 @media (min-width: 1920px) and (min-aspect-ratio: 16/9) {
   .page {
-    padding: calc(24px * var(--k));
-    gap: calc(16px * var(--k));
+    padding: calc(24px * var(--k-admin));
+    gap: calc(16px * var(--k-admin));
   }
 
   .heading {
-    font-size: calc(22px * var(--k));
+    font-size: calc(22px * var(--k-admin));
   }
 
   .userInfo {
-    font-size: calc(14px * var(--k));
+    font-size: calc(14px * var(--k-admin));
   }
 
   .tab {
-    padding: calc(12px * var(--k)) calc(18px * var(--k));
-    font-size: calc(15px * var(--k));
-    border-radius: calc(14px * var(--k));
+    padding: calc(12px * var(--k-admin)) calc(18px * var(--k-admin));
+    font-size: calc(15px * var(--k-admin));
+    border-radius: calc(14px * var(--k-admin));
   }
 
   .panel {
-    border-radius: calc(18px * var(--k));
-    padding: calc(18px * var(--k));
-    gap: calc(12px * var(--k));
+    border-radius: calc(18px * var(--k-admin));
+    padding: calc(18px * var(--k-admin));
+    gap: calc(12px * var(--k-admin));
   }
 
   .panelTitle {
-    font-size: calc(18px * var(--k));
+    font-size: calc(18px * var(--k-admin));
   }
 
   .label {
-    font-size: calc(13px * var(--k));
+    font-size: calc(13px * var(--k-admin));
   }
 
   .input,
   .textarea,
   select.input {
-    padding: calc(12px * var(--k)) calc(14px * var(--k));
-    font-size: calc(15px * var(--k));
-    border-radius: calc(12px * var(--k));
+    padding: calc(12px * var(--k-admin)) calc(14px * var(--k-admin));
+    font-size: calc(15px * var(--k-admin));
+    border-radius: calc(12px * var(--k-admin));
   }
 
   .textarea {
-    min-height: calc(100px * var(--k));
+    min-height: calc(100px * var(--k-admin));
   }
 
   .checkboxField {
-    font-size: calc(14px * var(--k));
-    gap: calc(8px * var(--k));
+    font-size: calc(14px * var(--k-admin));
+    gap: calc(8px * var(--k-admin));
   }
 
   .primaryBtn,
   .ghostBtn {
-    padding: calc(12px * var(--k)) calc(18px * var(--k));
-    font-size: calc(15px * var(--k));
-    border-radius: calc(14px * var(--k));
+    padding: calc(12px * var(--k-admin)) calc(18px * var(--k-admin));
+    font-size: calc(15px * var(--k-admin));
+    border-radius: calc(14px * var(--k-admin));
   }
 
   .dangerBtn,
   .smallBtn {
-    padding: calc(10px * var(--k)) calc(14px * var(--k));
-    font-size: calc(13px * var(--k));
+    padding: calc(10px * var(--k-admin)) calc(14px * var(--k-admin));
+    font-size: calc(13px * var(--k-admin));
   }
 
   .item {
-    padding: calc(12px * var(--k));
-    border-radius: calc(14px * var(--k));
+    padding: calc(12px * var(--k-admin));
+    border-radius: calc(14px * var(--k-admin));
   }
 
   .itemTitle {
-    font-size: calc(15px * var(--k));
+    font-size: calc(15px * var(--k-admin));
   }
 
   .itemMeta {
-    font-size: calc(13px * var(--k));
+    font-size: calc(13px * var(--k-admin));
   }
 
   .uploadBtn {
-    padding: calc(12px * var(--k)) calc(16px * var(--k));
-    font-size: calc(13px * var(--k));
-    border-radius: calc(12px * var(--k));
+    padding: calc(12px * var(--k-admin)) calc(16px * var(--k-admin));
+    font-size: calc(13px * var(--k-admin));
+    border-radius: calc(12px * var(--k-admin));
   }
 
   .loginCard {
     width: min(100%, 420px);
-    padding: calc(24px * var(--k));
-    border-radius: calc(18px * var(--k));
+    padding: calc(24px * var(--k-admin));
+    border-radius: calc(18px * var(--k-admin));
   }
 
   .loginTitle {
-    font-size: calc(22px * var(--k));
+    font-size: calc(22px * var(--k-admin));
   }
 
   .loginSubtitle {
-    font-size: calc(13px * var(--k));
+    font-size: calc(13px * var(--k-admin));
   }
 
   .storePreviewCard {
@@ -628,42 +628,42 @@ select.input {
   }
 
   .previewName {
-    font-size: calc(18px * var(--k));
+    font-size: calc(18px * var(--k-admin));
   }
 
   .previewFloor {
-    font-size: calc(13px * var(--k));
+    font-size: calc(13px * var(--k-admin));
   }
 
   .previewHours {
-    font-size: calc(12px * var(--k));
+    font-size: calc(12px * var(--k-admin));
   }
 
   .whEditor {
-    padding: calc(14px * var(--k));
-    gap: calc(8px * var(--k));
-    border-radius: calc(12px * var(--k));
+    padding: calc(14px * var(--k-admin));
+    gap: calc(8px * var(--k-admin));
+    border-radius: calc(12px * var(--k-admin));
   }
 
   .whOpen {
-    font-size: calc(14px * var(--k));
+    font-size: calc(14px * var(--k-admin));
   }
 
   .assetThumb {
-    width: calc(48px * var(--k));
-    height: calc(48px * var(--k));
-    border-radius: calc(10px * var(--k));
+    width: calc(48px * var(--k-admin));
+    height: calc(48px * var(--k-admin));
+    border-radius: calc(10px * var(--k-admin));
   }
 
   .assetThumbEmpty {
-    width: calc(48px * var(--k));
-    height: calc(48px * var(--k));
-    border-radius: calc(10px * var(--k));
-    font-size: calc(12px * var(--k));
+    width: calc(48px * var(--k-admin));
+    height: calc(48px * var(--k-admin));
+    border-radius: calc(10px * var(--k-admin));
+    font-size: calc(12px * var(--k-admin));
   }
 
   .searchCount {
-    font-size: calc(14px * var(--k));
+    font-size: calc(14px * var(--k-admin));
   }
 }
 
