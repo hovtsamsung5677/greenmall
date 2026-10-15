@@ -249,17 +249,17 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: calc(10px * var(--ctrl));
 }
 
 .floorBtn {
-  width: 40px;
-  height: 40px;
+  width: calc(40px * var(--ctrl));
+  height: calc(40px * var(--ctrl));
   border-radius: 50%;
   border: 2px solid var(--brand);
   background-color: #fff;
   color: var(--brand);
-  font-size: 14px;
+  font-size: calc(14px * var(--ctrl));
   font-weight: 800;
   cursor: pointer;
   display: flex;
@@ -304,12 +304,12 @@
   right: 0;
   z-index: 10;
   display: flex;
-  gap: 8px;
+  gap: calc(8px * var(--ctrl));
 }
 
 .zoomBtn {
-  width: 40px;
-  height: 40px;
+  width: calc(40px * var(--ctrl));
+  height: calc(40px * var(--ctrl));
   border-radius: 50%;
   border: 2px solid var(--brand);
   background-color: #fff;
@@ -321,13 +321,13 @@
 }
 
 .zoomBtn svg {
-  width: 18px;
-  height: 18px;
+  width: calc(18px * var(--ctrl));
+  height: calc(18px * var(--ctrl));
 }
 
 .qrBtn {
   width: auto;
-  height: 40px;
+  height: calc(40px * var(--ctrl));
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -339,7 +339,7 @@
 }
 
 .qrBtn img {
-  height: 40px;
+  height: calc(40px * var(--ctrl));
   width: auto;
   object-fit: contain;
 }
@@ -629,6 +629,22 @@
   color: #fca5a5;
 }
 
+.evacuationStatus {
+  position: absolute;
+  left: 50%;
+  bottom: 40px;
+  transform: translateX(-50%);
+  z-index: 6;
+  background: rgba(127, 29, 29, 0.85);
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  max-width: 90vw;
+  text-align: center;
+}
+
 .routeToast {
   position: absolute;
   left: 50%;
@@ -765,14 +781,14 @@
 
   .floorControls {
     top: calc(20px * var(--k));
-    gap: calc(14px * var(--k));
+    gap: calc(14px * var(--k) * var(--ctrl));
   }
 
   .floorBtn {
-    width: calc(40px * var(--k));
-    height: calc(40px * var(--k));
-    font-size: calc(16px * var(--k));
-    border-width: calc(2px * var(--k));
+    width: calc(40px * var(--k) * var(--ctrl));
+    height: calc(40px * var(--k) * var(--ctrl));
+    font-size: calc(16px * var(--k) * var(--ctrl));
+    border-width: calc(2px * var(--k) * var(--ctrl));
   }
 
   .locationBtn {
@@ -789,26 +805,26 @@
 
   .zoomControls {
     bottom: calc(8px * var(--k));
-    gap: calc(10px * var(--k));
+    gap: calc(10px * var(--k) * var(--ctrl));
   }
 
   .zoomBtn {
-    width: calc(40px * var(--k));
-    height: calc(40px * var(--k));
-    border-width: calc(2px * var(--k));
+    width: calc(40px * var(--k) * var(--ctrl));
+    height: calc(40px * var(--k) * var(--ctrl));
+    border-width: calc(2px * var(--k) * var(--ctrl));
   }
 
   .zoomBtn svg {
-    width: calc(20px * var(--k));
-    height: calc(20px * var(--k));
+    width: calc(20px * var(--k) * var(--ctrl));
+    height: calc(20px * var(--k) * var(--ctrl));
   }
 
   .qrBtn {
-    height: calc(40px * var(--k));
+    height: calc(40px * var(--k) * var(--ctrl));
   }
 
   .qrBtn img {
-    height: calc(40px * var(--k));
+    height: calc(40px * var(--k) * var(--ctrl));
   }
 
   .editToolbar {
@@ -953,15 +969,15 @@
   .floorBtn,
   .zoomBtn,
   .locationBtn {
-    width: 32px;
-    height: 32px;
+    width: calc(32px * var(--ctrl));
+    height: calc(32px * var(--ctrl));
   }
 
   .qrBtn {
-    height: 32px;
+    height: calc(32px * var(--ctrl));
   }
 
   .qrBtn img {
-    height: 32px;
+    height: calc(32px * var(--ctrl));
   }
 }

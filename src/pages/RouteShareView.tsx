@@ -1,5 +1,7 @@
+import { useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getSharedRoute } from '@api/sharedRoutes';
+import { trackQrScanned } from '@api/tracking';
 import SharedRouteScene, { type SharedRouteSceneProps } from '@components/SharedRouteScene';
 import logoGreenMall from '@assets/icons/logo2.webp';
 import styles from '@styles/MallMap.module.css';
@@ -11,6 +13,15 @@ export default function RouteShareView({ token }: { token: string }) {
     queryFn: () => getSharedRoute<ApiRouteToStoreResponse>(token),
     enabled: !!token,
   });
+
+  // QR-код отсканирован: фиксируем переход в онлайн-карту одним событием
+  // на открытие страницы. clientEventId делает повторную отправку идемпотентной.
+  const qrTrackedRef = useRef(false);
+  useEffect(() => {
+    if (qrTrackedRef.current) return;
+    qrTrackedRef.current = true;
+    trackQrScanned(token, route?.targetStore?.id ?? null);
+  }, [token, route?.targetStore?.id]);
 
   const routeError = error instanceof Error ? error.message : error ? String(error) : null;
 

@@ -13,15 +13,29 @@ export interface MapObjectUpsertInput {
 
 export type MapObjectUpdateInput = Partial<MapObjectUpsertInput>;
 
-export function fetchMapObjects(floorId: string, limit = 200): Promise<ApiMapObject[]> {
+/** Максимум, который принимает публичный эндпоинт (@Max(100)). */
+const MAP_OBJECTS_MAX_LIMIT = 100;
+
+/** Ограничивает limit сверху значением, допустимым бэкендом. */
+function clampMapObjectsLimit(limit: number): number {
+  if (!Number.isFinite(limit)) return MAP_OBJECTS_MAX_LIMIT;
+  return Math.min(Math.max(Math.trunc(limit), 1), MAP_OBJECTS_MAX_LIMIT);
+}
+
+export function fetchMapObjects(
+  floorId: string,
+  limit = MAP_OBJECTS_MAX_LIMIT,
+): Promise<ApiMapObject[]> {
   const params = new URLSearchParams();
   params.set('floorId', encodeURIComponent(floorId));
-  params.set('limit', String(limit));
+  params.set('limit', String(clampMapObjectsLimit(limit)));
   return apiGet<ApiMapObject[]>(`/public/map-objects?${params.toString()}`);
 }
 
 export function fetchAllMapObjects(): Promise<ApiMapObject[]> {
-  return apiGet<ApiMapObject[]>('/public/map-objects?limit=200');
+  return apiGet<ApiMapObject[]>(
+    `/public/map-objects?limit=${MAP_OBJECTS_MAX_LIMIT}`,
+  );
 }
 
 export function createMapObject(

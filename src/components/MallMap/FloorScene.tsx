@@ -1,20 +1,38 @@
+<<<<<<< HEAD
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+=======
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+>>>>>>> ac5718ee3e94e89f13acd1091812d7901d22dba2
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import {
   BackSide,
   Box3,
+  ConeGeometry,
   CylinderGeometry,
   FrontSide,
   InstancedMesh,
   MeshStandardMaterial,
   Object3D,
+<<<<<<< HEAD
   TextureLoader,
+=======
+  SphereGeometry,
+>>>>>>> ac5718ee3e94e89f13acd1091812d7901d22dba2
   Vector3,
 } from 'three';
 import type { Group } from 'three';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
+<<<<<<< HEAD
 import type { ApiRouteToStoreResponse, ApiFloorTexture } from '@api/types';
+=======
+import type {
+  ApiRouteNode,
+  ApiRouteToStoreResponse,
+  ApiFloorIcon,
+} from '@api/types';
+import FloorIconLayer, { type FloorIconLayerMetrics } from './FloorIconLayer';
+>>>>>>> ac5718ee3e94e89f13acd1091812d7901d22dba2
 
 export interface PlanMetrics {
   width: number;
@@ -30,6 +48,37 @@ const ROUTE_COLOR = '#000000';
 const ROUTE_CASING_COLOR = '#FFFFFF';
 const ROUTE_CASING_RATIO = 1.3;
 
+<<<<<<< HEAD
+=======
+// Эвакуационный маршрут идёт ДРУГИМ цветом поверх основного — на карте сразу
+// видно, куда бежать от магазина при пожаре. Красный + белый кожух читается
+// на любом полу так же хорошо, как чёрный.
+export const EVACUATION_ROUTE_COLOR = '#DC2626';
+const EVACUATION_ROUTE_CASING_COLOR = '#FFFFFF';
+const EVACUATION_STAIRS_COLOR = '#DC2626';
+
+// Задержка между прибытием в магазин и стартом эвакуационной линии: сначала
+// посетитель видит, что дошёл до цели, и только потом — путь до лестницы.
+export const EVACUATION_ROUTE_DELAY_MS = 3000;
+
+const DASH_LENGTH = 10;
+const GAP_LENGTH = 5;
+
+const UP = new Vector3(0, 1, 0);
+
+const START_POINT_COLOR = '#F59E0B';
+const END_POINT_COLOR = '#EF4444';
+
+/** Перевод координат плана этажа в мировые координаты сцены. */
+export function makePlanToScene(metrics: PlanMetrics | null) {
+  return (p: { x: number; y: number; z?: number | null }): [number, number, number] => {
+    const w = metrics?.width ?? 1;
+    const h = metrics?.height ?? 1;
+    return [p.x - w / 2, p.z ?? 0, p.y - h / 2];
+  };
+}
+
+>>>>>>> ac5718ee3e94e89f13acd1091812d7901d22dba2
 function getPointOnPolyline(
   points: Vector3[],
   totalLength: number,
@@ -54,16 +103,129 @@ function getPointOnPolyline(
   return points[points.length - 1].clone();
 }
 
+<<<<<<< HEAD
+=======
+function polylineLength(points: Vector3[]): number {
+  let len = 0;
+  for (let i = 0; i < points.length - 1; i++) {
+    len += points[i].distanceTo(points[i + 1]);
+  }
+  return len;
+}
+
+interface DashedBundle {
+  casing: InstancedMesh;
+  line: InstancedMesh;
+  count: number;
+}
+
+/**
+ * Прерывистая линия по ломаной: два InstancedMesh (основная линия + кожух)
+ * с одинаковыми матрицами. Различаются только радиусом. Количество видимых
+ * штрихов управляется через `mesh.count` — это и есть «прорисовка» линии.
+ */
+function buildDashedBundle(
+  points: Vector3[],
+  radius: number,
+  lineColor: string = ROUTE_COLOR,
+  casingColor: string = ROUTE_CASING_COLOR,
+): DashedBundle | null {
+  if (points.length < 2) return null;
+
+  const totalLength = polylineLength(points);
+  if (!(totalLength > 0)) return null;
+
+  const step = DASH_LENGTH + GAP_LENGTH;
+  const dashCount = Math.max(1, Math.floor(totalLength / step));
+
+  const matrices: Matrix4[] = [];
+  for (let i = 0; i < dashCount; i++) {
+    const startDist = i * step;
+    const endDist = Math.min(startDist + DASH_LENGTH, totalLength);
+    const a = getPointOnPolyline(points, totalLength, startDist);
+    const b = getPointOnPolyline(points, totalLength, endDist);
+    if (!a || !b) continue;
+
+    const length = Math.max(0.01, a.distanceTo(b));
+    const dummy = new Object3D();
+    dummy.position.addVectors(a, b).multiplyScalar(0.5);
+    dummy.quaternion.setFromUnitVectors(UP, new Vector3().subVectors(b, a).normalize());
+    dummy.scale.set(1, length, 1);
+    dummy.updateMatrix();
+    matrices.push(dummy.matrix.clone());
+  }
+  if (matrices.length === 0) return null;
+
+  const buildMesh = (meshRadius: number, color: string, isCasing: boolean) => {
+    const geometry = new CylinderGeometry(meshRadius, meshRadius, 1, 12);
+    const material = new MeshStandardMaterial({
+      color,
+      roughness: 0.45,
+      metalness: 0,
+      // Кожух — это «вывернутый» цилиндр: рисуем только его задние стенки.
+      // Иначе сплошной кожух большего радиуса просто закрыл бы собой
+      // чёрную линию, лежащую внутри него. Задние стенки видны только там,
+      // где чёрной линии нет, — получается белая обводка.
+      side: isCasing ? BackSide : FrontSide,
+    });
+    const mesh = new InstancedMesh(geometry, material, matrices.length);
+    mesh.count = 0;
+    mesh.frustumCulled = false;
+    for (let i = 0; i < matrices.length; i += 1) {
+      mesh.setMatrixAt(i, matrices[i]);
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+    return mesh;
+  };
+
+  return {
+    casing: buildMesh(radius * ROUTE_CASING_RATIO, casingColor, true),
+    line: buildMesh(radius, lineColor, false),
+    count: matrices.length,
+  };
+}
+
+function MovingMarker({ radius, color = ROUTE_COLOR }: { radius: number; color?: string }) {
+  return (
+    <group>
+      <mesh>
+        <sphereGeometry args={[radius * ROUTE_CASING_RATIO, 16, 16]} />
+        <meshStandardMaterial color={ROUTE_CASING_COLOR} side={BackSide} roughness={0.45} />
+      </mesh>
+      <mesh>
+        <sphereGeometry args={[radius, 16, 16]} />
+        <meshStandardMaterial color={color} roughness={0.45} />
+      </mesh>
+    </group>
+  );
+}
+
+function PointMarker({ position, color, radius }: { position: [number, number, number]; color: string; radius: number }) {
+  return (
+    <mesh position={position}>
+      <sphereGeometry args={[radius, 16, 16]} />
+      <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.6} />
+    </mesh>
+  );
+}
+
+// ==================== AnimatedRouteLine ====================
+
+>>>>>>> ac5718ee3e94e89f13acd1091812d7901d22dba2
 export function AnimatedRouteLine({
   points,
   onComplete,
   speed = 2.5,
   dashSize = 4,
+  color = ROUTE_COLOR,
+  casingColor = ROUTE_CASING_COLOR,
 }: {
   points: [number, number, number][];
   onComplete?: () => void;
   speed?: number;
   dashSize?: number;
+  color?: string;
+  casingColor?: string;
 }) {
   const markerRef = useRef<Group>(null);
   const progress = useRef(0);
@@ -84,6 +246,7 @@ export function AnimatedRouteLine({
   const DASH_LENGTH = 10;
   const GAP_LENGTH = 5;
 
+<<<<<<< HEAD
   const totalLength = useMemo(() => {
     let len = 0;
     for (let i = 0; i < vectors.length - 1; i++) {
@@ -151,6 +314,12 @@ export function AnimatedRouteLine({
       line: buildMesh(radius, ROUTE_COLOR, false),
     };
   }, [dashes, dashSize]);
+=======
+  const dashMeshes = useMemo(
+    () => buildDashedBundle(vectors, Math.max(0.1, dashSize), color, casingColor),
+    [vectors, dashSize, color, casingColor],
+  );
+>>>>>>> ac5718ee3e94e89f13acd1091812d7901d22dba2
 
   useEffect(() => {
     progress.current = 0;
@@ -192,6 +361,7 @@ export function AnimatedRouteLine({
       <primitive object={dashMeshes.casing} />
       <primitive object={dashMeshes.line} />
       <group ref={markerRef}>
+<<<<<<< HEAD
         <mesh>
           <sphereGeometry args={[dashSize * 1.2 * ROUTE_CASING_RATIO, 16, 16]} />
           <meshStandardMaterial color={ROUTE_CASING_COLOR} side={BackSide} roughness={0.45} />
@@ -200,6 +370,129 @@ export function AnimatedRouteLine({
           <sphereGeometry args={[dashSize * 1.2, 16, 16]} />
           <meshStandardMaterial color={ROUTE_COLOR} roughness={0.45} />
         </mesh>
+=======
+        <MovingMarker radius={dashSize * 1.2} color={color} />
+      </group>
+    </group>
+  );
+}
+
+// ==================== Пожарные лестницы ====================
+
+/**
+ * Маркер пожарной лестницы на 3D-модели этажа: шар у пола, тонкий стержень
+ * и конус-«огонь» сверху. Виден всегда, даже без построенного маршрута —
+ * посетитель заранее знает, где выход.
+ */
+function EvacuationStairsMarker({ position }: { position: [number, number, number] }) {
+  return (
+    <group position={position}>
+      <mesh>
+        <sphereGeometry args={[9, 16, 16]} />
+        <meshStandardMaterial
+          color={EVACUATION_STAIRS_COLOR}
+          emissive={EVACUATION_STAIRS_COLOR}
+          emissiveIntensity={0.6}
+          roughness={0.4}
+        />
+      </mesh>
+      <mesh position={[0, 24, 0]}>
+        <cylinderGeometry args={[2.5, 2.5, 30, 8]} />
+        <meshStandardMaterial
+          color={EVACUATION_STAIRS_COLOR}
+          emissive={EVACUATION_STAIRS_COLOR}
+          emissiveIntensity={0.4}
+          roughness={0.4}
+        />
+      </mesh>
+      <mesh position={[0, 44, 0]}>
+        <coneGeometry args={[6, 10, 4]} />
+        <meshStandardMaterial
+          color={EVACUATION_STAIRS_COLOR}
+          emissive={EVACUATION_STAIRS_COLOR}
+          emissiveIntensity={0.6}
+          roughness={0.4}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+// ==================== AnimatedShaftLine ====================
+
+/**
+ * Вертикальная «шахта» перехода между этажами. Живёт в системе координат
+ * текущего этажа (внутри поднятой на routeLiftY группы маршрута), поэтому
+ * нижний конец точно совпадает с концом нарисованной линии, а верхний — с
+ * началом сегмента следующего этажа.
+ */
+export function AnimatedShaftLine({
+  from,
+  to,
+  duration = 1.2,
+  radius = 6,
+  markerRadius = 8,
+}: {
+  from: [number, number, number];
+  to: [number, number, number];
+  duration?: number;
+  radius?: number;
+  markerRadius?: number;
+}) {
+  const markerRef = useRef<Group>(null);
+  const progress = useRef(0);
+
+  const fromKey = useMemo(() => from.join(','), [from]);
+  const toKey = useMemo(() => to.join(','), [to]);
+
+  const vectors = useMemo(
+    () => [new Vector3(...from), new Vector3(...to)],
+    [from, to],
+  );
+
+  const totalLength = useMemo(() => polylineLength(vectors), [vectors]);
+
+  const dashMeshes = useMemo(() => buildDashedBundle(vectors, radius), [vectors, radius]);
+
+  useEffect(() => {
+    progress.current = 0;
+  }, [fromKey, toKey, dashMeshes]);
+
+  useFrame((_, delta) => {
+    if (!dashMeshes) return;
+    if (progress.current < 1) {
+      progress.current =
+        duration > 0 ? Math.min(1, progress.current + delta / duration) : 1;
+    }
+
+    const visibleCount = Math.max(
+      0,
+      Math.min(dashMeshes.count, Math.ceil(progress.current * dashMeshes.count)),
+    );
+    if (dashMeshes.line.count !== visibleCount) {
+      dashMeshes.line.count = visibleCount;
+      dashMeshes.casing.count = visibleCount;
+    }
+
+    const markerPos = getPointOnPolyline(vectors, totalLength, progress.current * totalLength);
+    if (markerRef.current && markerPos) {
+      markerRef.current.position.copy(markerPos);
+    }
+  });
+
+  if (!dashMeshes) return null;
+
+  return (
+    <group>
+      <primitive object={dashMeshes.casing} />
+      <primitive object={dashMeshes.line} />
+      {/* Нижняя точка чуть крупнее маркера конца линии этажа — иначе две
+          концентрические сферы одинакового радиуса дают z-fighting. */}
+      <PointMarker position={from} color={START_POINT_COLOR} radius={markerRadius * 1.4} />
+      <PointMarker position={to} color={END_POINT_COLOR} radius={markerRadius} />
+      <group ref={markerRef}>
+        <MovingMarker radius={markerRadius * 1.2} />
+>>>>>>> ac5718ee3e94e89f13acd1091812d7901d22dba2
       </group>
     </group>
   );
@@ -215,7 +508,14 @@ export function FloorScene({
   activeFloor,
   onReachTransfer,
   debug = false,
+<<<<<<< HEAD
   textures = [],
+=======
+  icons = [],
+  onIconClick,
+  evacuationStairs = [],
+  onEvacuationRouteStart,
+>>>>>>> ac5718ee3e94e89f13acd1091812d7901d22dba2
 }: {
   gltf: GLTF;
   groupRef?: React.RefObject<Group | null>;
@@ -224,7 +524,14 @@ export function FloorScene({
   activeFloor: number;
   onReachTransfer?: (nextFloor: number) => void;
   debug?: boolean;
+<<<<<<< HEAD
   textures?: ApiFloorTexture[];
+=======
+  icons?: ApiFloorIcon[];
+  onIconClick?: (icon: ApiFloorIcon) => void;
+  evacuationStairs?: ApiRouteNode[];
+  onEvacuationRouteStart?: () => void;
+>>>>>>> ac5718ee3e94e89f13acd1091812d7901d22dba2
 }) {
   const scene = useMemo(() => gltf.scene.clone(true), [gltf]);
 
@@ -411,6 +718,49 @@ export function FloorScene({
     [metrics],
   );
 
+  // Маркеры пожарных лестниц этажа — доступны всегда, маршрут не нужен.
+  const evacuationStairMarkers = useMemo(
+    () =>
+      (evacuationStairs ?? []).map((stair) => ({
+        id: stair.id,
+        position: planToScene(stair),
+      })),
+    [evacuationStairs, planToScene],
+  );
+
+  // Эвакуационная линия: точки сегментов лестницы на текущем этаже.
+  const evacuationPoints = useMemo(() => {
+    const segments = route?.evacuation?.route?.segments ?? [];
+    const points = segments
+      .filter((segment) => segment.floorNumber === activeFloor)
+      .flatMap((segment) => segment.points.map(planToScene));
+    return points as [number, number, number][];
+  }, [route, activeFloor, planToScene]);
+
+  // Линия эвакуации стартует только на цельном этаже маршрута: пока панель
+  // ведёт посетителя через лифт, показывать путь до лестницы преждевременно.
+  const isRouteDestinationFloor = useMemo(() => {
+    if (!route?.segments?.length) return false;
+    return route.segments[route.segments.length - 1].floorNumber === activeFloor;
+  }, [route, activeFloor]);
+
+  const [evacuationRouteVisible, setEvacuationRouteVisible] = useState(false);
+  const evacuationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    setEvacuationRouteVisible(false);
+  }, [route, activeFloor]);
+
+  useEffect(
+    () => () => {
+      if (evacuationTimerRef.current) {
+        clearTimeout(evacuationTimerRef.current);
+        evacuationTimerRef.current = null;
+      }
+    },
+    [],
+  );
+
   // Маршрут рисуется ПОВЕРХ модели: поднимаем его над верхней границей плиты
   // перекрытия, иначе линия оказывается внутри геометрии пола и не видна.
   const routeLiftY = useMemo(() => {
@@ -435,7 +785,22 @@ export function FloorScene({
     const handleComplete = () => {
       const changes = route.floorChanges ?? [];
       const change = changes.find((ch) => ch.fromFloor === activeFloor);
-      if (change) onReachTransfer?.(change.toFloor);
+      if (change) {
+        onReachTransfer?.(change.toFloor);
+        return;
+      }
+
+      // Посетитель дошёл до магазина: через паузу запускаем эвакуационную
+      // линию другим цветом — до ближайшей пожарной лестницы.
+      if (!isRouteDestinationFloor || evacuationPoints.length < 2) return;
+      if (evacuationTimerRef.current) {
+        clearTimeout(evacuationTimerRef.current);
+      }
+      evacuationTimerRef.current = setTimeout(() => {
+        evacuationTimerRef.current = null;
+        setEvacuationRouteVisible(true);
+        onEvacuationRouteStart?.();
+      }, EVACUATION_ROUTE_DELAY_MS);
     };
 
     return (
@@ -462,7 +827,34 @@ export function FloorScene({
           <primitive object={scene} />
         </group>
       </group>
+<<<<<<< HEAD
       {routeOverlay ? <group position={[0, routeLiftY, 0]}>{routeOverlay}</group> : null}
+=======
+      <FloorIconLayer
+        icons={icons}
+        metrics={metrics}
+        onIconClick={(id) => {
+          const icon = icons.find((i) => i.id === id);
+          if (icon) onIconClick?.(icon);
+        }}
+      />
+      {routeOverlay || shaft || evacuationStairMarkers.length > 0 ? (
+        <group position={[0, routeLiftY, 0]}>
+          {routeOverlay}
+          {shaft}
+          {evacuationStairMarkers.map((marker) => (
+            <EvacuationStairsMarker key={marker.id} position={marker.position} />
+          ))}
+          {evacuationRouteVisible && evacuationPoints.length >= 2 ? (
+            <AnimatedRouteLine
+              points={evacuationPoints}
+              color={EVACUATION_ROUTE_COLOR}
+              casingColor={EVACUATION_ROUTE_CASING_COLOR}
+            />
+          ) : null}
+        </group>
+      ) : null}
+>>>>>>> ac5718ee3e94e89f13acd1091812d7901d22dba2
     </>
   );
 }
