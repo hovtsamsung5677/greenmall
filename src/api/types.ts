@@ -380,6 +380,23 @@ export interface ApiRouteToStoreResponse extends ApiRouteResponse {
     roomNumber: string | null;
     primaryRouteNodeId: string | null;
   } | null;
+  evacuation?: ApiEvacuationRoute | null;
+}
+
+/**
+ * Эвакуационный маршрут: от магазина до ближайшей пожарной лестницы этажа.
+ * Панель рисует его другим цветом через EVACUATION_ROUTE_DELAY_MS после
+ * того, как основной маршрут до магазина дорисован.
+ */
+export interface ApiEvacuationRoute {
+  stair: ApiRouteNode;
+  route: {
+    totalDistance: number;
+    routePath: ApiRoutePathPoint[];
+    segments: ApiFloorSegment[];
+    floorChanges: ApiFloorChange[];
+    instructions: ApiRouteInstruction[];
+  } | null;
 }
 
 

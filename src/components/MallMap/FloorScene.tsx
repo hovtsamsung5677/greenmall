@@ -1,19 +1,25 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import {
   BackSide,
   Box3,
+  ConeGeometry,
   CylinderGeometry,
   FrontSide,
   InstancedMesh,
   MeshStandardMaterial,
   Object3D,
+  SphereGeometry,
   Vector3,
 } from 'three';
 import type { Group, Matrix4 } from 'three';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import type { ApiRouteToStoreResponse, ApiFloorIcon } from '@api/types';
+import type {
+  ApiRouteNode,
+  ApiRouteToStoreResponse,
+  ApiFloorIcon,
+} from '@api/types';
 import FloorIconLayer, { type FloorIconLayerMetrics } from './FloorIconLayer';
 
 export interface PlanMetrics {
@@ -29,6 +35,17 @@ export interface PlanMetrics {
 const ROUTE_COLOR = '#000000';
 const ROUTE_CASING_COLOR = '#FFFFFF';
 const ROUTE_CASING_RATIO = 1.3;
+
+// Эвакуационный маршрут идёт ДРУГИМ цветом поверх основного — на карте сразу
+// видно, куда бежать от магазина при пожаре. Красный + белый кожух читается
+// на любом полу так же хорошо, как чёрный.
+export const EVACUATION_ROUTE_COLOR = '#DC2626';
+const EVACUATION_ROUTE_CASING_COLOR = '#FFFFFF';
+const EVACUATION_STAIRS_COLOR = '#DC2626';
+
+// Задержка между прибытием в магазин и стартом эвакуационной линии: сначала
+// посетитель видит, что дошёл до цели, и только потом — путь до лестницы.
+export const EVACUATION_ROUTE_DELAY_MS = 3000;
 
 const DASH_LENGTH = 10;
 const GAP_LENGTH = 5;
@@ -86,11 +103,16 @@ interface DashedBundle {
 }
 
 /**
- * Прерывистая линия по ломаной: два InstancedMesh (чёрная линия + белый кожух)
+ * Прерывистая линия по ломаной: два InstancedMesh (основная линия + кожух)
  * с одинаковыми матрицами. Различаются только радиусом. Количество видимых
  * штрихов управляется через `mesh.count` — это и есть «прорисовка» линии.
  */
-function buildDashedBundle(points: Vector3[], radius: number): DashedBundle | null {
+function buildDashedBundle(
+  points: Vector3[],
+  radius: number,
+  lineColor: string = ROUTE_COLOR,
+  casingColor: string = ROUTE_CASING_COLOR,
+): DashedBundle | null {
   if (points.length < 2) return null;
 
   const totalLength = polylineLength(points);
@@ -140,13 +162,13 @@ function buildDashedBundle(points: Vector3[], radius: number): DashedBundle | nu
   };
 
   return {
-    casing: buildMesh(radius * ROUTE_CASING_RATIO, ROUTE_CASING_COLOR, true),
-    line: buildMesh(radius, ROUTE_COLOR, false),
+    casing: buildMesh(radius * ROUTE_CASING_RATIO, casingColor, true),
+    line: buildMesh(radius, lineColor, false),
     count: matrices.length,
   };
 }
 
-function MovingMarker({ radius }: { radius: number }) {
+function MovingMarker({ radius, color = ROUTE_COLOR }: { radius: number; color?: string }) {
   return (
     <group>
       <mesh>
@@ -155,7 +177,7 @@ function MovingMarker({ radius }: { radius: number }) {
       </mesh>
       <mesh>
         <sphereGeometry args={[radius, 16, 16]} />
-        <meshStandardMaterial color={ROUTE_COLOR} roughness={0.45} />
+        <meshStandardMaterial color={color} roughness={0.45} />
       </mesh>
     </group>
   );
@@ -177,11 +199,15 @@ export function AnimatedRouteLine({
   onComplete,
   speed = 2.5,
   dashSize = 4,
+  color = ROUTE_COLOR,
+  casingColor = ROUTE_CASING_COLOR,
 }: {
   points: [number, number, number][];
   onComplete?: () => void;
   speed?: number;
   dashSize?: number;
+  color?: string;
+  casingColor?: string;
 }) {
   const markerRef = useRef<Group>(null);
   const progress = useRef(0);
@@ -202,8 +228,8 @@ export function AnimatedRouteLine({
   const totalLength = useMemo(() => polylineLength(vectors), [vectors]);
 
   const dashMeshes = useMemo(
-    () => buildDashedBundle(vectors, Math.max(0.1, dashSize)),
-    [vectors, dashSize],
+    () => buildDashedBundle(vectors, Math.max(0.1, dashSize), color, casingColor),
+    [vectors, dashSize, color, casingColor],
   );
 
   useEffect(() => {
@@ -246,8 +272,49 @@ export function AnimatedRouteLine({
       <primitive object={dashMeshes.casing} />
       <primitive object={dashMeshes.line} />
       <group ref={markerRef}>
-        <MovingMarker radius={dashSize * 1.2} />
+        <MovingMarker radius={dashSize * 1.2} color={color} />
       </group>
+    </group>
+  );
+}
+
+// ==================== Пожарные лестницы ====================
+
+/**
+ * Маркер пожарной лестницы на 3D-модели этажа: шар у пола, тонкий стержень
+ * и конус-«огонь» сверху. Виден всегда, даже без построенного маршрута —
+ * посетитель заранее знает, где выход.
+ */
+function EvacuationStairsMarker({ position }: { position: [number, number, number] }) {
+  return (
+    <group position={position}>
+      <mesh>
+        <sphereGeometry args={[9, 16, 16]} />
+        <meshStandardMaterial
+          color={EVACUATION_STAIRS_COLOR}
+          emissive={EVACUATION_STAIRS_COLOR}
+          emissiveIntensity={0.6}
+          roughness={0.4}
+        />
+      </mesh>
+      <mesh position={[0, 24, 0]}>
+        <cylinderGeometry args={[2.5, 2.5, 30, 8]} />
+        <meshStandardMaterial
+          color={EVACUATION_STAIRS_COLOR}
+          emissive={EVACUATION_STAIRS_COLOR}
+          emissiveIntensity={0.4}
+          roughness={0.4}
+        />
+      </mesh>
+      <mesh position={[0, 44, 0]}>
+        <coneGeometry args={[6, 10, 4]} />
+        <meshStandardMaterial
+          color={EVACUATION_STAIRS_COLOR}
+          emissive={EVACUATION_STAIRS_COLOR}
+          emissiveIntensity={0.6}
+          roughness={0.4}
+        />
+      </mesh>
     </group>
   );
 }
@@ -357,6 +424,8 @@ export function FloorScene({
   debug = false,
   icons = [],
   onIconClick,
+  evacuationStairs = [],
+  onEvacuationRouteStart,
 }: {
   gltf: GLTF;
   groupRef?: React.RefObject<Group | null>;
@@ -368,6 +437,8 @@ export function FloorScene({
   debug?: boolean;
   icons?: ApiFloorIcon[];
   onIconClick?: (icon: ApiFloorIcon) => void;
+  evacuationStairs?: ApiRouteNode[];
+  onEvacuationRouteStart?: () => void;
 }) {
   const scene = useMemo(() => gltf.scene.clone(true), [gltf]);
 
@@ -402,6 +473,49 @@ export function FloorScene({
   // центрированный по X/Z). Дополнительного масштабирования/смещения не нужно.
   const planToScene = useMemo(() => makePlanToScene(metrics), [metrics]);
 
+  // Маркеры пожарных лестниц этажа — доступны всегда, маршрут не нужен.
+  const evacuationStairMarkers = useMemo(
+    () =>
+      (evacuationStairs ?? []).map((stair) => ({
+        id: stair.id,
+        position: planToScene(stair),
+      })),
+    [evacuationStairs, planToScene],
+  );
+
+  // Эвакуационная линия: точки сегментов лестницы на текущем этаже.
+  const evacuationPoints = useMemo(() => {
+    const segments = route?.evacuation?.route?.segments ?? [];
+    const points = segments
+      .filter((segment) => segment.floorNumber === activeFloor)
+      .flatMap((segment) => segment.points.map(planToScene));
+    return points as [number, number, number][];
+  }, [route, activeFloor, planToScene]);
+
+  // Линия эвакуации стартует только на цельном этаже маршрута: пока панель
+  // ведёт посетителя через лифт, показывать путь до лестницы преждевременно.
+  const isRouteDestinationFloor = useMemo(() => {
+    if (!route?.segments?.length) return false;
+    return route.segments[route.segments.length - 1].floorNumber === activeFloor;
+  }, [route, activeFloor]);
+
+  const [evacuationRouteVisible, setEvacuationRouteVisible] = useState(false);
+  const evacuationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    setEvacuationRouteVisible(false);
+  }, [route, activeFloor]);
+
+  useEffect(
+    () => () => {
+      if (evacuationTimerRef.current) {
+        clearTimeout(evacuationTimerRef.current);
+        evacuationTimerRef.current = null;
+      }
+    },
+    [],
+  );
+
   // Маршрут рисуется ПОВЕРХ модели: поднимаем его над верхней границей плиты
   // перекрытия, иначе линия оказывается внутри геометрии пола и не видна.
   const routeLiftY = useMemo(() => {
@@ -426,7 +540,22 @@ export function FloorScene({
     const handleComplete = () => {
       const changes = route.floorChanges ?? [];
       const change = changes.find((ch) => ch.fromFloor === activeFloor);
-      if (change) onReachTransfer?.(change.toFloor);
+      if (change) {
+        onReachTransfer?.(change.toFloor);
+        return;
+      }
+
+      // Посетитель дошёл до магазина: через паузу запускаем эвакуационную
+      // линию другим цветом — до ближайшей пожарной лестницы.
+      if (!isRouteDestinationFloor || evacuationPoints.length < 2) return;
+      if (evacuationTimerRef.current) {
+        clearTimeout(evacuationTimerRef.current);
+      }
+      evacuationTimerRef.current = setTimeout(() => {
+        evacuationTimerRef.current = null;
+        setEvacuationRouteVisible(true);
+        onEvacuationRouteStart?.();
+      }, EVACUATION_ROUTE_DELAY_MS);
     };
 
     return (
@@ -467,10 +596,20 @@ export function FloorScene({
           if (icon) onIconClick?.(icon);
         }}
       />
-      {routeOverlay || shaft ? (
+      {routeOverlay || shaft || evacuationStairMarkers.length > 0 ? (
         <group position={[0, routeLiftY, 0]}>
           {routeOverlay}
           {shaft}
+          {evacuationStairMarkers.map((marker) => (
+            <EvacuationStairsMarker key={marker.id} position={marker.position} />
+          ))}
+          {evacuationRouteVisible && evacuationPoints.length >= 2 ? (
+            <AnimatedRouteLine
+              points={evacuationPoints}
+              color={EVACUATION_ROUTE_COLOR}
+              casingColor={EVACUATION_ROUTE_CASING_COLOR}
+            />
+          ) : null}
         </group>
       ) : null}
     </>

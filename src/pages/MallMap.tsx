@@ -14,8 +14,15 @@ import { fetchPublicRouteNodes } from '@api/routeNodes';
 import { fetchPublicRouteEdges } from '@api/routeEdges';
 import { buildRouteToStore } from '@api/routes';
 import { createSharedRoute } from '@api/sharedRoutes';
+import { fetchPanelByRouteNode } from '@api/panels';
+import {
+  trackPanelSessionStarted,
+  trackPanelUsed,
+  trackRouteBuilt,
+} from '@api/tracking';
 import { fetchActiveHeaderBanner, type HeaderBanner } from '@api/headerBanners';
 import { fetchPublicFloorIcons } from '@api/floorIcons';
+import { fetchEvacuationStairs } from '@api/evacuationStairs';
 import { resolveAssetUrl } from '@api/fileAssets';
 import { fetchFloorScene } from '@api/floors';
 import { useFloorScene } from '@hooks/useFloorScene';
@@ -351,9 +358,16 @@ export default function MallMap({
   const [routeNodes, setRouteNodes] = useState<ApiRouteNode[]>([]);
   const [routeEdges, setRouteEdges] = useState<ApiRouteEdge[]>([]);
   const [floorIcons, setFloorIcons] = useState<ApiFloorIcon[]>([]);
+  const [evacuationStairs, setEvacuationStairs] = useState<ApiRouteNode[]>([]);
   const [activeRoute, setActiveRoute] = useState<ApiRouteToStoreResponse | null>(null);
   const [routeError, setRouteError] = useState<string | null>(null);
   const [routeLoading, setRouteLoading] = useState(false);
+  // Идентификатор панели, определенный по её стартовой точке маршрутного
+  // графа. Нужен для атрибуции аналитических событий этой стойки.
+  const [panelId, setPanelId] = useState<string | null>(null);
+  const sessionStartedRef = useRef(false);
+  // Линия эвакуации дорисована — показываем подсказку про пожарную лестницу.
+  const [showEvacuationHint, setShowEvacuationHint] = useState(false);
 
   const [shareToken, setShareToken] = useState<string | null>(null);
   const [shareLoading, setShareLoading] = useState(false);
@@ -376,16 +390,58 @@ export default function MallMap({
     if (!floor) return;
     setRouteNodes([]);
     setRouteEdges([]);
-    Promise.all([fetchPublicRouteNodes(floor.id), fetchPublicRouteEdges(floor.id)])
-      .then(([n, e]) => {
+    setEvacuationStairs([]);
+    Promise.all([
+      fetchPublicRouteNodes(floor.id),
+      fetchPublicRouteEdges(floor.id),
+      fetchEvacuationStairs(floor.id),
+    ])
+      .then(([n, e, stairs]) => {
         setRouteNodes(n);
         setRouteEdges(e);
+        setEvacuationStairs(stairs);
       })
       .catch(() => {
         setRouteNodes([]);
         setRouteEdges([]);
+        setEvacuationStairs([]);
       });
   }, [activeFloor, floors]);
+
+  // Определение панели по её стартовой точке в маршрутном графе. Панель
+  // привязана к узлу типа PANEL (Panel.routeNodeId), поэтому публичный
+  // резолвер by-node возвращает её id для аналитики.
+  useEffect(() => {
+    if (!routeNodes.length) return;
+    const connectedIds = new Set<string>();
+    for (const edge of routeEdges) {
+      connectedIds.add(edge.fromNodeId);
+      connectedIds.add(edge.toNodeId);
+    }
+    const panelNode =
+      routeNodes.find((n) => n.type === 'PANEL' && connectedIds.has(n.id)) ??
+      routeNodes.find((n) => n.type === 'PANEL');
+    if (!panelNode) return;
+
+    let cancelled = false;
+    fetchPanelByRouteNode(panelNode.id)
+      .then((panel) => {
+        if (!cancelled) setPanelId(panel.id);
+      })
+      .catch(() => {
+        if (!cancelled) setPanelId(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [routeNodes, routeEdges]);
+
+  // Начало сессии на панели — один раз за загрузку страницы.
+  useEffect(() => {
+    if (!panelId || sessionStartedRef.current) return;
+    sessionStartedRef.current = true;
+    trackPanelSessionStarted(panelId);
+  }, [panelId]);
 
   // Иконки, размещённые на 3D-модели этажа через админ-панель.
   useEffect(() => {
@@ -558,7 +614,10 @@ export default function MallMap({
   }
 
   useEffect(() => {
-    if (!activeRoute) setTransferTarget(null);
+    if (!activeRoute) {
+      setTransferTarget(null);
+      setShowEvacuationHint(false);
+    }
   }, [activeRoute]);
 
   // Страховка: если следующая модель так и не загрузилась или в маршруте нет
@@ -620,6 +679,7 @@ export default function MallMap({
     setRouteLoading(true);
     setRouteError(null);
     setActiveRoute(null);
+    setShowEvacuationHint(false);
     try {
       const route = await buildRouteToStore({
         fromNodeId: startNode.id,
@@ -629,9 +689,18 @@ export default function MallMap({
         routePathLength: route.routePath.length,
         segmentsCount: route.segments?.length,
         floorChangesCount: route.floorChanges?.length,
-        instructionsCount: route.instructions?.length,
+        instructionsCount: route.instructions.length,
       });
       setActiveRoute(route);
+      if (panelId) {
+        trackPanelUsed(panelId);
+        trackRouteBuilt(panelId, route.targetStore?.id ?? null, {
+          fromNodeId: startNode.id,
+          storeSlug,
+          totalDistance: route.totalDistance,
+          instructionsCount: route.instructions.length,
+        });
+      }
     } catch (err) {
       console.log('[MallMap] buildRouteToStore failed', err);
       setActiveRoute(null);
@@ -758,6 +827,8 @@ export default function MallMap({
           transfer={transfer}
           shaft={transferPlan?.shaft ?? null}
           icons={floorIcons}
+          evacuationStairs={evacuationStairs}
+          onEvacuationRouteStart={() => setShowEvacuationHint(true)}
           onReachTransfer={handleReachTransfer}
           onTransferComplete={handleTransferComplete}
           controlsRef={controlsRef}
@@ -820,6 +891,14 @@ export default function MallMap({
                 {activeRoute.totalDistance} ед. · {activeRoute.instructions.length} шагов
               </span>
             ) : null}
+          </div>
+        ) : null}
+
+        {showEvacuationHint && activeRoute?.evacuation?.route ? (
+          <div className={styles.evacuationStatus}>
+            Ближайшая пожарная лестница:{' '}
+            {activeRoute.evacuation.stair.name ?? 'пожарная лестница'} ·{' '}
+            {activeRoute.evacuation.route.totalDistance} ед.
           </div>
         ) : null}
 

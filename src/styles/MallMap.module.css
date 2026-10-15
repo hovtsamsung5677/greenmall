@@ -629,6 +629,22 @@
   color: #fca5a5;
 }
 
+.evacuationStatus {
+  position: absolute;
+  left: 50%;
+  bottom: 40px;
+  transform: translateX(-50%);
+  z-index: 6;
+  background: rgba(127, 29, 29, 0.85);
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  max-width: 90vw;
+  text-align: center;
+}
+
 .routeToast {
   position: absolute;
   left: 50%;

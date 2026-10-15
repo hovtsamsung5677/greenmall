@@ -4,7 +4,11 @@ import { OrbitControls } from '@react-three/drei';
 import { MOUSE, TOUCH } from 'three';
 import type { Group } from 'three';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import type { ApiRouteToStoreResponse, ApiFloorIcon } from '@api/types';
+import type {
+  ApiRouteNode,
+  ApiRouteToStoreResponse,
+  ApiFloorIcon,
+} from '@api/types';
 import { FloorScene, type PlanMetrics, type UpwardShaft } from './FloorScene';
 import FloorStackStage from './FloorStackStage';
 
@@ -97,8 +101,10 @@ export function SceneCanvas({
   transfer = null,
   shaft = null,
   icons = [],
+  evacuationStairs = [],
   onReachTransfer,
   onTransferComplete,
+  onEvacuationRouteStart,
   controlsRef,
   controlsEnabled,
   cameraConfig,
@@ -117,8 +123,10 @@ export function SceneCanvas({
   transfer?: SceneTransfer | null;
   shaft?: UpwardShaft | null;
   icons?: ApiFloorIcon[];
+  evacuationStairs?: ApiRouteNode[];
   onReachTransfer?: (nextFloor: number) => void;
   onTransferComplete?: () => void;
+  onEvacuationRouteStart?: () => void;
   controlsRef: React.RefObject<any>;
   controlsEnabled: boolean;
   cameraConfig: CameraConfig;
@@ -143,6 +151,8 @@ export function SceneCanvas({
       upwardShaft={shaft}
       debug={debug}
       icons={icons}
+      evacuationStairs={evacuationStairs}
+      onEvacuationRouteStart={onEvacuationRouteStart}
     />
   ) : null;
 

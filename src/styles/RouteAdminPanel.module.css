@@ -19,6 +19,22 @@
   color: var(--muted);
 }
 
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.checkbox input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
 .select {
   padding: 6px 8px;
   border-radius: 8px;

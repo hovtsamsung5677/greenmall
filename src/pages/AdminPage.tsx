@@ -47,6 +47,7 @@ import TenantsTab, {
   type AdminTenantForm,
 } from '@components/admin/TenantsTab';
 import BannersTab, { type BannersTabProps } from '@components/admin/BannersTab';
+import StatisticsTab from '@components/admin/StatisticsTab';
 import styles from '@styles/AdminPage.module.css';
 
 const RouteAdminPanel = lazy(() => import('@components/route-editor/RouteAdminPanel'));
@@ -84,7 +85,7 @@ class RouteAdminErrorBoundary extends React.Component<
   }
 }
 
-type Tab = 'categories' | 'stores' | 'tenants' | 'routes' | 'mobile' | 'banners' | 'icons';
+type Tab = 'categories' | 'stores' | 'tenants' | 'routes' | 'mobile' | 'banners' | 'icons' | 'statistics';
 
 export interface AdminPageProps {
   onClose?: () => void;
@@ -115,6 +116,7 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
   const [uploadingTenantLogo, setUploadingTenantLogo] = useState(false);
   const [search, setSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const coverFileInputRef = React.useRef<HTMLInputElement | null>(null);
   const logoFileInputRef = React.useRef<HTMLInputElement | null>(null);
@@ -471,6 +473,7 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
     setError(null);
     try {
       await loadData();
+      setRefreshKey((prev) => prev + 1);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Не удалось обновить данные');
     } finally {
@@ -624,6 +627,13 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
         >
           Иконки на карте
         </button>
+        <button
+          type="button"
+          className={`${styles.tab} ${tab === 'statistics' ? styles.tabActive : ''}`}
+          onClick={() => setTab('statistics')}
+        >
+          Статистика
+        </button>
       </nav>
 
       {tab === 'routes' ? (
@@ -640,6 +650,8 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
         <Suspense fallback={<div className={styles.loading}>Загрузка редактора иконок…</div>}>
           <FloorIconsTab />
         </Suspense>
+      ) : tab === 'statistics' ? (
+        <StatisticsTab onRefreshKey={refreshKey} />
       ) : (
         <>
           <div className={styles.searchRow}>

@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>debug-kiosk2</title></head>
+<body>
+<pre id="info">starting</pre>
+<iframe id="f" src="/" style="width:1400px;height:900px"></iframe>
+<script>
+const info = document.getElementById('info');
+function log(s) { info.textContent += '\n' + s; }
+const f = document.getElementById('f');
+
+function tap(x, y) {
+  const w = f.contentWindow, d = f.contentDocument;
+  const el = d.elementFromPoint(x, y) || d.body;
+  ['pointerdown','mousedown','touchstart','pointerup','mouseup','click','touchend'].forEach(t => {
+    el.dispatchEvent(new w.MouseEvent(t, {bubbles:true, cancelable:true, view:w, clientX:x, clientY:y}));
+  });
+  return el;
+}
+
+let stage = 0;
+const timer = setInterval(() => {
+  let w, d;
+  try { w = f.contentWindow; d = f.contentDocument; } catch (e) { return; }
+  if (!d || !d.body) return;
+
+  if (stage === 0) { stage = 1; const el = tap(700, 450); log('tap -> ' + el.tagName); return; }
+
+  const t = d.body.innerText || '';
+
+  if (stage === 1) {
+    if (t.indexOf('Коснитесь') >= 0) { tap(700, 450); return; }
+    stage = 2; log('splash gone'); return;
+  }
+
+  if (stage === 2) {
+    const btns = Array.from(d.querySelectorAll('button,[role="button"]'));
+    const cat = btns.find(b => (b.textContent||'').trim() === 'Одежда');
+    if (!cat) { log('no category; clickables=' + btns.map(b=>b.textContent.trim().slice(0,18)).join('/')); stage = 9; return; }
+    log('click category Одежда');
+    cat.click();
+    stage = 3;
+    return;
+  }
+
+  if (stage === 3) {
+    const btns = Array.from(d.querySelectorAll('button,[role="button"],li,a'));
+    const store = btns.find(b => /BEFREE/i.test(b.textContent||''));
+    if (store) { log('click store: ' + store.textContent.trim().slice(0,80)); store.click(); stage = 4; return; }
+    log('no store yet; sample=' + btns.map(b=>(b.textContent||'').trim().slice(0,20)).slice(0,25).join('/'));
+    return;
+  }
+
+  if (stage === 4) {
+    log('AFTER: ' + t.slice(0, 500).replace(/\n+/g, ' | '));
+    const err = t.match(/Не удалось[^|]{0,80}/g) || t.match(/не найден[^|]{0,80}/gi);
+    log('ROUTE_ERR=' + (err ? err.join(',') : 'none'));
+    stage = 5;
+  }
+}, 3000);
+
+setTimeout(() => { clearInterval(timer); log('DONE'); }, 42000);
+</script>
+</body>
+</html>

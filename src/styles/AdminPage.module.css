@@ -525,6 +525,127 @@ select.input {
   white-space: nowrap;
 }
 
+/* Статистика */
+
+.periodSelector {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  background-color: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 12px 16px;
+}
+
+.periodButtons {
+  display: flex;
+  gap: 8px;
+}
+
+.periodBtn {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 14px;
+  background-color: #fff;
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.periodBtnActive {
+  background-color: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+}
+
+.statCard {
+  background-color: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.statLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.statValue {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.1;
+}
+
+.statHint {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.chartScroll {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.chartScroll svg {
+  display: block;
+}
+
+.chartLegend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.legendSwatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+.routeCount {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  white-space: nowrap;
+}
+
+.routeCountValue {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--brand-dark);
+  line-height: 1.1;
+}
+
+.routeCountLabel {
+  font-size: 11px;
+  color: var(--muted);
+}
+
 /* Крупные инфопанели / киоски 1920×1080 и выше 16:9 */
 @media (min-width: 1920px) and (min-aspect-ratio: 16/9) {
   .page {
@@ -664,6 +785,49 @@ select.input {
 
   .searchCount {
     font-size: calc(14px * var(--k-admin));
+  }
+
+  .statsGrid {
+    gap: calc(16px * var(--k-admin));
+  }
+
+  .statCard {
+    border-radius: calc(18px * var(--k-admin));
+    padding: calc(18px * var(--k-admin));
+  }
+
+  .statLabel {
+    font-size: calc(13px * var(--k-admin));
+  }
+
+  .statValue {
+    font-size: calc(32px * var(--k-admin));
+  }
+
+  .statHint {
+    font-size: calc(13px * var(--k-admin));
+  }
+
+  .periodBtn {
+    padding: calc(10px * var(--k-admin)) calc(16px * var(--k-admin));
+    font-size: calc(14px * var(--k-admin));
+  }
+
+  .periodSelector {
+    border-radius: calc(18px * var(--k-admin));
+    padding: calc(14px * var(--k-admin)) calc(18px * var(--k-admin));
+  }
+
+  .legendItem {
+    font-size: calc(13px * var(--k-admin));
+  }
+
+  .routeCountValue {
+    font-size: calc(26px * var(--k-admin));
+  }
+
+  .routeCountLabel {
+    font-size: calc(12px * var(--k-admin));
   }
 }
 

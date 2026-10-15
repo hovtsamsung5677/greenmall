@@ -37,6 +37,27 @@ const NODE_TYPE_LABELS: Record<ApiRouteNodeType, string> = {
   OTHER: 'Прочее',
 };
 
+/** Пожарная лестница: узел STAIRS с metadata.isEvacuation. */
+function isEvacuationStair(node: ApiRouteNode): boolean {
+  if (node.type !== 'STAIRS') return false;
+  const { metadata } = node;
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+    return false;
+  }
+  return Boolean((metadata as Record<string, unknown>).isEvacuation);
+}
+
+function withEvacuationFlag(
+  metadata: ApiRouteNode['metadata'],
+  isEvacuation: boolean,
+): Record<string, unknown> {
+  const base =
+    metadata && typeof metadata === 'object' && !Array.isArray(metadata)
+      ? { ...(metadata as Record<string, unknown>) }
+      : {};
+  return { ...base, isEvacuation: isEvacuation };
+}
+
 export default function RouteAdminPanel() {
   const [floors, setFloors] = useState<ApiFloor[]>([]);
   const [floorId, setFloorId] = useState<string>('');
@@ -48,6 +69,7 @@ export default function RouteAdminPanel() {
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<RouteEditorMode>('select');
   const [newNodeType, setNewNodeType] = useState<ApiRouteNodeType>('ROUTE_POINT');
+  const [newNodeEvacuation, setNewNodeEvacuation] = useState(false);
   const [anchorMapObjectId, setAnchorMapObjectId] = useState<string>('');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [editingAnchorMapObjectId, setEditingAnchorMapObjectId] = useState<string>('');
@@ -69,16 +91,29 @@ export default function RouteAdminPanel() {
     if (!floorId) return;
     setLoading(true);
     setError(null);
-    Promise.all([fetchRouteNodes(floorId), fetchRouteEdges(floorId), fetchMapObjects(floorId, 200)])
-      .then(([n, e, m]) => {
+
+    // Граф и объекты карты загружаются независимо: отказ объектов карты
+    // не должен обнулять узлы и рёбра — иначе редактор выглядит пустым.
+    Promise.all([
+      fetchRouteNodes(floorId),
+      fetchRouteEdges(floorId),
+    ])
+      .then(([n, e]) => {
         setNodes(n);
         setEdges(e);
-        setMapObjects(m);
         setSelectedNodeId(null);
         setPendingFromId(null);
       })
-      .catch(() => setError('Не удалось загрузить граф маршрута'))
+      .catch(() => {
+        setNodes([]);
+        setEdges([]);
+        setError('Не удалось загрузить граф маршрута');
+      })
       .finally(() => setLoading(false));
+
+    fetchMapObjects(floorId)
+      .then((m) => setMapObjects(m))
+      .catch(() => setMapObjects([]));
   }, [floorId]);
 
   useEffect(() => {
@@ -133,11 +168,33 @@ export default function RouteAdminPanel() {
           anchorMapObjectId && newNodeType !== 'ROUTE_POINT' && newNodeType !== 'OTHER'
             ? anchorMapObjectId
             : null,
+        metadata:
+          newNodeType === 'STAIRS' && newNodeEvacuation
+            ? { isEvacuation: true }
+            : undefined,
       };
       const created = await createRouteNode(input);
       setNodes((prev) => [...prev, created]);
+      setNewNodeEvacuation(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка создания узла');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleEvacuationFlagChange(node: ApiRouteNode, isEvacuation: boolean) {
+    setBusy(true);
+    setError(null);
+    try {
+      const updated = await updateRouteNode(node.id, {
+        metadata: withEvacuationFlag(node.metadata, isEvacuation),
+      });
+      setNodes((prev) => prev.map((n) => (n.id === updated.id ? updated : n)));
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Ошибка сохранения признака эвакуации',
+      );
     } finally {
       setBusy(false);
     }
@@ -291,6 +348,7 @@ export default function RouteAdminPanel() {
               onChange={(e) => {
                 setNewNodeType(e.target.value as ApiRouteNodeType);
                 setAnchorMapObjectId('');
+                setNewNodeEvacuation(false);
               }}
             >
               {(Object.keys(NODE_TYPE_LABELS) as ApiRouteNodeType[]).map((t) => (
@@ -319,6 +377,17 @@ export default function RouteAdminPanel() {
                 </option>
               ))}
             </select>
+          </label>
+        ) : null}
+
+        {mode === 'add' && newNodeType === 'STAIRS' ? (
+          <label className={styles.checkbox}>
+            <input
+              type="checkbox"
+              checked={newNodeEvacuation}
+              onChange={(e) => setNewNodeEvacuation(e.target.checked)}
+            />
+            <span>Пожарная лестница</span>
           </label>
         ) : null}
 
@@ -425,6 +494,18 @@ export default function RouteAdminPanel() {
               </p>
               {selectedNode.mapObjectId ? (
                 <p className={styles.muted}>MapObject: {selectedNode.mapObjectId}</p>
+              ) : null}
+              {selectedNode.type === 'STAIRS' ? (
+                <label className={styles.checkbox}>
+                  <input
+                    type="checkbox"
+                    checked={isEvacuationStair(selectedNode)}
+                    onChange={(e) =>
+                      void handleEvacuationFlagChange(selectedNode, e.target.checked)
+                    }
+                  />
+                  <span>Пожарная лестница (эвакуация)</span>
+                </label>
               ) : null}
               {selectedNode &&
               selectedNode.type !== 'ROUTE_POINT' &&
