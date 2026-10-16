@@ -447,174 +447,6 @@ export default function MallMap({
       .catch(() => setHeaderBanner(null));
   }, []);
 
-<<<<<<< HEAD
-=======
-  // ---------- межэтажный переход ----------
-
-  // Этаж, на который маршрут уйдёт дальше с текущего. По нему модель
-  // следующего этажа начинает грузиться заранее — задолго до того, как
-  // посетитель дойдёт до лифта, иначе в момент перехода был бы кадр-заглушка.
-  const expandedFloorChanges = useMemo(() => {
-    if (!activeRoute?.floorChanges?.length || !floors.length) return [];
-    const floorNumbers = new Set(floors.map((f) => f.number));
-    const floorById = new Map(floors.map((f) => [f.number, f]));
-    return activeRoute.floorChanges.flatMap((change) => {
-      const diff = Math.abs(change.toFloor - change.fromFloor);
-      if (diff <= 1) return [change];
-      const direction = Math.sign(change.toFloor - change.fromFloor);
-      const steps: ApiFloorChange[] = [];
-      let current = change.fromFloor;
-      while (current !== change.toFloor) {
-        const next = current + direction;
-        if (!floorNumbers.has(next)) {
-          current = next;
-          continue;
-        }
-        const nextFloor = floorById.get(next);
-        steps.push({
-          fromFloor: current,
-          toFloor: next,
-          fromFloorId: floorById.get(current)?.id ?? change.fromFloorId,
-          toFloorId: nextFloor?.id ?? change.toFloorId,
-          nodeCode: change.nodeCode,
-          type: change.type,
-        });
-        current = next;
-      }
-      return steps;
-    });
-  }, [activeRoute, floors]);
-
-  const nextFloorNumber = useMemo(() => {
-    const change = expandedFloorChanges.find((c) => c.fromFloor === activeFloor);
-    return change?.toFloor ?? null;
-  }, [expandedFloorChanges, activeFloor]);
-
-  const nextFloorId = useMemo(
-    () => floors.find((f) => f.number === nextFloorNumber)?.id ?? null,
-    [floors, nextFloorNumber],
-  );
-
-  const nextSceneQuery = useQuery({
-    queryKey: ['floorScene', nextFloorId],
-    queryFn: () => fetchFloorScene(nextFloorId!),
-    enabled: !!nextFloorId,
-  });
-
-  const nextModelUrl = useMemo(() => {
-    if (nextFloorNumber == null) return null;
-    return resolveModelUrl(nextFloorNumber, nextSceneQuery.data?.floor.modelAsset?.url ?? null);
-  }, [nextFloorNumber, nextSceneQuery.data]);
-
-  const { gltf: nextGltf } = useCachedGLTF(nextModelUrl);
-
-  const processedRoute = useMemo(() => {
-    if (!activeRoute) return null;
-    return {
-      ...activeRoute,
-      floorChanges: expandedFloorChanges,
-    };
-  }, [activeRoute, expandedFloorChanges]);
-
-  // Геометрия перехода: вертикальная шахта от конца линии текущего этажа
-  // к началу линии следующего. Обе точки считаются в системе координат
-  // плана своего этажа — так же, как это делает сам маршрут.
-  const transferPlan = useMemo(() => {
-    if (transferTarget == null || !activeRoute) return null;
-    const direction = transferTarget > activeFloor ? 'up' : 'down';
-
-    const fromFloorData = floors.find((f) => f.number === activeFloor);
-    const toFloorData = floors.find((f) => f.number === transferTarget);
-    if (!fromFloorData || !toFloorData) return null;
-
-    const fromMetrics: PlanMetrics = {
-      width: fromFloorData.width ?? 900,
-      height: fromFloorData.height ?? 600,
-    };
-    const toMetrics: PlanMetrics = {
-      width: toFloorData.width ?? 900,
-      height: toFloorData.height ?? 600,
-    };
-
-    const fromSegment = (activeRoute.segments ?? []).find(
-      (s) => s.floorNumber === activeFloor,
-    );
-    const toSegment = (activeRoute.segments ?? []).find(
-      (s) => s.floorNumber === transferTarget,
-    );
-    const fromPoint = fromSegment?.points[fromSegment.points.length - 1];
-    const toPoint = toSegment?.points[0];
-    if (!fromPoint || !toPoint) return null;
-
-    const gap =
-      Math.max(
-        fromMetrics.width,
-        fromMetrics.height,
-        toMetrics.width,
-        toMetrics.height,
-      ) * FLOOR_GAP_RATIO;
-
-    const shaft: UpwardShaft = {
-      fromPoint: makePlanToScene(fromMetrics)(fromPoint),
-      toPoint: makePlanToScene(toMetrics)(toPoint),
-      gap,
-      direction: direction,
-      duration: TRANSFER_DURATION * 0.7,
-    };
-
-    return { gap, nextMetrics: toMetrics, shaft, direction };
-  }, [transferTarget, activeFloor, floors, activeRoute]);
-
-  // Переход стартует только когда следующая модель уже в памяти — иначе во
-  // время движения этажей в кадре мигала бы пустота.
-  const transfer = useMemo(() => {
-    if (!transferPlan || !nextGltf) return null;
-    return {
-      gap: transferPlan.gap,
-      duration: TRANSFER_DURATION,
-      direction: transferPlan.direction as 'up' | 'down',
-      onComplete: handleTransferComplete,
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [transferPlan, nextGltf, transferTarget]);
-
-  function handleReachTransfer(nextFloor: number) {
-    setTransferTarget(nextFloor);
-  }
-
-  function handleTransferComplete() {
-    const target = transferTarget;
-    setTransferTarget(null);
-    if (target != null) setActiveFloor(target);
-  }
-
-  function handleFloorChange(floor: number) {
-    if (floor === activeFloor) return;
-    setTransferTarget(null);
-    setActiveFloor(floor);
-  }
-
-  useEffect(() => {
-    if (!activeRoute) {
-      setTransferTarget(null);
-      setShowEvacuationHint(false);
-    }
-  }, [activeRoute]);
-
-  // Страховка: если следующая модель так и не загрузилась или в маршруте нет
-  // сегмента целевого этажа, переход не запустится — тогда просто меняем этаж
-  // без анимации, чтобы посетитель не остался намертво на текущем.
-  useEffect(() => {
-    if (transferTarget == null || transfer) return;
-    const timer = setTimeout(() => {
-      const target = transferTarget;
-      setTransferTarget(null);
-      if (target != null) setActiveFloor(target);
-    }, TRANSFER_DURATION * 1000);
-    return () => clearTimeout(timer);
-  }, [transferTarget, transfer]);
-
->>>>>>> ac5718ee3e94e89f13acd1091812d7901d22dba2
   // ---------- построение маршрута ----------
 
   async function handleBuildRouteToStore(storeSlug: string) {
@@ -802,22 +634,12 @@ export default function MallMap({
           key={canvasKey}
           gltf={gltf}
           metrics={planMetrics}
-<<<<<<< HEAD
           route={activeRoute}
           activeFloor={activeFloor}
           onReachTransfer={(nextFloor) => setActiveFloor(nextFloor)}
-=======
-          nextMetrics={transferPlan?.nextMetrics ?? planMetrics}
-          route={processedRoute}
-          activeFloor={activeFloor}
-          transfer={transfer}
-          shaft={transferPlan?.shaft ?? null}
           icons={floorIcons}
           evacuationStairs={evacuationStairs}
           onEvacuationRouteStart={() => setShowEvacuationHint(true)}
-          onReachTransfer={handleReachTransfer}
-          onTransferComplete={handleTransferComplete}
->>>>>>> ac5718ee3e94e89f13acd1091812d7901d22dba2
           controlsRef={controlsRef}
           controlsEnabled={controlsEnabled}
           cameraConfig={cameraConfig}
@@ -896,35 +718,7 @@ export default function MallMap({
           </div>
         ) : null}
 
-<<<<<<< HEAD
-        <FloorControls floors={floorNumbers} activeFloor={activeFloor} onFloorChange={setActiveFloor} />
-=======
-        {transferTarget != null ? (
-          <div className={styles.transferOverlay}>
-            <span className={styles.transferOverlayBadge} />
-            <span className={styles.transferOverlayTitle}>
-              {lang === 'en'
-                ? `Floor ${transferTarget}`
-                : `Переход на ${transferTarget}-й этаж`}
-            </span>
-            <span className={styles.transferOverlayHint}>
-              {(() => {
-                const type = expandedFloorChanges.find(
-                  (c) => c.fromFloor === activeFloor && c.toFloor === transferTarget,
-                )?.type;
-                const labels = type ? TRANSFER_TYPE_LABELS[type] : null;
-                return labels
-                  ? labels[lang]
-                  : lang === 'en'
-                    ? 'Changing floors'
-                    : 'Смена этажа';
-              })()}
-            </span>
-          </div>
-        ) : null}
-
-        <FloorControls floors={floorNumbers} activeFloor={activeFloor} onFloorChange={handleFloorChange} />
->>>>>>> ac5718ee3e94e89f13acd1091812d7901d22dba2
+<FloorControls floors={floorNumbers} activeFloor={activeFloor} onFloorChange={setActiveFloor} />
 
         <ZoomControls
           lang={lang}

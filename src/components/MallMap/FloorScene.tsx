@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
-=======
-import React, { useEffect, useMemo, useRef, useState } from 'react';
->>>>>>> ac5718ee3e94e89f13acd1091812d7901d22dba2
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import {
@@ -12,27 +8,22 @@ import {
   CylinderGeometry,
   FrontSide,
   InstancedMesh,
+  Matrix4,
   MeshStandardMaterial,
   Object3D,
-<<<<<<< HEAD
-  TextureLoader,
-=======
   SphereGeometry,
->>>>>>> ac5718ee3e94e89f13acd1091812d7901d22dba2
+  TextureLoader,
   Vector3,
 } from 'three';
 import type { Group } from 'three';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
-<<<<<<< HEAD
-import type { ApiRouteToStoreResponse, ApiFloorTexture } from '@api/types';
-=======
 import type {
+  ApiFloorIcon,
+  ApiFloorTexture,
   ApiRouteNode,
   ApiRouteToStoreResponse,
-  ApiFloorIcon,
 } from '@api/types';
 import FloorIconLayer, { type FloorIconLayerMetrics } from './FloorIconLayer';
->>>>>>> ac5718ee3e94e89f13acd1091812d7901d22dba2
 
 export interface PlanMetrics {
   width: number;
@@ -48,8 +39,6 @@ const ROUTE_COLOR = '#000000';
 const ROUTE_CASING_COLOR = '#FFFFFF';
 const ROUTE_CASING_RATIO = 1.3;
 
-<<<<<<< HEAD
-=======
 // Эвакуационный маршрут идёт ДРУГИМ цветом поверх основного — на карте сразу
 // видно, куда бежать от магазина при пожаре. Красный + белый кожух читается
 // на любом полу так же хорошо, как чёрный.
@@ -78,7 +67,6 @@ export function makePlanToScene(metrics: PlanMetrics | null) {
   };
 }
 
->>>>>>> ac5718ee3e94e89f13acd1091812d7901d22dba2
 function getPointOnPolyline(
   points: Vector3[],
   totalLength: number,
@@ -103,8 +91,6 @@ function getPointOnPolyline(
   return points[points.length - 1].clone();
 }
 
-<<<<<<< HEAD
-=======
 function polylineLength(points: Vector3[]): number {
   let len = 0;
   for (let i = 0; i < points.length - 1; i++) {
@@ -211,7 +197,6 @@ function PointMarker({ position, color, radius }: { position: [number, number, n
 
 // ==================== AnimatedRouteLine ====================
 
->>>>>>> ac5718ee3e94e89f13acd1091812d7901d22dba2
 export function AnimatedRouteLine({
   points,
   onComplete,
@@ -243,83 +228,12 @@ export function AnimatedRouteLine({
     [points],
   );
 
-  const DASH_LENGTH = 10;
-  const GAP_LENGTH = 5;
+  const totalLength = useMemo(() => polylineLength(vectors), [vectors]);
 
-<<<<<<< HEAD
-  const totalLength = useMemo(() => {
-    let len = 0;
-    for (let i = 0; i < vectors.length - 1; i++) {
-      len += vectors[i].distanceTo(vectors[i + 1]);
-    }
-    return len;
-  }, [vectors]);
-
-  const dashes = useMemo(() => {
-    if (totalLength === 0 || vectors.length < 2) return [] as { a: Vector3; b: Vector3 }[];
-    const step = DASH_LENGTH + GAP_LENGTH;
-    const count = Math.max(1, Math.floor(totalLength / step));
-    const result: { a: Vector3; b: Vector3 }[] = [];
-    for (let i = 0; i < count; i++) {
-      const startDist = i * step;
-      const endDist = Math.min(startDist + DASH_LENGTH, totalLength);
-      const a = getPointOnPolyline(vectors, totalLength, startDist);
-      const b = getPointOnPolyline(vectors, totalLength, endDist);
-      if (a && b) result.push({ a, b });
-    }
-    return result;
-  }, [vectors, totalLength]);
-
-  const dashMeshes = useMemo(() => {
-    if (dashes.length === 0) return null;
-    const radius = Math.max(0.1, dashSize);
-    const up = new Vector3(0, 1, 0);
-
-    // Матрицы считаем один раз и переиспользуем для обоих слоёв: кожух и линия
-    // совпадают по геометрии, различается только радиус.
-    const matrices = dashes.map(({ a, b }) => {
-      const length = Math.max(0.01, a.distanceTo(b));
-      const dummy = new Object3D();
-      dummy.position.addVectors(a, b).multiplyScalar(0.5);
-      dummy.quaternion.setFromUnitVectors(up, new Vector3().subVectors(b, a).normalize());
-      dummy.scale.set(1, length, 1);
-      dummy.updateMatrix();
-      return dummy.matrix.clone();
-    });
-
-    const buildMesh = (meshRadius: number, color: string, isCasing: boolean) => {
-      const geometry = new CylinderGeometry(meshRadius, meshRadius, 1, 12);
-      const material = new MeshStandardMaterial({
-        color,
-        roughness: 0.45,
-        metalness: 0,
-        // Кожух — это «вывернутый» цилиндр: рисуем только его задние стенки.
-        // Иначе сплошной кожух большего радиуса просто закрыл бы собой
-        // чёрную линию, лежащую внутри него. Задние стенки видны только там,
-        // где чёрной линии нет, — получается белая обводка.
-        side: isCasing ? BackSide : FrontSide,
-      });
-      const mesh = new InstancedMesh(geometry, material, dashes.length);
-      mesh.count = 0;
-      mesh.frustumCulled = false;
-      for (let i = 0; i < matrices.length; i += 1) {
-        mesh.setMatrixAt(i, matrices[i]);
-      }
-      mesh.instanceMatrix.needsUpdate = true;
-      return mesh;
-    };
-
-    return {
-      casing: buildMesh(radius * ROUTE_CASING_RATIO, ROUTE_CASING_COLOR, true),
-      line: buildMesh(radius, ROUTE_COLOR, false),
-    };
-  }, [dashes, dashSize]);
-=======
   const dashMeshes = useMemo(
     () => buildDashedBundle(vectors, Math.max(0.1, dashSize), color, casingColor),
     [vectors, dashSize, color, casingColor],
   );
->>>>>>> ac5718ee3e94e89f13acd1091812d7901d22dba2
 
   useEffect(() => {
     progress.current = 0;
@@ -327,7 +241,7 @@ export function AnimatedRouteLine({
   }, [pointsKey, dashMeshes]);
 
   useFrame((_, delta) => {
-    if (!dashMeshes || dashes.length === 0) return;
+    if (!dashMeshes) return;
 
     if (progress.current < 1) {
       progress.current = Math.min(1, progress.current + delta / speed);
@@ -335,7 +249,7 @@ export function AnimatedRouteLine({
 
     const visibleCount = Math.max(
       0,
-      Math.min(dashes.length, Math.floor(progress.current * dashes.length)),
+      Math.min(dashMeshes.count, Math.floor(progress.current * dashMeshes.count)),
     );
     if (dashMeshes.line.count !== visibleCount) {
       dashMeshes.line.count = visibleCount;
@@ -361,16 +275,6 @@ export function AnimatedRouteLine({
       <primitive object={dashMeshes.casing} />
       <primitive object={dashMeshes.line} />
       <group ref={markerRef}>
-<<<<<<< HEAD
-        <mesh>
-          <sphereGeometry args={[dashSize * 1.2 * ROUTE_CASING_RATIO, 16, 16]} />
-          <meshStandardMaterial color={ROUTE_CASING_COLOR} side={BackSide} roughness={0.45} />
-        </mesh>
-        <mesh>
-          <sphereGeometry args={[dashSize * 1.2, 16, 16]} />
-          <meshStandardMaterial color={ROUTE_COLOR} roughness={0.45} />
-        </mesh>
-=======
         <MovingMarker radius={dashSize * 1.2} color={color} />
       </group>
     </group>
@@ -492,7 +396,6 @@ export function AnimatedShaftLine({
       <PointMarker position={to} color={END_POINT_COLOR} radius={markerRadius} />
       <group ref={markerRef}>
         <MovingMarker radius={markerRadius * 1.2} />
->>>>>>> ac5718ee3e94e89f13acd1091812d7901d22dba2
       </group>
     </group>
   );
@@ -508,14 +411,11 @@ export function FloorScene({
   activeFloor,
   onReachTransfer,
   debug = false,
-<<<<<<< HEAD
   textures = [],
-=======
   icons = [],
   onIconClick,
   evacuationStairs = [],
   onEvacuationRouteStart,
->>>>>>> ac5718ee3e94e89f13acd1091812d7901d22dba2
 }: {
   gltf: GLTF;
   groupRef?: React.RefObject<Group | null>;
@@ -524,14 +424,11 @@ export function FloorScene({
   activeFloor: number;
   onReachTransfer?: (nextFloor: number) => void;
   debug?: boolean;
-<<<<<<< HEAD
   textures?: ApiFloorTexture[];
-=======
   icons?: ApiFloorIcon[];
   onIconClick?: (icon: ApiFloorIcon) => void;
   evacuationStairs?: ApiRouteNode[];
   onEvacuationRouteStart?: () => void;
->>>>>>> ac5718ee3e94e89f13acd1091812d7901d22dba2
 }) {
   const scene = useMemo(() => gltf.scene.clone(true), [gltf]);
 
@@ -827,10 +724,7 @@ export function FloorScene({
           <primitive object={scene} />
         </group>
       </group>
-<<<<<<< HEAD
-      {routeOverlay ? <group position={[0, routeLiftY, 0]}>{routeOverlay}</group> : null}
-=======
-      <FloorIconLayer
+<FloorIconLayer
         icons={icons}
         metrics={metrics}
         onIconClick={(id) => {
@@ -838,10 +732,9 @@ export function FloorScene({
           if (icon) onIconClick?.(icon);
         }}
       />
-      {routeOverlay || shaft || evacuationStairMarkers.length > 0 ? (
+      {routeOverlay || evacuationStairMarkers.length > 0 ? (
         <group position={[0, routeLiftY, 0]}>
           {routeOverlay}
-          {shaft}
           {evacuationStairMarkers.map((marker) => (
             <EvacuationStairsMarker key={marker.id} position={marker.position} />
           ))}
@@ -854,7 +747,6 @@ export function FloorScene({
           ) : null}
         </group>
       ) : null}
->>>>>>> ac5718ee3e94e89f13acd1091812d7901d22dba2
     </>
   );
 }

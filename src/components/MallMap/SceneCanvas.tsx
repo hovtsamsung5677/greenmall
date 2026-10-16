@@ -4,18 +4,8 @@ import { OrbitControls } from '@react-three/drei';
 import { MOUSE, TOUCH } from 'three';
 import type { Group } from 'three';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
-<<<<<<< HEAD
-import type { ApiRouteToStoreResponse } from '@api/types';
+import type { ApiRouteToStoreResponse, ApiRouteNode, ApiFloorIcon } from '@api/types';
 import { FloorScene, type PlanMetrics } from './FloorScene';
-=======
-import type {
-  ApiRouteNode,
-  ApiRouteToStoreResponse,
-  ApiFloorIcon,
-} from '@api/types';
-import { FloorScene, type PlanMetrics, type UpwardShaft } from './FloorScene';
-import FloorStackStage from './FloorStackStage';
->>>>>>> ac5718ee3e94e89f13acd1091812d7901d22dba2
 
 export const CAMERA_HEIGHT_DEFAULT = 900;
 export const CAMERA_HEIGHT_GROUND = 120000;
@@ -94,17 +84,10 @@ export function SceneCanvas({
   metrics,
   route,
   activeFloor,
-<<<<<<< HEAD
   onReachTransfer,
-=======
-  transfer = null,
-  shaft = null,
-  icons = [],
-  evacuationStairs = [],
-  onReachTransfer,
-  onTransferComplete,
+  icons,
+  evacuationStairs,
   onEvacuationRouteStart,
->>>>>>> ac5718ee3e94e89f13acd1091812d7901d22dba2
   controlsRef,
   controlsEnabled,
   cameraConfig,
@@ -119,17 +102,10 @@ export function SceneCanvas({
   metrics: PlanMetrics | null;
   route: ApiRouteToStoreResponse | null;
   activeFloor: number;
-<<<<<<< HEAD
   onReachTransfer?: (nextFloor: number) => void;
-=======
-  transfer?: SceneTransfer | null;
-  shaft?: UpwardShaft | null;
   icons?: ApiFloorIcon[];
   evacuationStairs?: ApiRouteNode[];
-  onReachTransfer?: (nextFloor: number) => void;
-  onTransferComplete?: () => void;
   onEvacuationRouteStart?: () => void;
->>>>>>> ac5718ee3e94e89f13acd1091812d7901d22dba2
   controlsRef: React.RefObject<any>;
   controlsEnabled: boolean;
   cameraConfig: CameraConfig;
@@ -161,38 +137,6 @@ export function SceneCanvas({
   }[];
 }) {
   const groupRef = useRef<Group | null>(null);
-
-<<<<<<< HEAD
-=======
-  // Обе модели живут в неизменной структуре дерева (см. FloorStackStage),
-  // иначе доигранная линия маршрута перезапустилась бы в момент перехода.
-  const currentScene = gltf ? (
-    <FloorScene
-      gltf={gltf}
-      groupRef={groupRef}
-      metrics={metrics}
-      route={route}
-      activeFloor={activeFloor}
-      onReachTransfer={onReachTransfer}
-      upwardShaft={shaft}
-      debug={debug}
-      icons={icons}
-      evacuationStairs={evacuationStairs}
-      onEvacuationRouteStart={onEvacuationRouteStart}
-    />
-  ) : null;
-
-  const nextScene = transfer && nextGltf ? (
-    <FloorScene
-      gltf={nextGltf}
-      metrics={nextMetrics ?? metrics}
-      route={null}
-      activeFloor={activeFloor}
-      debug={debug}
-    />
-  ) : null;
-
->>>>>>> ac5718ee3e94e89f13acd1091812d7901d22dba2
   return (
     <Canvas
       camera={cameraConfig}
@@ -221,6 +165,9 @@ export function SceneCanvas({
             activeFloor={activeFloor}
             onReachTransfer={onReachTransfer}
             debug={debug}
+            icons={icons}
+            evacuationStairs={evacuationStairs}
+            onEvacuationRouteStart={onEvacuationRouteStart}
             textures={textures}
           />
       ) : null}
