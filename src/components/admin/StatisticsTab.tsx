@@ -209,6 +209,35 @@ export type StatisticsTabProps = {
 export default function StatisticsTab({ onRefreshKey = 0 }: StatisticsTabProps) {
   const [periodDays, setPeriodDays] = React.useState<PeriodDays>(30);
 
+  function escapeCsvValue(value: unknown): string {
+    const str = value === null || value === undefined ? '' : String(value);
+    if (str.includes('"') || str.includes(',') || str.includes('\n') || str.includes('\r')) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+  }
+
+  function downloadCsv(filename: string, headers: string[], rows: unknown[][]) {
+    const csvLines = [
+      headers.map(escapeCsvValue).join(','),
+      ...rows.map((row) => row.map(escapeCsvValue).join(',')),
+    ];
+    const csvContent = csvLines.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  function exportCsv(filename: string, headers: string[], rows: unknown[][]) {
+    downloadCsv(filename, headers, rows);
+  }
+
   const query = React.useMemo(
     () => ({ from: isoDaysAgo(periodDays) }),
     [periodDays],
@@ -351,7 +380,30 @@ export default function StatisticsTab({ onRefreshKey = 0 }: StatisticsTabProps) 
       )}
 
       <section className={`${styles.panel} ${styles.fullWidth}`}>
-        <h2 className={styles.panelTitle}>Активность по дням</h2>
+        <div className={styles.panelHeader}>
+          <h2 className={styles.panelTitle}>Активность по дням</h2>
+          {dailyItems.length > 0 ? (
+            <button
+              type="button"
+              className={styles.smallBtn}
+              onClick={() =>
+                exportCsv(
+                  `daily_${periodDays}d.csv`,
+                  ['Дата', 'Клики по панели', 'Маршруты', 'QR-сканы', 'Сессии'],
+                  dailyItems.map((item) => [
+                    item.date,
+                    item.panelClicks,
+                    item.routesBuilt,
+                    item.qrScans,
+                    item.sessions,
+                  ]),
+                )
+              }
+            >
+              Экспорт CSV
+            </button>
+          ) : null}
+        </div>
         <div className={styles.chartLegend}>
           {DAILY_SERIES.map((series) => (
             <span key={series.key} className={styles.legendItem}>
@@ -371,7 +423,24 @@ export default function StatisticsTab({ onRefreshKey = 0 }: StatisticsTabProps) 
       </section>
 
       <section className={`${styles.panel} ${styles.fullWidth}`}>
-        <h2 className={styles.panelTitle}>Активность по времени суток</h2>
+        <div className={styles.panelHeader}>
+          <h2 className={styles.panelTitle}>Активность по времени суток</h2>
+          {hourlyItems.length > 0 ? (
+            <button
+              type="button"
+              className={styles.smallBtn}
+              onClick={() =>
+                exportCsv(
+                  `hourly_${periodDays}d.csv`,
+                  ['Час (UTC)', 'Событий'],
+                  hourlyItems.map((item) => [item.hour, item.events]),
+                )
+              }
+            >
+              Экспорт CSV
+            </button>
+          ) : null}
+        </div>
         <p className={styles.hint}>
           Когда стойка пользуется наибольшим спросом (по часам UTC)
         </p>
@@ -383,7 +452,30 @@ export default function StatisticsTab({ onRefreshKey = 0 }: StatisticsTabProps) 
       </section>
 
       <section className={`${styles.panel} ${styles.fullWidth}`}>
-        <h2 className={styles.panelTitle}>Маршруты до магазинов</h2>
+        <div className={styles.panelHeader}>
+          <h2 className={styles.panelTitle}>Маршруты до магазинов</h2>
+          {routeItems.length > 0 ? (
+            <button
+              type="button"
+              className={styles.smallBtn}
+              onClick={() =>
+                exportCsv(
+                  `routes_by_store_${periodDays}d.csv`,
+                  ['ID магазина', 'Название', 'Slug', 'Этаж', 'Маршрутов построено'],
+                  routeItems.map((item) => [
+                    item.storeId,
+                    item.store?.name ?? '',
+                    item.store?.slug ?? '',
+                    item.store?.floorNumber ?? '',
+                    item.routesBuilt,
+                  ]),
+                )
+              }
+            >
+              Экспорт CSV
+            </button>
+          ) : null}
+        </div>
         {routeItems.length === 0 ? (
           <p className={styles.empty}>Маршруты за выбранный период не построены</p>
         ) : (

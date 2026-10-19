@@ -170,7 +170,7 @@ function RouteGraph({
   );
 }
 
-export type RouteEditorMode = 'select' | 'add' | 'connect';
+export type RouteEditorMode = 'select' | 'add' | 'connect' | 'move';
 
 interface RouteEditor3DProps {
   modelUrl: string | null;
@@ -182,6 +182,7 @@ interface RouteEditor3DProps {
   mode: RouteEditorMode;
   metrics: FloorPlanMetrics | null;
   onAddNode: (coords: { x: number; y: number; z: number }) => void;
+  onMoveNode: (coords: { x: number; y: number; z: number }) => void;
   onNodeClick: (id: string) => void;
 }
 
@@ -194,6 +195,7 @@ export default function RouteEditor3D({
   mode,
   metrics,
   onAddNode,
+  onMoveNode,
   onNodeClick,
 }: RouteEditor3DProps) {
   const modelGroupRef = useRef<Group | null>(null);
@@ -231,14 +233,19 @@ export default function RouteEditor3D({
               groupRef={modelGroupRef}
               metrics={metrics}
               onClick={(e: ThreeEvent<MouseEvent>) => {
-                if (mode !== 'add') return;
+                if (mode !== 'add' && mode !== 'move') return;
                 e.stopPropagation();
                 const p = e.point;
-                onAddNode({
+                const coords = {
                   x: Math.round(p.x + halfWidth),
                   y: Math.round(p.z + halfHeight),
                   z: Math.round(Math.max(0, p.y)),
-                });
+                };
+                if (mode === 'add') {
+                  onAddNode(coords);
+                } else {
+                  onMoveNode(coords);
+                }
               }}
             />
           </Suspense>

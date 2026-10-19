@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   fetchRouteNodes,
+  fetchAllRouteNodes,
   createRouteNode,
   updateRouteNode,
   deleteRouteNode,
@@ -58,20 +59,60 @@ function withEvacuationFlag(
   return { ...base, isEvacuation: isEvacuation };
 }
 
+const VERTICAL_NODE_TYPES: ApiRouteNodeType[] = ['ELEVATOR', 'ESCALATOR', 'STAIRS'];
+
+function VerticalNodeMatches({
+  matches,
+  floors,
+  nodeTypeLabels,
+}: {
+  matches: ApiRouteNode[];
+  floors: ApiFloor[];
+  nodeTypeLabels: Record<string, string>;
+}) {
+  if (matches.length === 0) return null;
+  return (
+    <div style={{ marginTop: 8, padding: 8, background: '#f8fafc', borderRadius: 4 }}>
+      <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>
+        Связанные узлы на других этажах:
+      </div>
+      <ul style={{ listStyle: 'none', margin: 0, padding: 0, fontSize: 13 }}>
+        {matches.map((n) => {
+          const f = floors.find((fl) => fl.id === n.floorId);
+          return (
+            <li key={n.id} style={{ padding: '2px 0', color: '#334155' }}>
+              {f ? `Этаж #${f.number} (${f.name})` : n.floorId}:{' '}
+              {nodeTypeLabels[n.type]} {n.name || ''}
+            </li>
+          );
+        })}
+      </ul>
+      <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+        {matches.length === 1
+          ? 'Этот узел будет соединён с 1 узлом на другом этаже'
+          : `Этот узел будет соединён с ${matches.length} узлами на других этажах`}
+      </div>
+    </div>
+  );
+}
+
 export default function RouteAdminPanel() {
   const [floors, setFloors] = useState<ApiFloor[]>([]);
   const [floorId, setFloorId] = useState<string>('');
   const [modelUrl, setModelUrl] = useState<string | null>(null);
   const [nodes, setNodes] = useState<ApiRouteNode[]>([]);
   const [edges, setEdges] = useState<ApiRouteEdge[]>([]);
+  const [allVerticalNodes, setAllVerticalNodes] = useState<ApiRouteNode[]>([]);
   const [mapObjects, setMapObjects] = useState<ApiMapObject[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<RouteEditorMode>('select');
   const [newNodeType, setNewNodeType] = useState<ApiRouteNodeType>('ROUTE_POINT');
+  const [newNodeCode, setNewNodeCode] = useState('');
   const [newNodeEvacuation, setNewNodeEvacuation] = useState(false);
   const [anchorMapObjectId, setAnchorMapObjectId] = useState<string>('');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [editingCode, setEditingCode] = useState('');
   const [editingAnchorMapObjectId, setEditingAnchorMapObjectId] = useState<string>('');
   const [pendingFromId, setPendingFromId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -102,6 +143,7 @@ export default function RouteAdminPanel() {
         setNodes(n);
         setEdges(e);
         setSelectedNodeId(null);
+        setEditingCode('');
         setPendingFromId(null);
       })
       .catch(() => {
@@ -110,6 +152,12 @@ export default function RouteAdminPanel() {
         setError('Не удалось загрузить граф маршрута');
       })
       .finally(() => setLoading(false));
+
+    Promise.all([
+      fetchAllRouteNodes(['ELEVATOR', 'ESCALATOR', 'STAIRS']),
+    ])
+      .then(([allVertical]) => setAllVerticalNodes(allVertical))
+      .catch(() => setAllVerticalNodes([]));
 
     fetchMapObjects(floorId)
       .then((m) => setMapObjects(m))
@@ -135,8 +183,9 @@ export default function RouteAdminPanel() {
   );
 
   useEffect(() => {
+    setEditingCode(selectedNode?.code ?? '');
     setEditingAnchorMapObjectId(selectedNode?.mapObjectId ?? '');
-  }, [selectedNode?.mapObjectId]);
+  }, [selectedNode?.code, selectedNode?.mapObjectId]);
 
   const planMetrics = useMemo(() => {
     const floor = floors.find((f) => f.id === floorId);
@@ -152,6 +201,16 @@ export default function RouteAdminPanel() {
     return mapObjects.filter((obj) => obj.floorId === floorId);
   }, [mapObjects, floorId]);
 
+  function isVerticalType(type: ApiRouteNodeType): boolean {
+    return type === 'ELEVATOR' || type === 'ESCALATOR' || type === 'STAIRS';
+  }
+
+  const verticalTypeLabels = {
+    ELEVATOR: 'Лифт',
+    ESCALATOR: 'Эскалатор',
+    STAIRS: 'Лестница',
+  };
+
   async function handleAddNode(coords: { x: number; y: number; z: number }) {
     if (!floorId) return;
     setBusy(true);
@@ -164,6 +223,7 @@ export default function RouteAdminPanel() {
         y: coords.y,
         z: coords.z,
         name: NODE_TYPE_LABELS[newNodeType],
+        code: newNodeCode.trim() || undefined,
         mapObjectId:
           anchorMapObjectId && newNodeType !== 'ROUTE_POINT' && newNodeType !== 'OTHER'
             ? anchorMapObjectId
@@ -175,6 +235,7 @@ export default function RouteAdminPanel() {
       };
       const created = await createRouteNode(input);
       setNodes((prev) => [...prev, created]);
+      setNewNodeCode('');
       setNewNodeEvacuation(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка создания узла');
@@ -195,6 +256,41 @@ export default function RouteAdminPanel() {
       setError(
         err instanceof Error ? err.message : 'Ошибка сохранения признака эвакуации',
       );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleMoveNode(coords: { x: number; y: number; z: number }) {
+    if (!selectedNodeId || !selectedNode) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const updated = await updateRouteNode(selectedNodeId, {
+        x: coords.x,
+        y: coords.y,
+        z: coords.z,
+      });
+      setNodes((prev) => prev.map((n) => (n.id === updated.id ? updated : n)));
+      setSelectedNodeId(updated.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Ошибка перемещения узла');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleUpdateNodeCode() {
+    if (!selectedNodeId || !selectedNode) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const updated = await updateRouteNode(selectedNodeId, {
+        code: editingCode.trim() || undefined,
+      });
+      setNodes((prev) => prev.map((n) => (n.id === updated.id ? updated : n)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Ошибка сохранения кода');
     } finally {
       setBusy(false);
     }
@@ -337,6 +433,17 @@ export default function RouteAdminPanel() {
           >
             Соединить
           </button>
+          <button
+            type="button"
+            className={`${styles.modeBtn} ${mode === 'move' ? styles.modeActive : ''}`}
+            onClick={() => {
+              setMode('move');
+              setPendingFromId(null);
+            }}
+            disabled={!selectedNodeId}
+          >
+            Переместить
+          </button>
         </div>
 
         {mode === 'add' ? (
@@ -348,6 +455,7 @@ export default function RouteAdminPanel() {
               onChange={(e) => {
                 setNewNodeType(e.target.value as ApiRouteNodeType);
                 setAnchorMapObjectId('');
+                setNewNodeCode('');
                 setNewNodeEvacuation(false);
               }}
             >
@@ -360,25 +468,52 @@ export default function RouteAdminPanel() {
           </label>
         ) : null}
 
-        {mode === 'add' &&
-        newNodeType !== 'ROUTE_POINT' &&
-        newNodeType !== 'OTHER' ? (
-          <label className={styles.field}>
-            <span>Привязать к объекту</span>
-            <select
-              className={styles.select}
-              value={anchorMapObjectId}
-              onChange={(e) => setAnchorMapObjectId(e.target.value)}
-            >
-              <option value="">— без привязки —</option>
-              {floorMapObjects.map((obj) => (
-                <option key={obj.id} value={obj.id}>
-                  {obj.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        ) : null}
+         {mode === 'add' &&
+         newNodeType !== 'ROUTE_POINT' &&
+         newNodeType !== 'OTHER' ? (
+           <label className={styles.field}>
+             <span>Привязать к объекту</span>
+             <select
+               className={styles.select}
+               value={anchorMapObjectId}
+               onChange={(e) => setAnchorMapObjectId(e.target.value)}
+             >
+               <option value="">— без привязки —</option>
+               {floorMapObjects.map((obj) => (
+                 <option key={obj.id} value={obj.id}>
+                   {obj.name}
+                 </option>
+               ))}
+             </select>
+           </label>
+         ) : null}
+
+         {mode === 'add' &&
+         isVerticalType(newNodeType) ? (
+           <label className={styles.field}>
+             <span>Код (для связи между этажами)</span>
+             <input
+               className={styles.input}
+               value={newNodeCode}
+               onChange={(e) => setNewNodeCode(e.target.value)}
+               placeholder="напр. elevator-1, stairs-a"
+             />
+             <span className={styles.hint}>
+               Узлы с одинаковым кодом на разных этажах автоматически соединяются
+             </span>
+           </label>
+         ) : null}
+
+         {mode === 'add' && isVerticalType(newNodeType) && newNodeCode.trim()
+           ? (
+             <VerticalNodeMatches
+               matches={allVerticalNodes.filter(
+                 (n) => n.code === newNodeCode.trim() && n.floorId !== floorId,
+               )}
+               floors={floors}
+               nodeTypeLabels={verticalTypeLabels}
+             />
+           ) : null}
 
         {mode === 'add' && newNodeType === 'STAIRS' ? (
           <label className={styles.checkbox}>
@@ -393,6 +528,12 @@ export default function RouteAdminPanel() {
 
         {mode === 'connect' && pendingFromId ? (
           <span className={styles.hint}>Выберите второй узел для ребра</span>
+        ) : null}
+
+        {mode === 'move' && selectedNodeId ? (
+          <span className={styles.hint}>
+            Выберите точку на этаже, чтобы переместить узел «{selectedNode?.name || selectedNodeId.slice(0, 6)}»
+          </span>
         ) : null}
 
         <button
@@ -421,6 +562,7 @@ export default function RouteAdminPanel() {
               mode={mode}
               metrics={planMetrics}
               onAddNode={handleAddNode}
+              onMoveNode={handleMoveNode}
               onNodeClick={handleNodeClick}
             />
           ) : (
@@ -494,6 +636,34 @@ export default function RouteAdminPanel() {
               </p>
               {selectedNode.mapObjectId ? (
                 <p className={styles.muted}>MapObject: {selectedNode.mapObjectId}</p>
+              ) : null}
+              {isVerticalType(selectedNode.type) ? (
+                <label className={styles.field}>
+                  <span>Код (для связи между этажами)</span>
+                  <input
+                    className={styles.input}
+                    value={editingCode}
+                    onChange={(e) => setEditingCode(e.target.value)}
+                    placeholder="напр. elevator-1, stairs-a"
+                  />
+                  <button
+                    type="button"
+                    className={styles.modeBtn}
+                    onClick={handleUpdateNodeCode}
+                    disabled={!selectedNode}
+                  >
+                    Сохранить код
+                  </button>
+                </label>
+              ) : null}
+              {isVerticalType(selectedNode.type) && editingCode.trim() ? (
+                <VerticalNodeMatches
+                  matches={allVerticalNodes.filter(
+                    (n) => n.code === editingCode.trim() && n.id !== selectedNode.id,
+                  )}
+                  floors={floors}
+                  nodeTypeLabels={verticalTypeLabels}
+                />
               ) : null}
               {selectedNode.type === 'STAIRS' ? (
                 <label className={styles.checkbox}>

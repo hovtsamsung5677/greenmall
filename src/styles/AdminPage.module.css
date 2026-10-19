@@ -94,6 +94,13 @@
   font-weight: 800;
 }
 
+.panelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
 .form {
   display: flex;
   flex-direction: column;
@@ -675,6 +682,10 @@ select.input {
 
   .panelTitle {
     font-size: calc(18px * var(--k-admin));
+  }
+
+  .panelHeader {
+    gap: calc(12px * var(--k-admin));
   }
 
   .label {

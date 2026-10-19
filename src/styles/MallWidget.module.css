@@ -428,6 +428,65 @@
   font-weight: 600;
 }
 
+.storeDescription {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: #4b5563;
+  line-height: 1.4;
+}
+
+.storePromotions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.storePromotion {
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 12px;
+  background: #f7f5ee;
+}
+
+.storePromotionImage {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.storePromotionBody {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.storePromotionTitle {
+  font-weight: 700;
+  color: #2F3A18;
+}
+
+.storePromotionDescription {
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.storePromotionButton {
+  align-self: flex-start;
+  margin-top: 4px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 16px;
+  background: #9FA044;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .routeBtn {
   margin-top: auto;
   align-self: center;

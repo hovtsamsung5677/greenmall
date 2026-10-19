@@ -88,6 +88,51 @@ export function trackPanelUsed(panelId: string): void {
   });
 }
 
+export function trackCategorySelected(categoryId: string, categoryName?: string): void {
+  trackEvent({
+    type: 'CATEGORY_SELECTED',
+    source: 'PANEL',
+    sessionId: getSessionId(),
+    payload: { categoryId, categoryName },
+  });
+}
+
+export function trackStoreSelected(storeId: string, storeName?: string): void {
+  trackEvent({
+    type: 'STORE_SELECTED',
+    source: 'PANEL',
+    sessionId: getSessionId(),
+    storeId,
+    payload: { storeName },
+  });
+}
+
+export function trackStoreCardViewed(storeId: string): void {
+  trackEvent({
+    type: 'STORE_CARD_VIEWED',
+    source: 'PANEL',
+    sessionId: getSessionId(),
+    storeId,
+  });
+}
+
+export function trackSearchQuery(query: string): void {
+  trackEvent({
+    type: 'SEARCH_QUERY',
+    source: 'PANEL',
+    sessionId: getSessionId(),
+    query,
+  });
+}
+
+export function trackMobileOpenedSource(): void {
+  trackEvent({
+    type: 'MOBILE_OPENED',
+    source: 'MOBILE',
+    sessionId: getSessionId(),
+  });
+}
+
 /** Панель: маршрут до магазина построен. Панель обязательна для source=PANEL. */
 export function trackRouteBuilt(
   panelId: string,

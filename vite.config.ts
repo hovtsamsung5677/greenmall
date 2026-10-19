@@ -37,11 +37,9 @@ function devLanHostPlugin(): Plugin {
 }
 
 const backendProxy = {
-  // В dev-контейнере 127.0.0.1 — это свой же контейнер, а backend живёт в
-  // отдельном контейнере. По умолчанию проксим на имя сервиса compose
-  // (так же, как делает production-nginx), но можно переопределить через
-  // VITE_BACKEND_TARGET, например для запуска Vite на хосте.
-  target: process.env.VITE_BACKEND_TARGET ?? 'http://backend:3000',
+  // По умолчанию проксим на локальный backend (http://localhost:3000).
+  // В Docker-контейнере можно переопределить через VITE_BACKEND_TARGET=http://backend:3000.
+  target: process.env.VITE_BACKEND_TARGET ?? 'http://localhost:3000',
   changeOrigin: true,
 };
 

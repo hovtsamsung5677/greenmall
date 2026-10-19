@@ -21,6 +21,8 @@ import styles from "@styles/MallWidget.module.css";
 
 import { fetchCategories, fetchStores } from "@api/categories";
 import { resolveAssetUrl } from "@api/fileAssets";
+import { fetchPublicPromotions, type PublicPromotion } from "@api/promotions";
+import { trackStoreCardViewed, trackCategorySelected, trackStoreSelected } from "@api/tracking";
 import type { ApiCategory, ApiStore, ApiFileAsset } from "@api/types";
 
 const ICON_MAP: Record<string, string | React.ComponentType<{ className?: string }>> = {
@@ -99,6 +101,7 @@ export default function MallWidget({
   const [screen, setScreen] = useState<Screen>("categories");
   const [currentCategory, setCurrentCategory] = useState<Category | null>(null);
   const [selectedStore, setSelectedStore] = useState<ApiStore | null>(null);
+  const [storePromotions, setStorePromotions] = useState<PublicPromotion[]>([]);
   const [internalCategories, setInternalCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState(false);
@@ -208,13 +211,37 @@ export default function MallWidget({
     void loadDataRef.current();
   }, [categoriesProp, refreshKey]);
 
+  useEffect(() => {
+    if (selectedStore?.id) trackStoreCardViewed(selectedStore.id);
+  }, [selectedStore?.id]);
+
+  useEffect(() => {
+    if (!selectedStore?.id) {
+      setStorePromotions([]);
+      return;
+    }
+    let cancelled = false;
+    fetchPublicPromotions(selectedStore.id)
+      .then((items) => {
+        if (!cancelled) setStorePromotions(items);
+      })
+      .catch(() => {
+        if (!cancelled) setStorePromotions([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedStore?.id]);
+
   function openCategory(cat: Category) {
+    trackCategorySelected(cat.id, cat.title);
     setCurrentCategory(cat);
     setSelectedStore(null);
     setScreen("detail");
   }
 
   function openStore(store: ApiStore) {
+    trackStoreSelected(store.id, store.name);
     setSelectedStore(store);
     setScreen("store-detail");
   }
@@ -412,8 +439,43 @@ export default function MallWidget({
                     })()}
                   </div>
                   <h3 className={styles.storeName}>{selectedStore.name}</h3>
+                  {selectedStore.description ? (
+                    <p className={styles.storeDescription}>{selectedStore.description}</p>
+                  ) : null}
                   {selectedStore.floor ? (
                     <p className={styles.storeFloor}>{selectedStore.floor.number} {lang === 'ru' ? 'этаж' : 'floor'}</p>
+                  ) : null}
+                  {storePromotions.length > 0 ? (
+                    <div className={styles.storePromotions}>
+                      {storePromotions.map((promotion) => (
+                        <div key={promotion.id} className={styles.storePromotion}>
+                          {promotion.imageAsset ? (
+                            <img
+                              src={resolveAssetUrl(promotion.imageAsset.url)}
+                              alt={promotion.title}
+                              className={styles.storePromotionImage}
+                            />
+                          ) : null}
+                          <div className={styles.storePromotionBody}>
+                            <div className={styles.storePromotionTitle}>{promotion.title}</div>
+                            {promotion.description ? (
+                              <div className={styles.storePromotionDescription}>{promotion.description}</div>
+                            ) : null}
+                            {promotion.buttonText ? (
+                              <button
+                                type="button"
+                                className={styles.storePromotionButton}
+                                onClick={() => {
+                                  if (promotion.buttonUrl) window.open(promotion.buttonUrl, '_blank', 'noopener,noreferrer');
+                                }}
+                              >
+                                {promotion.buttonText}
+                              </button>
+                            ) : null}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   ) : null}
                   <button
                     className={styles.routeBtn}

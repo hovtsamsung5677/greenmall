@@ -3,7 +3,15 @@ import React from 'react';
 import { fetchCategories, fetchStores } from '@api/categories';
 import { fetchFloors } from '@api/floors';
 import { fetchFileAssets, uploadFileAsset, resolveAssetUrl } from '@api/fileAssets';
-import { fetchAdminTenants } from '@api/admin';
+import {
+  fetchAdminPromotions,
+  createAdminPromotion,
+  updateAdminPromotion,
+  deleteAdminPromotion,
+  type CreatePromotionInput,
+  type PromotionAdmin,
+  type UpdatePromotionInput,
+} from '@api/promotionsAdmin';
 import {
   createAdminCategory,
   createAdminStore,
@@ -13,6 +21,7 @@ import {
   deleteAdminTenant,
   fetchAdminCategories,
   fetchAdminStores,
+  fetchAdminTenants,
   login,
   updateAdminCategory,
   updateAdminStore,
@@ -52,7 +61,25 @@ import styles from '@styles/AdminPage.module.css';
 
 const RouteAdminPanel = lazy(() => import('@components/route-editor/RouteAdminPanel'));
 const FloorIconsTab = lazy(() => import('@components/admin/FloorIconsTab'));
+const PromotionsTab = lazy(() => import('@components/admin/PromotionsTab'));
 const RouteSharePreview = lazy(() => import('./RouteSharePreview'));
+
+const emptyPromotionForm: CreatePromotionInput & { id?: string | null } = {
+  title: '',
+  slug: '',
+  description: '',
+  terms: '',
+  buttonText: '',
+  buttonUrl: '',
+  tenantId: null,
+  storeId: null,
+  imageAssetId: null,
+  startsAt: null,
+  endsAt: null,
+  isActive: true,
+  sortOrder: 0,
+  metadata: null,
+};
 
 class RouteAdminErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -85,7 +112,7 @@ class RouteAdminErrorBoundary extends React.Component<
   }
 }
 
-type Tab = 'categories' | 'stores' | 'tenants' | 'routes' | 'mobile' | 'banners' | 'icons' | 'statistics';
+type Tab = 'categories' | 'stores' | 'tenants' | 'routes' | 'mobile' | 'banners' | 'icons' | 'statistics' | 'promotions';
 
 export interface AdminPageProps {
   onClose?: () => void;
@@ -101,6 +128,9 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
   const [floors, setFloors] = useState<ApiFloor[]>([]);
   const [tenants, setTenants] = useState<ApiTenant[]>([]);
   const [fileAssets, setFileAssets] = useState<ApiFileAsset[]>([]);
+  const [promotions, setPromotions] = useState<PromotionAdmin[]>([]);
+  const [promotionForm, setPromotionForm] = useState<CreatePromotionInput & { id?: string | null }>(emptyPromotionForm);
+  const [editingPromotionId, setEditingPromotionId] = useState<string | null>(null);
   const [categoryForm, setCategoryForm] = useState<AdminCategoryForm>(emptyCategoryForm);
   const [storeForm, setStoreForm] = useState<AdminStoreForm>(emptyStoreForm);
   const [tenantForm, setTenantForm] = useState<AdminTenantForm>(emptyTenantForm);
@@ -147,18 +177,20 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
 
   async function loadData() {
     try {
-      const [cats, storesList, floorsList, tenantsList, assets] = await Promise.all([
+      const [cats, storesList, floorsList, tenantsList, assets, promotionsList] = await Promise.all([
         fetchAdminCategories(),
         fetchAdminStores(),
         fetchFloors(),
         fetchAdminTenants(),
         fetchFileAssets(),
+        fetchAdminPromotions(),
       ]);
       setCategories(cats);
       setStores(storesList);
       setFloors(floorsList);
       setTenants(tenantsList);
       setFileAssets(assets);
+      setPromotions(promotionsList);
     } finally {
       setLoading(false);
     }
@@ -187,12 +219,15 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
     setStores([]);
     setFloors([]);
     setFileAssets([]);
+    setPromotions([]);
     setEditingCategoryId(null);
     setEditingStoreId(null);
     setEditingTenantId(null);
+    setEditingPromotionId(null);
     setCategoryForm(emptyCategoryForm);
     setStoreForm(emptyStoreForm);
     setTenantForm(emptyTenantForm);
+    setPromotionForm(emptyPromotionForm);
   }
 
   async function submitCategory() {
@@ -404,6 +439,88 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
     } finally {
       setActionLoading(null);
     }
+  }
+
+  async function submitPromotion() {
+    if (!promotionForm.title.trim()) {
+      setError('Название акции обязательно');
+      return;
+    }
+    if (!promotionForm.slug.trim()) {
+      setError('Slug акции обязательно');
+      return;
+    }
+
+    setActionLoading(editingPromotionId ?? 'new-promotion');
+    setError(null);
+
+    try {
+      const dto: CreatePromotionInput = {
+        title: promotionForm.title.trim(),
+        slug: promotionForm.slug.trim(),
+        description: promotionForm.description?.trim() || null,
+        terms: promotionForm.terms?.trim() || null,
+        buttonText: promotionForm.buttonText?.trim() || null,
+        buttonUrl: promotionForm.buttonUrl?.trim() || null,
+        tenantId: promotionForm.tenantId || null,
+        storeId: promotionForm.storeId || null,
+        imageAssetId: promotionForm.imageAssetId || null,
+        startsAt: promotionForm.startsAt || null,
+        endsAt: promotionForm.endsAt || null,
+        isActive: promotionForm.isActive ?? true,
+        sortOrder: Number(promotionForm.sortOrder) || 0,
+        metadata: promotionForm.metadata ?? null,
+      };
+
+      if (editingPromotionId) {
+        const updated = await updateAdminPromotion(editingPromotionId, dto);
+        setPromotions((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+      } else {
+        const created = await createAdminPromotion(dto);
+        setPromotions((prev) => [created, ...prev]);
+      }
+      setEditingPromotionId(null);
+      setPromotionForm(emptyPromotionForm);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save promotion');
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  async function removePromotion(id: string) {
+    setActionLoading(`delete-promotion-${id}`);
+    setError(null);
+
+    try {
+      const deleted = await deleteAdminPromotion(id);
+      setPromotions((prev) => prev.map((p) => (p.id === deleted.id ? deleted : p)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete promotion');
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  function startEditPromotion(promotion: PromotionAdmin) {
+    setEditingPromotionId(promotion.id);
+    setPromotionForm({
+      id: promotion.id,
+      title: promotion.title,
+      slug: promotion.slug,
+      description: promotion.description ?? '',
+      terms: promotion.terms ?? '',
+      buttonText: promotion.buttonText ?? '',
+      buttonUrl: promotion.buttonUrl ?? '',
+      tenantId: promotion.tenantId,
+      storeId: promotion.storeId,
+      imageAssetId: promotion.imageAssetId,
+      startsAt: promotion.startsAt,
+      endsAt: promotion.endsAt,
+      isActive: promotion.isActive,
+      sortOrder: promotion.sortOrder,
+      metadata: null,
+    });
   }
 
   async function handleCoverUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -634,6 +751,13 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
         >
           Статистика
         </button>
+        <button
+          type="button"
+          className={`${styles.tab} ${tab === 'promotions' ? styles.tabActive : ''}`}
+          onClick={() => setTab('promotions')}
+        >
+          Акции
+        </button>
       </nav>
 
       {tab === 'routes' ? (
@@ -652,6 +776,37 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
         </Suspense>
       ) : tab === 'statistics' ? (
         <StatisticsTab onRefreshKey={refreshKey} />
+      ) : tab === 'promotions' ? (
+        <Suspense fallback={<div className={styles.loading}>Загрузка акций…</div>}>
+          <PromotionsTab
+            promotions={promotions}
+            filteredPromotions={promotions.filter((p) => {
+              const q = search.trim().toLowerCase();
+              if (!q) return true;
+              return (
+                p.title.toLowerCase().includes(q) ||
+                p.slug.toLowerCase().includes(q) ||
+                p.store?.name.toLowerCase().includes(q)
+              );
+            })}
+            promotionForm={promotionForm}
+            setPromotionForm={setPromotionForm}
+            editingPromotionId={editingPromotionId}
+            setEditingPromotionId={setEditingPromotionId}
+            actionLoading={actionLoading}
+            stores={stores}
+            tenants={tenants}
+            fileAssets={fileAssets}
+            error={error}
+            onSubmit={submitPromotion}
+            onRemove={removePromotion}
+            onAddNew={() => {
+              setEditingPromotionId(null);
+              setPromotionForm(emptyPromotionForm);
+            }}
+            onEdit={startEditPromotion}
+          />
+        </Suspense>
       ) : (
         <>
           <div className={styles.searchRow}>
