@@ -14,6 +14,7 @@ import { fetchPublicRouteEdges } from '@api/routeEdges';
 import { buildRouteToStore } from '@api/routes';
 import { createSharedRoute } from '@api/sharedRoutes';
 import { fetchPanelByRouteNode } from '@api/panels';
+import { fetchStores } from '@api/categories';
 import {
   trackPanelSessionStarted,
   trackPanelUsed,
@@ -31,6 +32,7 @@ import type {
   ApiRouteToStoreResponse,
   ApiFloorChange,
   ApiFloorIcon,
+  ApiStore,
 } from '@api/types';
 
 import { useCachedGLTF, clearGLTFCache } from '@components/MallMap/gltfCache';
@@ -187,6 +189,97 @@ function ZoomControls({
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
+      </button>
+    </div>
+  );
+}
+
+function RouteBuilderWindow({
+  stores, fromStoreId, toStoreId, error, loading,
+  onFromChange, onToChange, onBuild,
+}: {
+  stores: ApiStore[];
+  fromStoreId: string | null;
+  toStoreId: string | null;
+  error: string | null;
+  loading: boolean;
+  onFromChange: (id: string | null) => void;
+  onToChange: (id: string | null) => void;
+  onBuild: () => void;
+}) {
+  const buildDisabled = !fromStoreId || !toStoreId || fromStoreId === toStoreId || loading;
+  const [fromOpen, setFromOpen] = useState(false);
+  const [toOpen, setToOpen] = useState(false);
+
+  const fromName = stores.find((s) => s.id === fromStoreId)?.name ?? 'Откуда';
+  const toName = stores.find((s) => s.id === toStoreId)?.name ?? 'Куда';
+  const hasStores = stores.length > 0;
+
+  return (
+    <div className={styles.routeBuilderWindow}>
+      <div className={styles.routeBuilderHeader}>
+        <span className={styles.routeBuilderTitle}>Маршрут между магазинами</span>
+      </div>
+      <div className={styles.routeBuilderSelects}>
+        <div className={styles.routeBuilderDropdown}>
+          <button
+            type="button"
+            className={styles.routeBuilderSelect}
+            onClick={() => setFromOpen((v) => !v)}
+          >
+            {fromName}
+          </button>
+          {fromOpen && (
+            <div className={styles.routeBuilderDropdownList}>
+              {hasStores ? stores.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  className={`${styles.routeBuilderDropdownItem} ${s.id === fromStoreId ? styles.routeBuilderDropdownItemSelected : ''}`}
+                  onClick={() => { onFromChange(s.id); setFromOpen(false); }}
+                >
+                  {s.name}
+                </button>
+              )) : (
+                <div className={styles.routeBuilderDropdownItem}>Нет магазинов</div>
+              )}
+            </div>
+          )}
+        </div>
+        <div className={styles.routeBuilderDropdown}>
+          <button
+            type="button"
+            className={styles.routeBuilderSelect}
+            onClick={() => setToOpen((v) => !v)}
+          >
+            {toName}
+          </button>
+          {toOpen && (
+            <div className={styles.routeBuilderDropdownList}>
+              {hasStores ? stores.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  className={`${styles.routeBuilderDropdownItem} ${s.id === toStoreId ? styles.routeBuilderDropdownItemSelected : ''}`}
+                  onClick={() => { onToChange(s.id); setToOpen(false); }}
+                >
+                  {s.name}
+                </button>
+              )) : (
+                <div className={styles.routeBuilderDropdownItem}>Нет магазинов</div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+      {error ? <div className={styles.routeBuilderError}>{error}</div> : null}
+      <button
+        type="button"
+        className={styles.routeBuilderBuild}
+        onClick={onBuild}
+        disabled={buildDisabled || loading}
+      >
+        {loading ? 'Построение…' : 'Построить маршрут'}
       </button>
     </div>
   );
@@ -356,6 +449,11 @@ export default function MallMap({
   const [shareError, setShareError] = useState<string | null>(null);
   const [showRouteToast, setShowRouteToast] = useState(false);
 
+  const [routeBetweenFromStoreId, setRouteBetweenFromStoreId] = useState<string | null>(null);
+  const [routeBetweenToStoreId, setRouteBetweenToStoreId] = useState<string | null>(null);
+  const [routeBetweenError, setRouteBetweenError] = useState<string | null>(null);
+  const [allStores, setAllStores] = useState<ApiStore[]>([]);
+
   // ---------- загрузка данных ----------
 
   useEffect(() => {
@@ -447,6 +545,26 @@ export default function MallMap({
       .catch(() => setHeaderBanner(null));
   }, []);
 
+  useEffect(() => {
+    if (!floors.length) return;
+    let cancelled = false;
+    fetchStores(500)
+      .then((stores) => {
+        if (!cancelled) setAllStores(stores);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          const sceneStores = scene?.stores;
+          if (sceneStores) {
+            setAllStores(sceneStores as unknown as ApiStore[]);
+          } else {
+            setAllStores([]);
+          }
+        }
+      });
+    return () => { cancelled = true; };
+  }, [floors, scene?.stores]);
+
   // ---------- построение маршрута ----------
 
   async function handleBuildRouteToStore(storeSlug: string) {
@@ -524,7 +642,54 @@ export default function MallMap({
      }
    }
 
- // ---------- зум ----------
+  // ---------- маршрут магазин → магазин ----------
+
+  async function handleBuildRouteBetween() {
+    const fromStoreId = routeBetweenFromStoreId;
+    const toStoreId = routeBetweenToStoreId;
+    if (!fromStoreId || !toStoreId || fromStoreId === toStoreId) {
+      setRouteBetweenError('Выберите оба магазина');
+      return;
+    }
+    setRouteBetweenError(null);
+
+    const connectedIds = new Set<string>();
+    for (const edge of routeEdges) {
+      connectedIds.add(edge.fromNodeId);
+      connectedIds.add(edge.toNodeId);
+    }
+
+    const startNode =
+      routeNodes.find((n) => n.type === 'PANEL' && connectedIds.has(n.id)) ??
+      routeNodes.find((n) => n.type === 'PANEL') ??
+      routeNodes.find((n) => n.type === 'ENTRANCE' && connectedIds.has(n.id)) ??
+      routeNodes.find((n) => n.type === 'ENTRANCE') ??
+      routeNodes.find((n) => n.type === 'INFO_DESK' && connectedIds.has(n.id)) ??
+      routeNodes.find((n) => n.type === 'INFO_DESK') ??
+      routeNodes.find((n) => n.type === 'ROUTE_POINT' && connectedIds.has(n.id)) ??
+      routeNodes.find((n) => n.type === 'ROUTE_POINT') ??
+      routeNodes[0];
+
+    if (!startNode) {
+      setRouteBetweenError('На этом этаже нет точки маршрута');
+      return;
+    }
+
+    setRouteLoading(true);
+    try {
+      const route = await buildRouteToStore({ fromNodeId: startNode.id, storeId: toStoreId });
+      setActiveRoute(route);
+      setRouteBetweenFromStoreId(null);
+      setRouteBetweenToStoreId(null);
+    } catch (err) {
+      setRouteBetweenError(err instanceof Error ? err.message : 'Не удалось построить маршрут');
+      setActiveRoute(null);
+    } finally {
+      setRouteLoading(false);
+    }
+  }
+
+  // ---------- зум ----------
 
   const handleZoom = (delta: number) => {
     setZoom((prev) => Math.min(3, Math.max(0.4, +(prev + delta).toFixed(2))));
@@ -718,7 +883,7 @@ export default function MallMap({
           </div>
         ) : null}
 
-<FloorControls floors={floorNumbers} activeFloor={activeFloor} onFloorChange={setActiveFloor} />
+        <FloorControls floors={floorNumbers} activeFloor={activeFloor} onFloorChange={setActiveFloor} />
 
         <ZoomControls
           lang={lang}
@@ -729,6 +894,17 @@ export default function MallMap({
           hasRoute={!!activeRoute}
         />
       </div>
+
+      <RouteBuilderWindow
+        stores={allStores}
+        fromStoreId={routeBetweenFromStoreId}
+        toStoreId={routeBetweenToStoreId}
+        error={routeBetweenError}
+        loading={routeLoading}
+        onFromChange={setRouteBetweenFromStoreId}
+        onToChange={setRouteBetweenToStoreId}
+        onBuild={handleBuildRouteBetween}
+      />
 
       <ShareQrModal
         lang={lang}

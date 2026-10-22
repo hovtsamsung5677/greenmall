@@ -7,7 +7,7 @@
   position: relative;
   width: 100%;
   height: 100vh;
-  min-height: 100dvh;
+  min-height: 100vh;
   background-color: var(--bg);
   display: flex;
   flex-direction: column;
@@ -121,6 +121,10 @@
   flex: 1;
   margin: 0 16px 16px;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Search bar */
@@ -206,15 +210,14 @@
 /* 3D model placeholder */
 
 .modelViewport {
-  position: absolute;
-  inset: 0;
+  position: relative;
   z-index: 0;
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.2s ease;
-  transform-origin: center;
-  pointer-events: none;
+  margin: 0 auto;
 }
 
 .modelViewport canvas {
@@ -222,8 +225,10 @@
 }
 
 .modelPlaceholder {
-  width: 90%;
-  height: 85%;
+  width: 100%;
+  height: 100%;
+  max-width: 1100px;
+  max-height: 78vh;
   border-radius: 24px;
   display: flex;
   align-items: center;
@@ -243,8 +248,9 @@
 
 .floorControls {
   position: absolute;
-  top: 16px;
+  top: 50%;
   right: 0;
+  transform: translateY(-50%);
   z-index: 10;
   display: flex;
   flex-direction: column;
@@ -680,6 +686,127 @@
   max-width: 360px;
 }
 
+/* Store-to-store route builder window (bottom-left) */
+
+.routeBuilderWindow {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  z-index: 15;
+  background: #fffdeb;
+  border-radius: 12px;
+  padding: 14px 16px;
+  min-width: 220px;
+}
+
+.routeBuilderHeader {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-bottom: 10px;
+}
+
+.routeBuilderTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: #2F3A18;
+}
+
+.routeBuilderSelects {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.routeBuilderSelect {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  background: #fff;
+  color: #4a4a4a;
+  cursor: pointer;
+  outline: none;
+  width: 100%;
+  text-align: left;
+}
+
+.routeBuilderSelect:focus {
+  border-color: var(--brand);
+}
+
+.routeBuilderDropdown {
+  position: relative;
+  width: 100%;
+}
+
+.routeBuilderDropdownList {
+  position: absolute;
+  top: auto;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  z-index: 100;
+  margin-bottom: 2px;
+}
+
+.routeBuilderDropdownItem {
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 13px;
+  background: transparent;
+  color: #4a4a4a;
+  cursor: pointer;
+  text-align: left;
+  border: none;
+  outline: none;
+  transition: background-color 0.15s ease;
+}
+
+.routeBuilderDropdownItem:hover {
+  background: #f4f5e3;
+}
+
+.routeBuilderDropdownItemSelected {
+  background: #e8f0fe;
+  color: var(--brand);
+  font-weight: 700;
+}
+
+.routeBuilderError {
+  color: #c0392b;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.routeBuilderBuild {
+  margin-top: 10px;
+  width: 100%;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  background: var(--brand);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.routeBuilderBuild:hover {
+  background: var(--brand-dark);
+}
+
+.routeBuilderBuild:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
 /* Крупные инфопанели / киоски 1920×1080 и выше 16:9 */
 @media (min-width: 1920px) and (min-aspect-ratio: 16/9) {
   .header {
@@ -780,7 +907,9 @@
   }
 
   .floorControls {
-    top: calc(20px * var(--k));
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%);
     gap: calc(14px * var(--k) * var(--ctrl));
   }
 
