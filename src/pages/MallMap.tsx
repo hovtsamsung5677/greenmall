@@ -11,7 +11,7 @@ import translatorEn from '@assets/icons/переводчик англ.svg';
 import MallWidget from '@components/mall-widget/MallWidget';
 import { fetchPublicRouteNodes } from '@api/routeNodes';
 import { fetchPublicRouteEdges } from '@api/routeEdges';
-import { buildRouteToStore } from '@api/routes';
+import { buildRoute, buildRouteToStore } from '@api/routes';
 import { createSharedRoute } from '@api/sharedRoutes';
 import { fetchPanelByRouteNode } from '@api/panels';
 import { fetchStores } from '@api/categories';
@@ -33,6 +33,7 @@ import type {
   ApiFloorChange,
   ApiFloorIcon,
   ApiStore,
+  ApiSceneStore,
 } from '@api/types';
 
 import { useCachedGLTF, clearGLTFCache } from '@components/MallMap/gltfCache';
@@ -653,32 +654,28 @@ export default function MallMap({
     }
     setRouteBetweenError(null);
 
-    const connectedIds = new Set<string>();
-    for (const edge of routeEdges) {
-      connectedIds.add(edge.fromNodeId);
-      connectedIds.add(edge.toNodeId);
-    }
+    const fromSceneStore = (scene?.stores ?? []).find(
+      (s: ApiSceneStore) => s.id === fromStoreId,
+    );
+    const toSceneStore = (scene?.stores ?? []).find(
+      (s: ApiSceneStore) => s.id === toStoreId,
+    );
 
-    const startNode =
-      routeNodes.find((n) => n.type === 'PANEL' && connectedIds.has(n.id)) ??
-      routeNodes.find((n) => n.type === 'PANEL') ??
-      routeNodes.find((n) => n.type === 'ENTRANCE' && connectedIds.has(n.id)) ??
-      routeNodes.find((n) => n.type === 'ENTRANCE') ??
-      routeNodes.find((n) => n.type === 'INFO_DESK' && connectedIds.has(n.id)) ??
-      routeNodes.find((n) => n.type === 'INFO_DESK') ??
-      routeNodes.find((n) => n.type === 'ROUTE_POINT' && connectedIds.has(n.id)) ??
-      routeNodes.find((n) => n.type === 'ROUTE_POINT') ??
-      routeNodes[0];
+    const fromStoreNodeId = fromSceneStore?.primaryRouteNodeId;
+    const toStoreNodeId = toSceneStore?.primaryRouteNodeId;
 
-    if (!startNode) {
-      setRouteBetweenError('На этом этаже нет точки маршрута');
+    if (!fromStoreNodeId || !toStoreNodeId) {
+      setRouteBetweenError('Маршрутные точки магазинов не найдены');
       return;
     }
 
     setRouteLoading(true);
     try {
-      const route = await buildRouteToStore({ fromNodeId: startNode.id, storeId: toStoreId });
-      setActiveRoute(route);
+      const route = await buildRoute({
+        fromNodeId: fromStoreNodeId,
+        toNodeId: toStoreNodeId,
+      });
+      setActiveRoute({ ...route, targetStore: null, evacuation: null });
       setRouteBetweenFromStoreId(null);
       setRouteBetweenToStoreId(null);
     } catch (err) {
