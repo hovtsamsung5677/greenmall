@@ -32,16 +32,16 @@ export interface PlanMetrics {
 
 // ==================== AnimatedRouteLine ====================
 
-// Линия маршрута — чёрная прерывистая. Чтобы она читалась и на светлом, и на
-// тёмном полу, каждый штрих оборачивается тонким белым «кожухом» (casing) —
-// приём из 2D-картографии: тёмная линия с контрастной обводкой.
-const ROUTE_COLOR = '#000000';
-const ROUTE_CASING_COLOR = '#FFFFFF';
-const ROUTE_CASING_RATIO = 1.3;
+// Основной маршрут в фирменной палитре Green Mall: яркий лаймовый сердечник
+// с тёмно-зелёной контрастной обводкой. Обводка не даёт линии сливаться с
+// светлыми и оливковыми участками плана; emissive-слой подчёркивает анимацию.
+const ROUTE_COLOR = '#C9F46B';
+const ROUTE_CASING_COLOR = '#173A2C';
+const ROUTE_CASING_RATIO = 1.65;
 
 // Эвакуационный маршрут идёт ДРУГИМ цветом поверх основного — на карте сразу
-// видно, куда бежать от магазина при пожаре. Красный + белый кожух читается
-// на любом полу так же хорошо, как чёрный.
+// видно, куда бежать от магазина при пожаре. Красный + белый кожух резко
+// отличается от фирменного лаймового основного маршрута.
 export const EVACUATION_ROUTE_COLOR = '#DC2626';
 const EVACUATION_ROUTE_CASING_COLOR = '#FFFFFF';
 const EVACUATION_STAIRS_COLOR = '#DC2626';
@@ -146,12 +146,14 @@ function buildDashedBundle(
     const geometry = new CylinderGeometry(meshRadius, meshRadius, 1, 12);
     const material = new MeshStandardMaterial({
       color,
-      roughness: 0.45,
-      metalness: 0,
-      // Кожух — это «вывернутый» цилиндр: рисуем только его задние стенки.
-      // Иначе сплошной кожух большего радиуса просто закрыл бы собой
-      // чёрную линию, лежащую внутри него. Задние стенки видны только там,
-      // где чёрной линии нет, — получается белая обводка.
+      emissive: color,
+      emissiveIntensity: isCasing ? 0.08 : 0.85,
+      roughness: isCasing ? 0.55 : 0.3,
+      metalness: isCasing ? 0 : 0.05,
+      // Тонкий тёмно-зелёный кожух отделяет лаймовую линию от пола.
+      // У сердечника отключаем tone mapping, чтобы он оставался ярким
+      // при любом освещении сцены.
+      toneMapped: !isCasing,
       side: isCasing ? BackSide : FrontSide,
     });
     const mesh = new InstancedMesh(geometry, material, matrices.length);
@@ -171,16 +173,36 @@ function buildDashedBundle(
   };
 }
 
-function MovingMarker({ radius, color = ROUTE_COLOR }: { radius: number; color?: string }) {
+function MovingMarker({
+  radius,
+  color = ROUTE_COLOR,
+  casingColor = ROUTE_CASING_COLOR,
+}: {
+  radius: number;
+  color?: string;
+  casingColor?: string;
+}) {
   return (
     <group>
       <mesh>
         <sphereGeometry args={[radius * ROUTE_CASING_RATIO, 16, 16]} />
-        <meshStandardMaterial color={ROUTE_CASING_COLOR} side={BackSide} roughness={0.45} />
+        <meshStandardMaterial
+          color={casingColor}
+          emissive={casingColor}
+          emissiveIntensity={0.12}
+          side={BackSide}
+          roughness={0.35}
+        />
       </mesh>
       <mesh>
         <sphereGeometry args={[radius, 16, 16]} />
-        <meshStandardMaterial color={color} roughness={0.45} />
+        <meshStandardMaterial
+          color={color}
+          emissive={color}
+          emissiveIntensity={1.2}
+          roughness={0.3}
+          toneMapped={false}
+        />
       </mesh>
     </group>
   );
@@ -240,8 +262,15 @@ export function AnimatedRouteLine({
     completedRef.current = false;
   }, [pointsKey, dashMeshes]);
 
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
     if (!dashMeshes) return;
+
+    // Лёгкое дыхание свечения продолжается после построения маршрута.
+    const lineMaterial = dashMeshes.line.material;
+    if (lineMaterial instanceof MeshStandardMaterial) {
+      lineMaterial.emissiveIntensity =
+        0.72 + 0.24 * (0.5 + 0.5 * Math.sin(state.clock.elapsedTime * 5.5));
+    }
 
     if (progress.current < 1) {
       progress.current = Math.min(1, progress.current + delta / speed);
@@ -260,6 +289,10 @@ export function AnimatedRouteLine({
     const markerPos = getPointOnPolyline(vectors, totalLength, markerDist);
     if (markerRef.current && markerPos) {
       markerRef.current.position.copy(markerPos);
+      // Двигающийся маркер мягко пульсирует, выделяя текущую точку построения.
+      markerRef.current.scale.setScalar(
+        1 + 0.08 * (0.5 + 0.5 * Math.sin(state.clock.elapsedTime * 7)),
+      );
     }
 
     if (progress.current >= 1 && !completedRef.current) {
@@ -275,7 +308,7 @@ export function AnimatedRouteLine({
       <primitive object={dashMeshes.casing} />
       <primitive object={dashMeshes.line} />
       <group ref={markerRef}>
-        <MovingMarker radius={dashSize * 1.2} color={color} />
+        <MovingMarker radius={dashSize * 1.2} color={color} casingColor={casingColor} />
       </group>
     </group>
   );
@@ -401,6 +434,21 @@ export function AnimatedShaftLine({
   );
 }
 
+// ==================== UpwardShaft ====================
+
+export interface UpwardShaft {
+  /** Конец линии текущего этажа (в координатах плана текущего этажа). */
+  fromPoint: [number, number, number];
+  /** Начало линии следующего этажа (в координатах плана следующего этажа). */
+  toPoint: [number, number, number];
+  /** Вертикальное расстояние между этажами. */
+  gap: number;
+  /** Направление перехода: 'up' — текущий уходит вниз, следующий сверху;
+   *  'down' — текущий уходит вверх, целевой выезжает снизу. */
+  direction: 'up' | 'down';
+  duration?: number;
+}
+
 // ==================== FloorScene ====================
 
 export function FloorScene({
@@ -410,6 +458,7 @@ export function FloorScene({
   route,
   activeFloor,
   onReachTransfer,
+  upwardShaft = null,
   debug = false,
   textures = [],
   icons = [],
@@ -423,6 +472,7 @@ export function FloorScene({
   route: ApiRouteToStoreResponse | null;
   activeFloor: number;
   onReachTransfer?: (nextFloor: number) => void;
+  upwardShaft?: UpwardShaft | null;
   debug?: boolean;
   textures?: ApiFloorTexture[];
   icons?: ApiFloorIcon[];
@@ -716,6 +766,18 @@ export function FloorScene({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [route, planToScene, activeFloor]);
 
+  const shaft = useMemo(() => {
+    if (!upwardShaft) return null;
+    const toY = upwardShaft.direction === 'up' ? upwardShaft.gap : -upwardShaft.gap;
+    return (
+      <AnimatedShaftLine
+        from={upwardShaft.fromPoint}
+        to={[upwardShaft.toPoint[0], toY, upwardShaft.toPoint[2]]}
+        duration={upwardShaft.duration}
+      />
+    );
+  }, [upwardShaft]);
+
   return (
     <>
       {debug && <axesHelper args={[500]} />}
@@ -732,9 +794,10 @@ export function FloorScene({
           if (icon) onIconClick?.(icon);
         }}
       />
-      {routeOverlay || evacuationStairMarkers.length > 0 ? (
+      {routeOverlay || shaft || evacuationStairMarkers.length > 0 ? (
         <group position={[0, routeLiftY, 0]}>
           {routeOverlay}
+          {shaft}
           {evacuationStairMarkers.map((marker) => (
             <EvacuationStairsMarker key={marker.id} position={marker.position} />
           ))}

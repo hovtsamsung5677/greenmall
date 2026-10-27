@@ -667,6 +667,46 @@
   white-space: nowrap;
 }
 
+.transferOverlay {
+  position: absolute;
+  left: 50%;
+  bottom: 80px;
+  transform: translateX(-50%);
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  max-width: 90vw;
+  text-align: center;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.transferOverlayBadge {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #38bdfa;
+  flex-shrink: 0;
+}
+
+.transferOverlayTitle {
+  white-space: nowrap;
+}
+
+.transferOverlayHint {
+  opacity: 0.8;
+  font-size: 12px;
+  font-weight: 400;
+}
+
 .debugOverlay {
   position: absolute;
   top: 10px;

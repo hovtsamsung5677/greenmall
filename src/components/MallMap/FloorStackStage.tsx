@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { Group } from 'three';
@@ -24,7 +24,7 @@ export interface FloorStackStageProps {
 /**
  * «Стопка этажей» во время межэтажного перехода.
  *
- * Визуально: посетитель смотрит на здание сбоку (профиль).
+ * Визуально: посетитель смотрит на здание сбока (профиль).
  * При подъёме (direction='up') текущий этаж уезжает вниз, следующий въезжает
  * сверху. При спуске (direction='down') — наоборот: текущий уезжает вверх,
  * целевой этаж выезжает снизу. Когда стрелка шахты доходит до целевого этажа,
@@ -68,20 +68,18 @@ export default function FloorStackStage({
     if (!active && controls) {
       controls.target.set(0, 0, 0);
       controls.object.position.set(0, CAMERA_HEIGHT_DEFAULT, 0.001);
+      controls.object.quaternion.identity();
       controls.object.updateProjectionMatrix();
       controls.enabled = true;
       controls.update();
     }
   }, [active, gap, direction, controlsRef]);
 
-  const sidePos = useMemo(() => new THREE.Vector3(gap * 6.0, gap * 1.2, gap * 0.8), [gap]);
-  const sideTarget = useMemo(
-    () => new THREE.Vector3(0, isUp ? gap * 0.5 : -gap * 0.5, 0),
-    [gap, direction],
-  );
-  const normalPos = useMemo(() => new THREE.Vector3(0, CAMERA_HEIGHT_DEFAULT, 0.001), []);
-  const normalTarget = useMemo(() => new THREE.Vector3(0, 0, 0), []);
-  const tmp = useMemo(() => new THREE.Vector3(), []);
+  const sidePos = new THREE.Vector3(gap * 6.0, gap * 1.2, gap * 0.8);
+  const sideTarget = new THREE.Vector3(0, isUp ? gap * 0.5 : -gap * 0.5, 0);
+  const normalPos = new THREE.Vector3(0, CAMERA_HEIGHT_DEFAULT, 0.001);
+  const normalTarget = new THREE.Vector3(0, 0, 0);
+  const tmp = new THREE.Vector3();
 
   useFrame((_, delta) => {
     const moving = movingRef.current;
@@ -144,6 +142,7 @@ export default function FloorStackStage({
       finished.current = true;
       if (controls?.object) {
         controls.object.position.set(0, CAMERA_HEIGHT_DEFAULT, 0.001);
+        controls.object.quaternion.identity();
         controls.object.updateProjectionMatrix();
       }
       if (controls) {

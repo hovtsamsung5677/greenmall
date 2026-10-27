@@ -847,3 +847,500 @@ select.input {
     grid-template-columns: 1fr;
   }
 }
+
+/* --------------------------------------------------------------------------
+   Green Mall Admin visual refresh — CSS-only shell to preserve app logic.
+   -------------------------------------------------------------------------- */
+.page {
+  --brand: #bdc94b;
+  --brand-dark: #788719;
+  --bg: #f4f6ef;
+  --panel-bg: #ffffff;
+  --border: #e4e8dc;
+  --text: #203629;
+  --muted: #738075;
+  --danger: #c94d4d;
+}
+
+/* The authenticated admin root has a header and tabs; login remains centered. */
+.page:has(> .header):has(> .tabs) {
+  display: block;
+  gap: 0;
+  width: 100%;
+  max-width: none;
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  background:
+    radial-gradient(ellipse at 100% 0%, rgba(218, 226, 181, 0.22), transparent 28%),
+    #f4f6ef;
+  color: #203629;
+}
+
+.page:has(> .header):has(> .tabs) > .header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-width: 0;
+  min-height: 116px;
+  box-sizing: border-box;
+  margin: 0 clamp(20px, 3vw, 48px) 0 calc(264px + clamp(20px, 3vw, 48px));
+  padding: 22px 0 20px;
+  border-bottom: 1px solid #e4e8dc;
+}
+
+.page:has(> .header):has(> .tabs) > .tabs {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-self: start;
+  gap: 5px;
+  box-sizing: border-box;
+  width: 264px;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 560px;
+  margin: 0;
+  padding: 28px 16px 18px;
+  overflow-y: auto;
+  border: 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 0;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(189, 201, 75, 0.13), transparent 28%),
+    linear-gradient(180deg, #1b3327 0%, #15291f 100%);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(218, 231, 170, 0.25) transparent;
+}
+
+.page:has(> .header):has(> .tabs) > .tabs::before {
+  display: block;
+  flex: 0 0 auto;
+  margin: 0 8px 29px;
+  padding: 5px 0 23px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+  color: #fff;
+  background: transparent;
+  content: '◆  GREEN MALL\A    ПАНЕЛЬ УПРАВЛЕНИЯ';
+  white-space: pre;
+  font-size: 14px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  line-height: 1.55;
+  text-shadow: 0 1px 1px rgba(0,0,0,.12);
+  position: relative;
+}
+
+.page:has(> .header):has(> .tabs) > .tabs::after {
+  display: block;
+  margin-top: auto;
+  padding: 19px 8px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+  color: #9db0a2;
+  content: '●  Система управления     ADMIN';
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  white-space: nowrap;
+}
+
+.page:has(> .header):has(> .tabs) > :not(.header):not(.tabs) {
+  min-width: 0;
+  margin-right: clamp(20px, 3vw, 48px);
+  margin-left: calc(264px + clamp(20px, 3vw, 48px));
+}
+
+.page:has(> .header):has(> .tabs) > .searchRow {
+  margin-top: 25px;
+  margin-bottom: 0;
+  padding: 14px;
+  border: 1px solid #e4e8dc;
+  border-radius: 17px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 5px 18px rgba(31, 53, 39, 0.025);
+}
+
+.page:has(> .header):has(> .tabs) > .layout {
+  margin-top: 20px;
+  margin-bottom: 28px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 20px;
+}
+
+.page:has(> .header):has(> .tabs) > .empty,
+.page:has(> .header):has(> .tabs) > .loading {
+  margin-top: 25px;
+}
+
+.heading {
+  color: #203629;
+  font-size: clamp(22px, 2vw, 28px);
+  font-weight: 820;
+  line-height: 1.18;
+  letter-spacing: -0.045em;
+}
+
+.userInfo {
+  margin-top: 8px;
+  color: #78867a;
+  font-size: 12px;
+  font-weight: 550;
+}
+
+.tabs .tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 45px;
+  box-sizing: border-box;
+  gap: 12px;
+  padding: 11px 13px;
+  border: 1px solid transparent;
+  border-radius: 13px;
+  background: transparent;
+  color: #bdcbbf;
+  text-align: left;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.35;
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+
+.tabs .tab::before {
+  display: grid;
+  place-items: center;
+  flex: 0 0 23px;
+  width: 23px;
+  height: 23px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.055);
+  color: #a9baaa;
+  font-size: 15px;
+  line-height: 1;
+  content: '◈';
+}
+
+.tabs .tab:nth-child(1)::before { content: '▦'; }
+.tabs .tab:nth-child(2)::before { content: '⌂'; }
+.tabs .tab:nth-child(3)::before { content: '◎'; }
+.tabs .tab:nth-child(4)::before { content: '⌁'; }
+.tabs .tab:nth-child(5)::before { content: '▣'; }
+.tabs .tab:nth-child(6)::before { content: '▤'; }
+.tabs .tab:nth-child(7)::before { content: '⌖'; }
+.tabs .tab:nth-child(8)::before { content: '◷'; }
+.tabs .tab:nth-child(9)::before { content: '✦'; }
+
+.tabs .tab:hover {
+  transform: translateX(2px);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.065);
+}
+
+.tabs .tab:hover::before {
+  color: #e2ebad;
+  background: rgba(189, 201, 75, 0.14);
+}
+
+.tabs .tabActive {
+  border-color: rgba(215, 225, 123, 0.18);
+  color: #f9fbe9;
+  background: linear-gradient(100deg, rgba(189, 201, 75, 0.2), rgba(189, 201, 75, 0.08));
+  box-shadow: inset 3px 0 0 #c8d65b;
+}
+
+.tabs .tabActive::before {
+  color: #1b3327;
+  background: #c8d65b;
+}
+
+.panel {
+  min-width: 0;
+  padding: 23px;
+  gap: 18px;
+  border: 1px solid #e4e8dc;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 7px 24px rgba(31, 53, 39, 0.035), 0 1px 2px rgba(31, 53, 39, 0.025);
+}
+
+.panelTitle { color: #213a2b; font-size: 16px; font-weight: 800; letter-spacing: -0.02em; }
+.panelHeader { flex-wrap: wrap; gap: 12px; }
+.field { gap: 7px; }
+.label { color: #68796d; font-size: 11px; font-weight: 800; letter-spacing: 0.035em; }
+.form { gap: 15px; }
+
+.input,
+.textarea,
+select.input {
+  min-height: 43px;
+  box-sizing: border-box;
+  border: 1px solid #dfe5d9;
+  border-radius: 12px;
+  padding: 11px 13px;
+  outline: none;
+  color: #25392d;
+  background-color: #fcfdf9;
+  box-shadow: inset 0 1px 2px rgba(29, 47, 34, 0.025);
+  transition: border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
+}
+
+.input::placeholder,
+.textarea::placeholder { color: #a5afa5; }
+
+.input:focus,
+.textarea:focus,
+select.input:focus {
+  border-color: #aeba40;
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(189, 201, 75, 0.17);
+}
+
+.textarea { min-height: 98px; }
+
+.primaryBtn {
+  min-height: 43px;
+  padding: 11px 17px;
+  border: 1px solid #aebb3e;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #ccd85d, #b7c746);
+  color: #263922;
+  font-size: 13px;
+  font-weight: 850;
+  box-shadow: 0 5px 12px rgba(157, 173, 48, 0.16), inset 0 1px 0 rgba(255,255,255,.45);
+  transition: transform 150ms ease, box-shadow 150ms ease, filter 150ms ease;
+}
+.primaryBtn:hover:not(:disabled) { transform: translateY(-1px); filter: saturate(1.05); box-shadow: 0 8px 18px rgba(157, 173, 48, 0.22); }
+
+.ghostBtn,
+.smallBtn,
+.uploadBtn {
+  min-height: 39px;
+  padding: 9px 13px;
+  border: 1px solid #dfe5d9;
+  border-radius: 11px;
+  background: #fff;
+  color: #405b46;
+  font-size: 12px;
+  font-weight: 750;
+  transition: border-color 150ms ease, background 150ms ease, transform 150ms ease;
+}
+.ghostBtn:hover:not(:disabled), .smallBtn:hover:not(:disabled), .uploadBtn:hover:not(:disabled) { border-color: #bdc94b; background: #fbfcef; }
+.dangerBtn { border-color: #f0d5d2; border-radius: 10px; background: #fffafa; color: #bb4646; }
+.dangerBtn:hover:not(:disabled) { background: #fff0ee; }
+
+.item {
+  padding: 14px;
+  border: 1px solid #e5e9df;
+  border-radius: 14px;
+  background: #fff;
+  transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+}
+.item:hover { border-color: #d4ddb6; box-shadow: 0 5px 16px rgba(31, 53, 39, 0.045); }
+.itemTitle { color: #2b4233; font-size: 13px; }
+.itemMeta { color: #849085; line-height: 1.5; }
+.itemActions { gap: 7px; }
+
+.searchRow .input { max-width: 560px; min-height: 44px; background: #f9fbf6; }
+.searchCount { margin-left: auto; padding: 8px 11px; border: 1px solid #e6ebdc; border-radius: 9px; color: #64754b; background: #f7f9ef; font-size: 11px; font-weight: 800; }
+.empty { padding: 34px 20px; border: 1px dashed #dce3d4; border-radius: 16px; color: #718072; background: rgba(255,255,255,.55); text-align: center; }
+.loading { display: flex; align-items: center; justify-content: center; min-height: 180px; border: 1px solid #e3e8dc; border-radius: 18px; background: #fff; color: #6e7e70; font-size: 13px; font-weight: 700; }
+.error { padding: 12px 14px; border: 1px solid #f1d4d0; border-radius: 12px; background: #fff5f3; color: #b93f3f; }
+.preview { border: 1px dashed #dce4d3; border-radius: 15px; background: #f8faf4; }
+.whEditor { border-color: #e2e7dd; border-radius: 13px; background: #fbfcf9; }
+.assetThumb, .assetThumbEmpty { border-radius: 12px; }
+.periodSelector, .statCard { border-color: #e4e8dc; border-radius: 18px; background: #fff; box-shadow: 0 7px 24px rgba(31, 53, 39, 0.035); }
+.periodSelector { padding: 15px 18px; }
+.periodBtn { border-radius: 10px; }
+.periodBtnActive { background: #bdc94b; border-color: #bdc94b; color: #263922; }
+.statValue { color: #274330; letter-spacing: -0.045em; }
+.routeCountValue { color: #7d8a25; }
+
+.loginCard {
+  position: relative;
+  overflow: hidden;
+  width: min(100%, 410px);
+  padding: 34px;
+  border: 1px solid rgba(224, 231, 212, 0.9);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 22px 70px rgba(31, 53, 39, 0.12), 0 2px 8px rgba(31, 53, 39, 0.04);
+  backdrop-filter: blur(14px);
+}
+.loginCard::before { position: absolute; top: 0; left: 0; right: 0; height: 5px; background: linear-gradient(90deg, #d5df72, #aaba37 58%, #49694b); content: ''; }
+.loginTitle { color: #21392a; font-size: 25px; letter-spacing: -0.045em; }
+.loginSubtitle { color: #778579; font-size: 13px; }
+
+.page:has(> .header):has(> .tabs) :global(input:not([type='checkbox']):not([type='radio'])),
+.page:has(> .header):has(> .tabs) :global(select),
+.page:has(> .header):has(> .tabs) :global(textarea) {
+  border-color: #dfe5d9;
+  border-radius: 11px;
+  color: #25392d;
+  font-family: inherit;
+}
+
+.page:has(> .header):has(> .tabs) :global(input:not([type='checkbox']):not([type='radio']):focus),
+.page:has(> .header):has(> .tabs) :global(select:focus),
+.page:has(> .header):has(> .tabs) :global(textarea:focus) {
+  outline: none;
+  border-color: #aeba40;
+  box-shadow: 0 0 0 3px rgba(189, 201, 75, 0.15);
+}
+
+@media (max-width: 1120px) {
+  .page:has(> .header):has(> .tabs) > .tabs { width: 228px; padding-left: 12px; padding-right: 12px; }
+  .page:has(> .header):has(> .tabs) > .header { margin-left: 252px; margin-right: 24px; }
+  .page:has(> .header):has(> .tabs) > :not(.header):not(.tabs) { margin-left: 252px; margin-right: 24px; }
+  .page:has(> .header):has(> .tabs) > .layout { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 760px) {
+  .page:has(> .header):has(> .tabs) { display: flex; flex-direction: column; overflow: visible; }
+  .page:has(> .header):has(> .tabs) > .tabs { position: relative; top: auto; left: auto; width: 100%; height: auto; min-height: 0; margin: 0; padding: 14px 14px 12px; overflow: visible; }
+  .page:has(> .header):has(> .tabs) > .tabs::before { grid-column: 1 / -1; margin: 0 4px 14px; padding: 2px 0 14px 0; }
+  .page:has(> .header):has(> .tabs) > .tabs::after { display: none; }
+  .page:has(> .header):has(> .tabs) > .tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tabs .tab { min-height: 40px; padding: 8px 9px; gap: 8px; font-size: 12px; }
+  .tabs .tab::before { flex-basis: 20px; width: 20px; height: 20px; font-size: 13px; }
+  .page:has(> .header):has(> .tabs) > .header { flex-direction: column; align-items: flex-start; gap: 14px; min-height: 0; margin: 0 15px; padding: 21px 0 18px; }
+  .page:has(> .header):has(> .tabs) > .header > div:last-child { display: flex; width: 100%; flex-wrap: wrap; }
+  .page:has(> .header):has(> .tabs) > :not(.header):not(.tabs) { margin-left: 15px; margin-right: 15px; }
+  .page:has(> .header):has(> .tabs) > .searchRow { margin-top: 16px; align-items: stretch; flex-wrap: wrap; padding: 11px; }
+  .page:has(> .header):has(> .tabs) > .searchRow .input { min-width: 100%; max-width: none; }
+  .page:has(> .header):has(> .tabs) > .layout { gap: 14px; margin-top: 14px; }
+  .panel { padding: 16px; border-radius: 16px; }
+  .item { align-items: flex-start; flex-direction: column; }
+  .itemActions { width: 100%; justify-content: flex-start; }
+  .loginCard { padding: 28px 22px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tabs .tab, .primaryBtn, .ghostBtn, .smallBtn, .uploadBtn, .item { transition: none; }
+}
+
+
+/* Green Mall brand refinement: use the exact lime-olive from the logo (#B5B62F),
+   remove decorative navigation icons and avoid green button outlines. */
+.page {
+  --brand: #B5B62F;
+  --brand-dark: #7D7F20;
+}
+
+.page:has(> .header):has(> .tabs) > .tabs::before {
+  content: 'GREEN MALL\A ПАНЕЛЬ УПРАВЛЕНИЯ';
+  color: #B5B62F;
+}
+
+.page:has(> .header):has(> .tabs) > .tabs::after {
+  display: none;
+}
+
+.tabs .tab::before,
+.tabs .tab:hover::before,
+.tabs .tabActive::before {
+  display: none !important;
+  content: none !important;
+}
+
+.tabs .tab {
+  gap: 0;
+  border-color: transparent;
+}
+
+.tabs .tab:hover {
+  border-color: transparent;
+}
+
+.tabs .tabActive {
+  border-color: transparent;
+  background: linear-gradient(100deg, rgba(181, 182, 47, 0.23), rgba(181, 182, 47, 0.07));
+  box-shadow: inset 3px 0 0 #B5B62F;
+}
+
+.primaryBtn {
+  border: 1px solid transparent;
+  background: #B5B62F;
+  color: #25331e;
+  box-shadow: none;
+}
+.primaryBtn:hover:not(:disabled) {
+  border-color: transparent;
+  background: #c0c14b;
+  box-shadow: none;
+  filter: none;
+}
+
+.ghostBtn,
+.smallBtn,
+.uploadBtn {
+  border: 1px solid transparent;
+  background: #f1f2e7;
+  color: #344333;
+  box-shadow: none;
+}
+.ghostBtn:hover:not(:disabled),
+.smallBtn:hover:not(:disabled),
+.uploadBtn:hover:not(:disabled) {
+  border-color: transparent;
+  background: #e8ead6;
+  box-shadow: none;
+}
+
+.periodBtnActive {
+  background: #B5B62F;
+  border-color: transparent;
+  color: #25331e;
+}
+
+.loginCard::before {
+  background: linear-gradient(90deg, #B5B62F, #B5B62F 58%, #4a6545);
+}
+
+:global(.gm-admin-logout) {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  min-height: 44px;
+  flex: 0 0 auto;
+  margin-top: auto;
+  padding: 11px 13px;
+  border: 0 !important;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.07) !important;
+  color: #f2f3e5 !important;
+  text-align: left;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: none !important;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+}
+:global(.gm-admin-logout:hover) {
+  border: 0 !important;
+  background: rgba(181, 182, 47, 0.20) !important;
+  color: #fff !important;
+}
+:global(.gm-admin-logout:focus-visible) {
+  outline: 2px solid #B5B62F;
+  outline-offset: 2px;
+}
+
+@media (max-width: 760px) {
+  :global(.gm-admin-logout) {
+    grid-column: 1 / -1;
+    width: 100%;
+    margin-top: 8px;
+  }
+}

@@ -688,9 +688,6 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
           >
             {refreshing ? 'Обновление…' : 'Обновить'}
           </button>
-          <button className={styles.ghostBtn} type="button" onClick={handleLogout}>
-            Выйти
-          </button>
         </div>
       </header>
 
@@ -757,6 +754,13 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
           onClick={() => setTab('promotions')}
         >
           Акции
+        </button>
+        <button
+          className={`${styles.ghostBtn} gm-admin-logout`}
+          type="button"
+          onClick={handleLogout}
+        >
+          Выйти
         </button>
       </nav>
 

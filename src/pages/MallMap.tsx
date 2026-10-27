@@ -1,5 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import React from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { QRCodeSVG } from 'qrcode.react';
 import styles from '@styles/MallMap.module.css';
 
@@ -16,15 +17,14 @@ import { createSharedRoute } from '@api/sharedRoutes';
 import { fetchPanelByRouteNode } from '@api/panels';
 import { fetchStores } from '@api/categories';
 import {
-  trackPanelSessionStarted,
-  trackPanelUsed,
-  trackRouteBuilt,
-} from '@api/tracking';
-import { fetchActiveHeaderBanner, type HeaderBanner } from '@api/headerBanners';
+  fetchActiveHeaderBanner, type HeaderBanner,
+} from '@api/headerBanners';
 import { fetchPublicFloorIcons } from '@api/floorIcons';
 import { fetchEvacuationStairs } from '@api/evacuationStairs';
 import { resolveAssetUrl } from '@api/fileAssets';
 import { useFloorScene } from '@hooks/useFloorScene';
+import { fetchFloorScene } from '@api/floors';
+import { resolveModelUrl } from '@utils/floors';
 import { buildShareUrl, isUnreachableFromPhone } from '@utils/shareUrl';
 import type {
   ApiRouteNode,
@@ -35,16 +35,36 @@ import type {
   ApiStore,
   ApiSceneStore,
 } from '@api/types';
+import {
+  trackPanelSessionStarted,
+  trackPanelUsed,
+  trackRouteBuilt,
+} from '@api/tracking';
 
 import { useCachedGLTF, clearGLTFCache } from '@components/MallMap/gltfCache';
 import { SceneCanvas, makeCameraConfig, type CameraConfig } from '@components/MallMap/SceneCanvas';
-import type { PlanMetrics } from '@components/MallMap/FloorScene';
+import { makePlanToScene } from '@components/MallMap/FloorScene';
+import type { PlanMetrics, UpwardShaft } from '@components/MallMap/FloorScene';
 
 // === Реэкспорт для обратной совместимости (RouteSharePreview и др.) ===
 export { FloorScene, AnimatedRouteLine } from '@components/MallMap/FloorScene';
 export type { PlanMetrics } from '@components/MallMap/FloorScene';
 
 // ==================== Константы и утилиты ====================
+
+// Расстояние между этажами при переходе, доля от габарита этажа. Задаёт и
+// скорость «уезда» модели из кадра, и высоту вертикальной шахты лифта.
+const FLOOR_GAP_RATIO = 0.25;
+
+// Общая длительность перехода между этажами (с). Используется и для
+// анимации камеры сверху→сбоке→сверху, и для таймаута страховки.
+const TRANSFER_DURATION = 1.5;
+
+const TRANSFER_TYPE_LABELS: Record<string, { ru: string; en: string }> = {
+  ELEVATOR: { ru: 'Подъём на лифте', en: 'Elevator' },
+  ESCALATOR: { ru: 'Подъём по эскалатору', en: 'Escalator' },
+  STAIRS: { ru: 'Подъём по лестнице', en: 'Stairs' },
+};
 
 const WEEKDAYS_RU = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 const MONTHS_RU = [
@@ -455,6 +475,9 @@ export default function MallMap({
   const [routeBetweenError, setRouteBetweenError] = useState<string | null>(null);
   const [allStores, setAllStores] = useState<ApiStore[]>([]);
 
+  // Этаж, на который идёт посетитель прямо сейчас. null — перехода нет.
+  const [transferTarget, setTransferTarget] = useState<number | null>(null);
+
   // ---------- загрузка данных ----------
 
   useEffect(() => {
@@ -565,6 +588,128 @@ export default function MallMap({
       });
     return () => { cancelled = true; };
   }, [floors, scene?.stores]);
+
+  // ---------- межэтажный переход ----------
+
+  // Этаж, на который маршрут уйдёт дальше с текущего. По нему модель
+  // следующего этажа начинает грузиться заранее — задолго до того, как
+  // посетитель дойдёт до лифта, иначе в момент перехода был бы кадр-заглушка.
+  const nextFloorNumber = useMemo(() => {
+    const change = activeRoute?.floorChanges?.find((c) => c.fromFloor === activeFloor);
+    return change?.toFloor ?? null;
+  }, [activeRoute, activeFloor]);
+
+  const nextFloorId = useMemo(
+    () => floors.find((f) => f.number === nextFloorNumber)?.id ?? null,
+    [floors, nextFloorNumber],
+  );
+
+  const nextSceneQuery = useQuery({
+    queryKey: ['floorScene', nextFloorId],
+    queryFn: () => fetchFloorScene(nextFloorId!),
+    enabled: !!nextFloorId,
+  });
+
+  const nextModelUrl = useMemo(() => {
+    if (nextFloorNumber == null) return null;
+    return resolveModelUrl(nextFloorNumber, nextSceneQuery.data?.floor.modelAsset?.url ?? null);
+  }, [nextFloorNumber, nextSceneQuery.data]);
+
+  const { gltf: nextGltf } = useCachedGLTF(nextModelUrl);
+
+  // Геометрия перехода: вертикальная шахта от конца линии текущего этажа
+  // к началу линии следующего.
+  const transferPlan = useMemo(() => {
+    if (transferTarget == null || !activeRoute) return null;
+    const direction = transferTarget > activeFloor ? 'up' : 'down';
+
+    const fromFloorData = floors.find((f) => f.number === activeFloor);
+    const toFloorData = floors.find((f) => f.number === transferTarget);
+    if (!fromFloorData || !toFloorData) return null;
+
+    const fromMetrics: PlanMetrics = {
+      width: fromFloorData.width ?? 900,
+      height: fromFloorData.height ?? 600,
+    };
+    const toMetrics: PlanMetrics = {
+      width: toFloorData.width ?? 900,
+      height: toFloorData.height ?? 600,
+    };
+
+    const fromSegment = (activeRoute.segments ?? []).find(
+      (s) => s.floorNumber === activeFloor,
+    );
+    const toSegment = (activeRoute.segments ?? []).find(
+      (s) => s.floorNumber === transferTarget,
+    );
+    const fromPoint = fromSegment?.points[fromSegment.points.length - 1];
+    const toPoint = toSegment?.points[0];
+    if (!fromPoint || !toPoint) return null;
+
+    const gap =
+      Math.max(
+        fromMetrics.width,
+        fromMetrics.height,
+        toMetrics.width,
+        toMetrics.height,
+      ) * FLOOR_GAP_RATIO;
+
+    const shaft: UpwardShaft = {
+      fromPoint: makePlanToScene(fromMetrics)(fromPoint),
+      toPoint: makePlanToScene(toMetrics)(toPoint),
+      gap,
+      direction,
+      duration: TRANSFER_DURATION * 0.7,
+    };
+
+    return { gap, nextMetrics: toMetrics, shaft, direction };
+  }, [transferTarget, activeFloor, floors, activeRoute]);
+
+  // Переход стартует только когда следующая модель уже в памяти — иначе во
+  // время движения этажей в кадре мигала бы пустота.
+  const transfer = useMemo(() => {
+    if (!transferPlan || !nextGltf) return null;
+    return {
+      gap: transferPlan.gap,
+      duration: TRANSFER_DURATION,
+      direction: transferPlan.direction as 'up' | 'down',
+      onComplete: handleTransferComplete,
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transferPlan, nextGltf, transferTarget]);
+
+  function handleReachTransfer(nextFloor: number) {
+    setTransferTarget(nextFloor);
+  }
+
+  function handleTransferComplete() {
+    const target = transferTarget;
+    setTransferTarget(null);
+    if (target != null) setActiveFloor(target);
+  }
+
+  function handleFloorChange(floor: number) {
+    if (floor === activeFloor) return;
+    setTransferTarget(null);
+    setActiveFloor(floor);
+  }
+
+  useEffect(() => {
+    if (!activeRoute) setTransferTarget(null);
+  }, [activeRoute]);
+
+  // Страховка: если следующая модель так и не загрузилась или в маршруте нет
+  // сегмента целевого этажа, переход не запустится — тогда просто меняем этаж
+  // без анимации, чтобы посетитель не остался намертво на текущем.
+  useEffect(() => {
+    if (transferTarget == null || transfer) return;
+    const timer = setTimeout(() => {
+      const target = transferTarget;
+      setTransferTarget(null);
+      if (target != null) setActiveFloor(target);
+    }, TRANSFER_DURATION * 1000);
+    return () => clearTimeout(timer);
+  }, [transferTarget, transfer]);
 
   // ---------- построение маршрута ----------
 
@@ -778,7 +923,7 @@ export default function MallMap({
     );
   } else if (gltfError || modelError || canvasError) {
     viewport = <ModelError onRetry={retryModel} />;
-  } else if (!canvasReady && !gltf) {
+  } else if (!canvasReady && !gltf && !transfer) {
     viewport = (
       <div
         className={styles.modelPlaceholder}
@@ -795,10 +940,15 @@ export default function MallMap({
         <SceneCanvas
           key={canvasKey}
           gltf={gltf}
+          nextGltf={nextGltf}
           metrics={planMetrics}
+          nextMetrics={transferPlan?.nextMetrics ?? planMetrics}
           route={activeRoute}
           activeFloor={activeFloor}
-          onReachTransfer={(nextFloor) => setActiveFloor(nextFloor)}
+          transfer={transfer}
+          shaft={transferPlan?.shaft ?? null}
+          onReachTransfer={handleReachTransfer}
+          onTransferComplete={handleTransferComplete}
           icons={floorIcons}
           evacuationStairs={evacuationStairs}
           onEvacuationRouteStart={() => setShowEvacuationHint(true)}
@@ -880,7 +1030,31 @@ export default function MallMap({
           </div>
         ) : null}
 
-        <FloorControls floors={floorNumbers} activeFloor={activeFloor} onFloorChange={setActiveFloor} />
+        {transferTarget != null ? (
+          <div className={styles.transferOverlay}>
+            <span className={styles.transferOverlayBadge} />
+            <span className={styles.transferOverlayTitle}>
+              {lang === 'en'
+                ? `Floor ${transferTarget}`
+                : `Переход на ${transferTarget}-й этаж`}
+            </span>
+            <span className={styles.transferOverlayHint}>
+              {(() => {
+                const type = activeRoute?.floorChanges?.find(
+                  (c) => c.fromFloor === activeFloor && c.toFloor === transferTarget,
+                )?.type;
+                const labels = type ? TRANSFER_TYPE_LABELS[type] : null;
+                return labels
+                  ? labels[lang]
+                  : lang === 'en'
+                    ? 'Changing floors'
+                    : 'Смена этажа';
+              })()}
+            </span>
+          </div>
+        ) : null}
+
+        <FloorControls floors={floorNumbers} activeFloor={activeFloor} onFloorChange={handleFloorChange} />
 
         <ZoomControls
           lang={lang}

@@ -5,7 +5,8 @@ import { MOUSE, TOUCH } from 'three';
 import type { Group } from 'three';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { ApiRouteToStoreResponse, ApiRouteNode, ApiFloorIcon } from '@api/types';
-import { FloorScene, type PlanMetrics } from './FloorScene';
+import { FloorScene, type PlanMetrics, type UpwardShaft } from './FloorScene';
+import FloorStackStage from './FloorStackStage';
 
 export const CAMERA_HEIGHT_DEFAULT = 900;
 export const CAMERA_HEIGHT_GROUND = 120000;
@@ -79,12 +80,24 @@ export function CameraController({
   return null;
 }
 
+export interface SceneTransfer {
+  gap: number;
+  duration: number;
+  direction: 'up' | 'down';
+  onComplete: () => void;
+}
+
 export function SceneCanvas({
   gltf,
+  nextGltf,
   metrics,
+  nextMetrics,
   route,
   activeFloor,
+  transfer = null,
+  shaft = null,
   onReachTransfer,
+  onTransferComplete,
   icons,
   evacuationStairs,
   onEvacuationRouteStart,
@@ -99,10 +112,15 @@ export function SceneCanvas({
   textures,
 }: {
   gltf: GLTF | null;
+  nextGltf?: GLTF | null;
   metrics: PlanMetrics | null;
+  nextMetrics?: PlanMetrics | null;
   route: ApiRouteToStoreResponse | null;
   activeFloor: number;
+  transfer?: SceneTransfer | null;
+  shaft?: UpwardShaft | null;
   onReachTransfer?: (nextFloor: number) => void;
+  onTransferComplete?: () => void;
   icons?: ApiFloorIcon[];
   evacuationStairs?: ApiRouteNode[];
   onEvacuationRouteStart?: () => void;
@@ -137,10 +155,42 @@ export function SceneCanvas({
   }[];
 }) {
   const groupRef = useRef<Group | null>(null);
+
+  // Обе модели живут в неизменной структуре дерева (см. FloorStackStage),
+  // иначе доигранная линия маршрута перезапустилась бы в момент перехода.
+  const currentScene = gltf ? (
+    <FloorScene
+      gltf={gltf}
+      groupRef={groupRef}
+      metrics={metrics}
+      route={route}
+      activeFloor={activeFloor}
+      onReachTransfer={onReachTransfer}
+      upwardShaft={shaft}
+      debug={debug}
+      icons={icons}
+      evacuationStairs={evacuationStairs}
+      onEvacuationRouteStart={onEvacuationRouteStart}
+      textures={textures}
+    />
+  ) : null;
+
+  const nextScene = transfer && nextGltf ? (
+    <FloorScene
+      gltf={nextGltf}
+      metrics={nextMetrics ?? metrics}
+      route={null}
+      activeFloor={activeFloor}
+      upwardShaft={null}
+      debug={debug}
+    />
+  ) : null;
+
   return (
     <Canvas
       camera={cameraConfig}
       style={canvasStyle}
+      dpr={[1, 2]}
       gl={{ powerPreference: 'high-performance', antialias: true }}
       onCreated={({ gl }) => {
         const canvas = gl.domElement;
@@ -156,21 +206,16 @@ export function SceneCanvas({
     >
       <ambientLight intensity={0.8} />
       <directionalLight position={[10, 20, 10]} intensity={1.2} />
-      {gltf ? (
-          <FloorScene
-            gltf={gltf}
-            groupRef={groupRef}
-            metrics={metrics}
-            route={route}
-            activeFloor={activeFloor}
-            onReachTransfer={onReachTransfer}
-            debug={debug}
-            icons={icons}
-            evacuationStairs={evacuationStairs}
-            onEvacuationRouteStart={onEvacuationRouteStart}
-            textures={textures}
-          />
-      ) : null}
+      <FloorStackStage
+        current={currentScene}
+        next={nextScene}
+        gap={transfer?.gap ?? 0}
+        direction={transfer?.direction ?? 'up'}
+        active={Boolean(transfer)}
+        duration={transfer?.duration ?? 1.5}
+        onComplete={onTransferComplete}
+        controlsRef={controlsRef}
+      />
       <OrbitControls
         ref={controlsRef}
         makeDefault
