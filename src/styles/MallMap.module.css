@@ -675,14 +675,18 @@
   z-index: 6;
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: rgba(0, 0, 0, 0.72);
+  gap: 10px;
+  background: linear-gradient(135deg, rgba(23, 58, 44, 0.96), rgba(25, 45, 35, 0.94));
   color: #fff;
-  padding: 8px 16px;
+  padding: 10px 17px;
+  border: 1px solid rgba(201, 244, 107, 0.38);
   border-radius: 999px;
+  box-shadow: 0 10px 30px rgba(15, 38, 28, 0.22), 0 0 22px rgba(201, 244, 107, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   font-size: 13px;
   font-weight: 600;
-  max-width: 90vw;
+  max-width: min(90vw, 540px);
   text-align: center;
   pointer-events: none;
   white-space: nowrap;
@@ -690,11 +694,18 @@
 
 .transferOverlayBadge {
   display: inline-block;
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
-  background: #38bdfa;
+  background: #C9F46B;
   flex-shrink: 0;
+  box-shadow: 0 0 0 4px rgba(201, 244, 107, 0.13), 0 0 13px rgba(201, 244, 107, 0.75);
+  animation: transferBadgePulse 1.45s ease-in-out infinite;
+}
+
+@keyframes transferBadgePulse {
+  0%, 100% { transform: scale(0.88); opacity: 0.78; }
+  50% { transform: scale(1.12); opacity: 1; }
 }
 
 .transferOverlayTitle {
@@ -1145,5 +1156,12 @@
 
   .qrBtn img {
     height: calc(32px * var(--ctrl));
+  }
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  .transferOverlayBadge {
+    animation: none;
   }
 }

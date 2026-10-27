@@ -204,6 +204,7 @@
 }
 
 .catCard {
+  position: relative;
   background: var(--card);
   border-radius: var(--radius-card);
   padding: 12px 6px 10px;
@@ -228,11 +229,29 @@
 }
 
 .catIcon {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
   height: 36px;
   width: auto;
   max-width: 54px;
   object-fit: contain;
   flex-shrink: 0;
+}
+
+/* Keep category icons centered while preserving room for labels on small screens. */
+@media (max-width: 600px) {
+  .catIcon {
+    top: 45%;
+    height: 28px;
+    max-width: 46px;
+  }
+
+  .catCard span {
+    font-size: 11.5px;
+    line-height: 1.12;
+  }
 }
 
 .catCard span {

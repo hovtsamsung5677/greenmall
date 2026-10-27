@@ -104,6 +104,7 @@ export function SceneCanvas({
   controlsRef,
   controlsEnabled,
   cameraConfig,
+  transferCameraPosition,
   canvasStyle,
   justOpened,
   zoom,
@@ -127,6 +128,7 @@ export function SceneCanvas({
   controlsRef: React.RefObject<any>;
   controlsEnabled: boolean;
   cameraConfig: CameraConfig;
+  transferCameraPosition?: [number, number, number];
   canvasStyle: React.CSSProperties;
   justOpened?: boolean;
   zoom: number;
@@ -212,7 +214,8 @@ export function SceneCanvas({
         gap={transfer?.gap ?? 0}
         direction={transfer?.direction ?? 'up'}
         active={Boolean(transfer)}
-        duration={transfer?.duration ?? 1.5}
+        duration={transfer?.duration ?? 2.0}
+        normalCameraPosition={transferCameraPosition ?? cameraConfig.position}
         onComplete={onTransferComplete}
         controlsRef={controlsRef}
       />

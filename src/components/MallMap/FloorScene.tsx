@@ -367,17 +367,20 @@ export function AnimatedShaftLine({
   from,
   to,
   duration = 1.2,
+  delay = 0,
   radius = 6,
   markerRadius = 8,
 }: {
   from: [number, number, number];
   to: [number, number, number];
   duration?: number;
+  delay?: number;
   radius?: number;
   markerRadius?: number;
 }) {
   const markerRef = useRef<Group>(null);
   const progress = useRef(0);
+  const elapsed = useRef(0);
 
   const fromKey = useMemo(() => from.join(','), [from]);
   const toKey = useMemo(() => to.join(','), [to]);
@@ -393,13 +396,22 @@ export function AnimatedShaftLine({
 
   useEffect(() => {
     progress.current = 0;
-  }, [fromKey, toKey, dashMeshes]);
+    elapsed.current = 0;
+  }, [fromKey, toKey, dashMeshes, duration, delay]);
 
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
     if (!dashMeshes) return;
-    if (progress.current < 1) {
-      progress.current =
-        duration > 0 ? Math.min(1, progress.current + delta / duration) : 1;
+    elapsed.current += Math.min(delta, 0.05);
+    const travelElapsed = Math.max(0, elapsed.current - Math.max(0, delay));
+    if (travelElapsed > 0 && progress.current < 1) {
+      const raw = duration > 0 ? Math.min(1, travelElapsed / duration) : 1;
+      // Match the route marker’s eased, purposeful travel rather than a linear tick.
+      progress.current = raw * raw * (3 - 2 * raw);
+    }
+    const lineMaterial = dashMeshes.line.material;
+    if (lineMaterial instanceof MeshStandardMaterial) {
+      lineMaterial.emissiveIntensity =
+        0.72 + 0.24 * (0.5 + 0.5 * Math.sin(state.clock.elapsedTime * 5.5));
     }
 
     const visibleCount = Math.max(
@@ -414,6 +426,9 @@ export function AnimatedShaftLine({
     const markerPos = getPointOnPolyline(vectors, totalLength, progress.current * totalLength);
     if (markerRef.current && markerPos) {
       markerRef.current.position.copy(markerPos);
+      markerRef.current.scale.setScalar(
+        1 + 0.08 * (0.5 + 0.5 * Math.sin(state.clock.elapsedTime * 7)),
+      );
     }
   });
 
@@ -447,6 +462,8 @@ export interface UpwardShaft {
    *  'down' — текущий уходит вверх, целевой выезжает снизу. */
   direction: 'up' | 'down';
   duration?: number;
+  /** Seconds before the connector begins, matching the camera settle-in. */
+  delay?: number;
 }
 
 // ==================== FloorScene ====================
@@ -774,6 +791,7 @@ export function FloorScene({
         from={upwardShaft.fromPoint}
         to={[upwardShaft.toPoint[0], toY, upwardShaft.toPoint[2]]}
         duration={upwardShaft.duration}
+        delay={upwardShaft.delay}
       />
     );
   }, [upwardShaft]);

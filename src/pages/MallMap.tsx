@@ -42,7 +42,7 @@ import {
 } from '@api/tracking';
 
 import { useCachedGLTF, clearGLTFCache } from '@components/MallMap/gltfCache';
-import { SceneCanvas, makeCameraConfig, type CameraConfig } from '@components/MallMap/SceneCanvas';
+import { SceneCanvas, makeCameraConfig, CAMERA_HEIGHT_DEFAULT, CAMERA_HEIGHT_GROUND, type CameraConfig } from '@components/MallMap/SceneCanvas';
 import { makePlanToScene } from '@components/MallMap/FloorScene';
 import type { PlanMetrics, UpwardShaft } from '@components/MallMap/FloorScene';
 
@@ -58,7 +58,7 @@ const FLOOR_GAP_RATIO = 0.25;
 
 // Общая длительность перехода между этажами (с). Используется и для
 // анимации камеры сверху→сбоке→сверху, и для таймаута страховки.
-const TRANSFER_DURATION = 1.5;
+const TRANSFER_DURATION = 2.0;
 
 const TRANSFER_TYPE_LABELS: Record<string, { ru: string; en: string }> = {
   ELEVATOR: { ru: 'Подъём на лифте', en: 'Elevator' },
@@ -478,6 +478,12 @@ export default function MallMap({
   // Этаж, на который идёт посетитель прямо сейчас. null — перехода нет.
   const [transferTarget, setTransferTarget] = useState<number | null>(null);
 
+  const transferCameraPosition: [number, number, number] = useMemo(() => {
+    const destinationFloor = transferTarget ?? activeFloor;
+    const baseHeight = destinationFloor === 0 ? CAMERA_HEIGHT_GROUND : CAMERA_HEIGHT_DEFAULT;
+    return [0, baseHeight * (2 / Math.max(0.01, zoom)), 0.001] as [number, number, number];
+  }, [transferTarget, activeFloor, zoom]);
+
   // ---------- загрузка данных ----------
 
   useEffect(() => {
@@ -659,7 +665,8 @@ export default function MallMap({
       toPoint: makePlanToScene(toMetrics)(toPoint),
       gap,
       direction,
-      duration: TRANSFER_DURATION * 0.7,
+      duration: TRANSFER_DURATION * 0.6,
+      delay: TRANSFER_DURATION * 0.2,
     };
 
     return { gap, nextMetrics: toMetrics, shaft, direction };
@@ -946,7 +953,7 @@ export default function MallMap({
           route={activeRoute}
           activeFloor={activeFloor}
           transfer={transfer}
-          shaft={transferPlan?.shaft ?? null}
+          shaft={transfer ? transferPlan?.shaft ?? null : null}
           onReachTransfer={handleReachTransfer}
           onTransferComplete={handleTransferComplete}
           icons={floorIcons}
@@ -955,6 +962,7 @@ export default function MallMap({
           controlsRef={controlsRef}
           controlsEnabled={controlsEnabled}
           cameraConfig={cameraConfig}
+          transferCameraPosition={transferCameraPosition}
           canvasStyle={canvasStyle}
           justOpened={justOpened}
           zoom={zoom}
