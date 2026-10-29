@@ -1,14 +1,17 @@
-import React from 'react';
+﻿import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   fetchNavigationDaily,
   fetchNavigationHourly,
   fetchNavigationRoutesByStore,
   fetchNavigationSummary,
+  downloadExportBlob,
+  type AnalyticsExportFormat,
   type NavigationAnalyticsDailyItem,
   type NavigationAnalyticsHourlyItem,
 } from '@api/analytics';
 import styles from '@styles/AdminPage.module.css';
+import { useAnalyticsSocket } from '@hooks/useAnalyticsSocket';
 
 type PeriodDays = 7 | 30 | 90;
 
@@ -20,6 +23,22 @@ const PERIOD_OPTIONS: { value: PeriodDays; label: string }[] = [
 
 function isoDaysAgo(days: number): string {
   return new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+}
+
+function formatDelta(current: number, previous: number): string {
+  if (previous === 0) {
+    return current > 0 ? '+100%' : '—';
+  }
+  const pct = ((current - previous) / previous) * 100;
+  const rounded = Math.round(pct);
+  return (pct > 0 ? '+' : '') + `${rounded}%`;
+}
+
+function formatDeltaColor(current: number, previous: number): string {
+  const diff = current - previous;
+  if (diff > 0) return '#7c8f3e';
+  if (diff < 0) return '#d04545';
+  return '#6d7058';
 }
 
 function formatDayLabel(iso: string): string {
@@ -44,19 +63,29 @@ const DAILY_SERIES: {
   { key: 'qrScans', label: 'QR-сканы', color: '#4b5563' },
 ];
 
-function DailyActivityChart({ items }: { items: NavigationAnalyticsDailyItem[] }) {
-  const max = Math.max(
-    1,
-    ...items.flatMap((item) =>
-      DAILY_SERIES.map((series) => item[series.key] as number),
-    ),
-  );
+const COMPARE_SERIES_COLOR = '#cbd5e1';
+
+function DailyActivityChart({
+  items,
+  compareItems,
+}: {
+  items: NavigationAnalyticsDailyItem[];
+  compareItems?: NavigationAnalyticsDailyItem[];
+}) {
+  const allValues = [
+    ...items.flatMap((item) => DAILY_SERIES.map((series) => item[series.key] as number)),
+    ...(compareItems ?? []).flatMap((item) => DAILY_SERIES.map((series) => item[series.key] as number)),
+  ];
+  const max = Math.max(1, ...allValues);
   const dayWidth = 30;
   const chartWidth = Math.max(640, items.length * dayWidth);
   const chartHeight = 220;
   const paddingLeft = 40;
   const paddingBottom = 24;
   const plotHeight = chartHeight - paddingBottom;
+
+  const getItem = (items: NavigationAnalyticsDailyItem[], index: number): NavigationAnalyticsDailyItem | undefined =>
+    items[index];
 
   return (
     <div className={styles.chartScroll}>
@@ -89,11 +118,29 @@ function DailyActivityChart({ items }: { items: NavigationAnalyticsDailyItem[] }
         ))}
         {items.map((item, index) => {
           const groupX = paddingLeft + index * dayWidth + 6;
+          const compareItem = compareItems ? getItem(compareItems, index) : undefined;
           return (
             <g key={item.date}>
               <title>{`${item.date}: ${DAILY_SERIES.map(
                 (series) => `${series.label} — ${item[series.key]}`,
               ).join(', ')}`}</title>
+              {compareItem
+                ? DAILY_SERIES.map((series, seriesIndex) => {
+                    const value = compareItem[series.key] as number;
+                    const barHeight = (value / max) * (plotHeight - 8);
+                    return (
+                      <rect
+                        key={`compare-${series.key}`}
+                        x={groupX + seriesIndex * 8}
+                        y={plotHeight - barHeight + 4}
+                        width={7}
+                        height={Math.max(barHeight, value > 0 ? 2 : 0)}
+                        fill={COMPARE_SERIES_COLOR}
+                        rx={1.5}
+                      />
+                    );
+                  })
+                : null}
               {DAILY_SERIES.map((series, seriesIndex) => {
                 const value = item[series.key] as number;
                 const barHeight = (value / max) * (plotHeight - 8);
@@ -128,8 +175,15 @@ function DailyActivityChart({ items }: { items: NavigationAnalyticsDailyItem[] }
   );
 }
 
-function HourlyActivityChart({ items }: { items: NavigationAnalyticsHourlyItem[] }) {
-  const max = Math.max(1, ...items.map((item) => item.events));
+function HourlyActivityChart({
+  items,
+  compareItems,
+}: {
+  items: NavigationAnalyticsHourlyItem[];
+  compareItems?: NavigationAnalyticsHourlyItem[];
+}) {
+  const allValues = [...items.map((item) => item.events), ...(compareItems ?? []).map((item) => item.events)];
+  const max = Math.max(1, ...allValues);
   const peakHour = items.reduce(
     (peak, item) => (item.events > peak.events ? item : peak),
     items[0] ?? { hour: 0, events: 0 },
@@ -140,6 +194,9 @@ function HourlyActivityChart({ items }: { items: NavigationAnalyticsHourlyItem[]
   const paddingLeft = 40;
   const paddingBottom = 24;
   const plotHeight = chartHeight - paddingBottom;
+
+  const getItem = (items: NavigationAnalyticsHourlyItem[], hour: number): NavigationAnalyticsHourlyItem | undefined =>
+    items.find((item) => item.hour === hour);
 
   return (
     <div className={styles.chartScroll}>
@@ -173,9 +230,23 @@ function HourlyActivityChart({ items }: { items: NavigationAnalyticsHourlyItem[]
         {items.map((item, index) => {
           const barHeight = (item.events / max) * (plotHeight - 8);
           const isPeak = item.hour === peakHour.hour && item.events > 0;
+          const compareItem = compareItems ? getItem(compareItems, item.hour) : undefined;
+          const compareBarHeight = compareItem
+            ? (compareItem.events / max) * (plotHeight - 8)
+            : 0;
           return (
             <g key={item.hour}>
               <title>{`${formatHourLabel(item.hour)} — ${item.events} событий`}</title>
+              {compareItem ? (
+                <rect
+                  x={paddingLeft + index * barWidth + 6}
+                  y={plotHeight - compareBarHeight + 4}
+                  width={barWidth - 10}
+                  height={Math.max(compareBarHeight, compareItem.events > 0 ? 2 : 0)}
+                  fill={COMPARE_SERIES_COLOR}
+                  rx={3}
+                />
+              ) : null}
               <rect
                 x={paddingLeft + index * barWidth + 6}
                 y={plotHeight - barHeight + 4}
@@ -208,40 +279,35 @@ export type StatisticsTabProps = {
 
 export default function StatisticsTab({ onRefreshKey = 0 }: StatisticsTabProps) {
   const [periodDays, setPeriodDays] = React.useState<PeriodDays>(30);
+  const [compareEnabled, setCompareEnabled] = React.useState(false);
 
-  function escapeCsvValue(value: unknown): string {
-    const str = value === null || value === undefined ? '' : String(value);
-    if (str.includes('"') || str.includes(',') || str.includes('\n') || str.includes('\r')) {
-      return `"${str.replace(/"/g, '""')}"`;
-    }
-    return str;
-  }
-
-  function downloadCsv(filename: string, headers: string[], rows: unknown[][]) {
-    const csvLines = [
-      headers.map(escapeCsvValue).join(','),
-      ...rows.map((row) => row.map(escapeCsvValue).join(',')),
-    ];
-    const csvContent = csvLines.join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  }
-
-  function exportCsv(filename: string, headers: string[], rows: unknown[][]) {
-    downloadCsv(filename, headers, rows);
-  }
+  const [exportFormat, setExportFormat] = React.useState<AnalyticsExportFormat>('xlsx');
+  const [exportLoading, setExportLoading] = React.useState(false);
 
   const query = React.useMemo(
     () => ({ from: isoDaysAgo(periodDays) }),
     [periodDays],
   );
+
+  const compareQuery = React.useMemo(
+    () => ({
+      from: isoDaysAgo(periodDays * 2),
+      to: isoDaysAgo(periodDays),
+    }),
+    [periodDays],
+  );
+
+  async function exportReport(
+    endpoint: string,
+    suggestedFilename: string,
+  ): Promise<void> {
+    setExportLoading(true);
+    try {
+      await downloadExportBlob(endpoint, { ...query, format: exportFormat }, suggestedFilename);
+    } finally {
+      setExportLoading(false);
+    }
+  }
 
   const summaryQuery = useQuery({
     queryKey: ['admin', 'navigation-analytics', 'summary', query],
@@ -261,6 +327,25 @@ export default function StatisticsTab({ onRefreshKey = 0 }: StatisticsTabProps) 
   const routesByStoreQuery = useQuery({
     queryKey: ['admin', 'navigation-analytics', 'routes-by-store', query],
     queryFn: () => fetchNavigationRoutesByStore(query),
+    enabled: true,
+  });
+
+  const compareSummaryQuery = useQuery({
+    queryKey: ['admin', 'navigation-analytics', 'summary', 'compare', compareQuery],
+    queryFn: () => fetchNavigationSummary(compareQuery),
+    enabled: compareEnabled,
+  });
+
+  const compareDailyQuery = useQuery({
+    queryKey: ['admin', 'navigation-analytics', 'daily', 'compare', compareQuery],
+    queryFn: () => fetchNavigationDaily(compareQuery),
+    enabled: compareEnabled,
+  });
+
+  const compareHourlyQuery = useQuery({
+    queryKey: ['admin', 'navigation-analytics', 'hourly', 'compare', compareQuery],
+    queryFn: () => fetchNavigationHourly(compareQuery),
+    enabled: compareEnabled,
   });
 
   React.useEffect(() => {
@@ -269,15 +354,38 @@ export default function StatisticsTab({ onRefreshKey = 0 }: StatisticsTabProps) 
       void dailyQuery.refetch();
       void hourlyQuery.refetch();
       void routesByStoreQuery.refetch();
+      if (compareEnabled) {
+        void compareSummaryQuery.refetch();
+        void compareDailyQuery.refetch();
+        void compareHourlyQuery.refetch();
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onRefreshKey]);
+
+  // Real-time: refetch all stats whenever the backend broadcasts a
+  // statsUpdate event (fired on every new analytics event write).
+  useAnalyticsSocket(() => {
+    void summaryQuery.refetch();
+    void dailyQuery.refetch();
+    void hourlyQuery.refetch();
+    void routesByStoreQuery.refetch();
+    if (compareEnabled) {
+      void compareSummaryQuery.refetch();
+      void compareDailyQuery.refetch();
+      void compareHourlyQuery.refetch();
+    }
+  });
 
   const loading =
     summaryQuery.isLoading ||
     dailyQuery.isLoading ||
     hourlyQuery.isLoading ||
-    routesByStoreQuery.isLoading;
+    routesByStoreQuery.isLoading ||
+    (compareEnabled &&
+      (compareSummaryQuery.isLoading ||
+        compareDailyQuery.isLoading ||
+        compareHourlyQuery.isLoading));
 
   const errorMessage =
     summaryQuery.error instanceof Error
@@ -288,7 +396,13 @@ export default function StatisticsTab({ onRefreshKey = 0 }: StatisticsTabProps) 
           ? hourlyQuery.error.message
           : routesByStoreQuery.error instanceof Error
             ? routesByStoreQuery.error.message
-            : null;
+            : compareSummaryQuery.error instanceof Error
+              ? compareSummaryQuery.error.message
+              : compareDailyQuery.error instanceof Error
+                ? compareDailyQuery.error.message
+                : compareHourlyQuery.error instanceof Error
+                  ? compareHourlyQuery.error.message
+                  : null;
 
   const summary = summaryQuery.data;
   const dailyItems = dailyQuery.data?.items ?? [];
@@ -299,6 +413,10 @@ export default function StatisticsTab({ onRefreshKey = 0 }: StatisticsTabProps) 
     (peak, item) => (item.events > peak.events ? item : peak),
     hourlyItems[0] ?? { hour: 0, events: 0 },
   );
+
+  const compareSummary = compareEnabled ? compareSummaryQuery.data : undefined;
+  const compareDailyItems = compareEnabled ? compareDailyQuery.data?.items ?? [] : [];
+  const compareHourlyItems = compareEnabled ? compareHourlyQuery.data?.items ?? [] : [];
 
   return (
     <>
@@ -318,8 +436,34 @@ export default function StatisticsTab({ onRefreshKey = 0 }: StatisticsTabProps) 
             </button>
           ))}
         </div>
+        <label className={styles.checkboxField}>
+          <input
+            type="checkbox"
+            checked={compareEnabled}
+            onChange={(e) => setCompareEnabled(e.target.checked)}
+          />
+          Сравнивать с предыдущим периодом
+        </label>
+        <div className={styles.formatSelector}>
+          <span className={styles.label}>Формат экспорта</span>
+          <div className={styles.periodButtons}>
+            {(['xlsx', 'csv'] as AnalyticsExportFormat[]).map((fmt) => (
+              <button
+                key={fmt}
+                type="button"
+                className={`${styles.periodBtn} ${
+                  exportFormat === fmt ? styles.periodBtnActive : ''
+                }`}
+                onClick={() => setExportFormat(fmt)}
+              >
+                {fmt.toUpperCase()}
+              </button>
+            ))}
+          </div>
+        </div>
         <span className={styles.hint}>
           Данные ведутся в UTC. «Сегодня» — текущий UTC-день.
+          {compareEnabled ? ' (Сравнение с предыдущим периодом)' : null}
         </span>
       </div>
 
@@ -336,6 +480,18 @@ export default function StatisticsTab({ onRefreshKey = 0 }: StatisticsTabProps) 
             </span>
             <span className={styles.statHint}>
               за период: {formatNumber(summary?.panelClicks ?? 0)}
+              {compareSummary && compareEnabled ? (
+                <span
+                  style={{
+                    color: formatDeltaColor(
+                      summary?.panelClicks ?? 0,
+                      compareSummary.panelClicks ?? 0,
+                    ),
+                  }}
+                >
+                  {' ' + formatDelta(summary?.panelClicks ?? 0, compareSummary.panelClicks ?? 0)}
+                </span>
+              ) : null}
             </span>
           </div>
           <div className={styles.statCard}>
@@ -345,6 +501,18 @@ export default function StatisticsTab({ onRefreshKey = 0 }: StatisticsTabProps) 
             </span>
             <span className={styles.statHint}>
               до магазинов: {formatNumber(routesTotal)}
+              {compareSummary && compareEnabled ? (
+                <span
+                  style={{
+                    color: formatDeltaColor(
+                      summary?.routesBuilt ?? 0,
+                      compareSummary.routesBuilt ?? 0,
+                    ),
+                  }}
+                >
+                  {' ' + formatDelta(summary?.routesBuilt ?? 0, compareSummary.routesBuilt ?? 0)}
+                </span>
+              ) : null}
             </span>
           </div>
           <div className={styles.statCard}>
@@ -354,6 +522,18 @@ export default function StatisticsTab({ onRefreshKey = 0 }: StatisticsTabProps) 
             </span>
             <span className={styles.statHint}>
               переходов в онлайн-карту
+              {compareSummary && compareEnabled ? (
+                <span
+                  style={{
+                    color: formatDeltaColor(
+                      summary?.qrScans ?? 0,
+                      compareSummary.qrScans ?? 0,
+                    ),
+                  }}
+                >
+                  {' ' + formatDelta(summary?.qrScans ?? 0, compareSummary.qrScans ?? 0)}
+                </span>
+              ) : null}
             </span>
           </div>
           <div className={styles.statCard}>
@@ -386,25 +566,23 @@ export default function StatisticsTab({ onRefreshKey = 0 }: StatisticsTabProps) 
             <button
               type="button"
               className={styles.smallBtn}
-              onClick={() =>
-                exportCsv(
-                  `daily_${periodDays}d.csv`,
-                  ['Дата', 'Клики по панели', 'Маршруты', 'QR-сканы', 'Сессии'],
-                  dailyItems.map((item) => [
-                    item.date,
-                    item.panelClicks,
-                    item.routesBuilt,
-                    item.qrScans,
-                    item.sessions,
-                  ]),
-                )
-              }
+              disabled={exportLoading}
+              onClick={() => exportReport('admin/analytics/export/navigation/daily', `navigation-daily_${periodDays}d`)}
             >
-              Экспорт CSV
+              {exportLoading ? 'Экспорт…' : `Экспорт ${exportFormat.toUpperCase()}`}
             </button>
           ) : null}
         </div>
         <div className={styles.chartLegend}>
+          {compareEnabled && compareDailyItems.length > 0 ? (
+            <span className={styles.legendItem}>
+              <span
+                className={styles.legendSwatch}
+                style={{ backgroundColor: COMPARE_SERIES_COLOR }}
+              />
+              Предыдущий период
+            </span>
+          ) : null}
           {DAILY_SERIES.map((series) => (
             <span key={series.key} className={styles.legendItem}>
               <span
@@ -416,7 +594,7 @@ export default function StatisticsTab({ onRefreshKey = 0 }: StatisticsTabProps) 
           ))}
         </div>
         {dailyItems.length > 0 ? (
-          <DailyActivityChart items={dailyItems} />
+          <DailyActivityChart items={dailyItems} compareItems={compareEnabled ? compareDailyItems : undefined} />
         ) : (
           <p className={styles.empty}>Нет данных за выбранный период</p>
         )}
@@ -429,23 +607,18 @@ export default function StatisticsTab({ onRefreshKey = 0 }: StatisticsTabProps) 
             <button
               type="button"
               className={styles.smallBtn}
-              onClick={() =>
-                exportCsv(
-                  `hourly_${periodDays}d.csv`,
-                  ['Час (UTC)', 'Событий'],
-                  hourlyItems.map((item) => [item.hour, item.events]),
-                )
-              }
+              disabled={exportLoading}
+              onClick={() => exportReport('admin/analytics/export/navigation/hourly', `navigation-hourly_${periodDays}d`)}
             >
-              Экспорт CSV
+              {exportLoading ? 'Экспорт…' : `Экспорт ${exportFormat.toUpperCase()}`}
             </button>
           ) : null}
         </div>
         <p className={styles.hint}>
-          Когда стойка пользуется наибольшим спросом (по часам UTC)
+          Когда стрелка появляется с наибольшим спросом (по часам UTC)
         </p>
         {hourlyItems.length > 0 ? (
-          <HourlyActivityChart items={hourlyItems} />
+          <HourlyActivityChart items={hourlyItems} compareItems={compareEnabled ? compareHourlyItems : undefined} />
         ) : (
           <p className={styles.empty}>Нет данных за выбранный период</p>
         )}
@@ -458,21 +631,10 @@ export default function StatisticsTab({ onRefreshKey = 0 }: StatisticsTabProps) 
             <button
               type="button"
               className={styles.smallBtn}
-              onClick={() =>
-                exportCsv(
-                  `routes_by_store_${periodDays}d.csv`,
-                  ['ID магазина', 'Название', 'Slug', 'Этаж', 'Маршрутов построено'],
-                  routeItems.map((item) => [
-                    item.storeId,
-                    item.store?.name ?? '',
-                    item.store?.slug ?? '',
-                    item.store?.floorNumber ?? '',
-                    item.routesBuilt,
-                  ]),
-                )
-              }
+              disabled={exportLoading}
+              onClick={() => exportReport('admin/analytics/export/navigation/routes-by-store', `navigation-routes-by-store_${periodDays}d`)}
             >
-              Экспорт CSV
+              {exportLoading ? 'Экспорт…' : `Экспорт ${exportFormat.toUpperCase()}`}
             </button>
           ) : null}
         </div>

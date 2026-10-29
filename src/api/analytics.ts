@@ -1,4 +1,8 @@
-import { apiGet } from './client';
+import axios from 'axios';
+import { API_BASE_URL } from './env';
+import { apiGet, getAccessToken } from './client';
+
+export type AnalyticsExportFormat = 'csv' | 'xlsx';
 
 export interface NavigationAnalyticsQuery {
   from?: string;
@@ -106,4 +110,42 @@ export function fetchNavigationRoutesByStore(
   return apiGet<NavigationAnalyticsRoutesByStoreResponse>(
     `/admin/analytics/navigation/routes-by-store${search ? `?${search}` : ''}`,
   );
+}
+
+export async function downloadExportBlob(
+  endpoint: string,
+  query: NavigationAnalyticsQuery & { format?: AnalyticsExportFormat },
+  suggestedFilename: string,
+): Promise<void> {
+  const params = new URLSearchParams();
+  if (query.format) params.set('format', query.format);
+  if (query.from) params.set('from', query.from);
+  if (query.to) params.set('to', query.to);
+  if (query.panelId) params.set('panelId', query.panelId);
+  if (query.source) params.set('source', query.source);
+
+  const token = getAccessToken();
+  const requestUrl = `${API_BASE_URL}/${endpoint.replace(/^\/+/, '')}${params.toString() ? `?${params.toString()}` : ''}`;
+  const response = await axios.get<Blob>(requestUrl, {
+    responseType: 'blob',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+
+  const disposition = response.headers['content-disposition'];
+  let filename = suggestedFilename;
+  if (disposition && disposition.includes('filename=')) {
+    const match = disposition.match(/filename="([^"]+)"/);
+    if (match && match[1]) {
+      filename = match[1];
+    }
+  }
+
+  const url = URL.createObjectURL(response.data);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }

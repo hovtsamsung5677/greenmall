@@ -50,6 +50,13 @@ export default defineConfig({
     proxy: {
       '/api': backendProxy,
       '/uploads': backendProxy,
+      // WebSocket proxy for the socket.io nalytics namespace (dev only).
+      // In dev Vite serves the frontend on :5173; backend WS is on :3000.
+      '/analytics': {
+        target: process.env.VITE_BACKEND_TARGET ?? 'http://localhost:3000',
+        ws: true,
+        changeOrigin: true,
+      },
     },
   },
   resolve: {
