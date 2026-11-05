@@ -1,20 +1,18 @@
 import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
-import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import styles from '@styles/MallMap.module.css';
 
-import logoGreenMall from '@assets/icons/logo2.webp';
-import qrCodeIcon from '@assets/icons/qr_code.webp';
-import qrCodeEngIcon from '@assets/icons/qr_code_eng.webp';
-import translatorRu from '@assets/icons/переводчик рус.svg';
-import translatorEn from '@assets/icons/переводчик англ.svg';
 import MallWidget from '@components/mall-widget/MallWidget';
 import { RouteBuilderWindow } from '@components/MallMap/RouteBuilderWindow';
 import { ShareQrModal } from '@components/MallMap/ShareQrModal';
+import { ModelError, SceneErrorBoundary } from '@components/MallMap/SceneFallbacks';
+import {
+  FloorControls as MapFloorControls,
+  MallMapHeader as MapHeader,
+  ZoomControls as MapZoomControls,
+} from '@components/MallMap/MallMapChrome';
 import { buildRoute, buildRouteToStore } from '@api/routes';
 import { createSharedRoute } from '@api/sharedRoutes';
-import type { HeaderBanner } from '@api/headerBanners';
-import { resolveAssetUrl } from '@api/fileAssets';
 import { useFloorScene } from '@hooks/useFloorScene';
 import { useMallMapData } from '@hooks/useMallMapData';
 import { fetchFloorScene } from '@api/floors';
@@ -57,17 +55,6 @@ const TRANSFER_TYPE_LABELS: Record<string, { ru: string; en: string }> = {
   STAIRS: { ru: 'Подъём по лестнице', en: 'Stairs' },
 };
 
-const WEEKDAYS_RU = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
-const MONTHS_RU = [
-  'Янв', 'Фев', 'Март', 'Апр', 'Май', 'Июнь',
-  'Июль', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек',
-];
-const WEEKDAYS_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const MONTHS_EN = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-];
-
 const FLOOR_PLACEHOLDER_COLOR: Record<number, string> = {
   0: '#9BA0AB',
   1: '#9BA0AB',
@@ -79,164 +66,7 @@ const FLOOR_PLACEHOLDER_COLOR: Record<number, string> = {
 // Включите для диагностики: покажет оси X/Y/Z в начале координат.
 const DEBUG_3D = false;
 
-function formatTime(date: Date): string {
-  const hh = String(date.getHours()).padStart(2, '0');
-  const mm = String(date.getMinutes()).padStart(2, '0');
-  return `${hh}:${mm}`;
-}
-
-function formatDate(date: Date, lang: 'ru' | 'en'): string {
-  const weekdays = lang === 'ru' ? WEEKDAYS_RU : WEEKDAYS_EN;
-  const months = lang === 'ru' ? MONTHS_RU : MONTHS_EN;
-  const weekday = weekdays[date.getDay()];
-  const day = date.getDate();
-  const month = months[date.getMonth()];
-  return `${weekday}, ${day} ${month}`;
-}
-
 // ==================== Мелкие UI-компоненты ====================
-
-function MallMapHeader({
-  lang, onLangChange, onOpenAdmin, now, banner,
-}: {
-  lang: 'ru' | 'en';
-  onLangChange: (next: 'ru' | 'en') => void;
-  onOpenAdmin?: () => void;
-  now: Date;
-  banner: HeaderBanner | null;
-}) {
-  return (
-    <header className={styles.header}>
-      <img src={logoGreenMall} alt="GreenMall" className={styles.logo} draggable={false} />
-      {banner && banner.asset ? (
-        <div className={styles.headerBanner}>
-          <img
-            src={resolveAssetUrl(banner.asset.url)}
-            alt={banner.title}
-            className={styles.headerBannerImage}
-            onClick={() => {
-              if (banner.linkUrl) {
-                window.open(banner.linkUrl, '_blank', 'noopener,noreferrer');
-              }
-            }}
-            style={{ cursor: banner.linkUrl ? 'pointer' : 'default' }}
-          />
-        </div>
-      ) : null}
-      <div className={styles.headerRight}>
-        <div className={styles.dateTime}>
-          <span className={styles.time}>{formatTime(now)}</span>
-          <span className={styles.date}>{formatDate(now, lang)}</span>
-        </div>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          {onOpenAdmin ? (
-            <button className={styles.adminBtn} type="button" onClick={onOpenAdmin}>
-              Admin
-            </button>
-          ) : null}
-          <button
-            className={styles.langSwitch}
-            type="button"
-            onClick={() => onLangChange(lang === 'en' ? 'ru' : 'en')}
-          >
-            <img
-              src={lang === 'ru' ? translatorRu : translatorEn}
-              alt={lang === 'ru' ? 'Переключить на английский' : 'Switch to Russian'}
-              className={styles.translatorIcon}
-              draggable={false}
-            />
-          </button>
-        </div>
-      </div>
-    </header>
-  );
-}
-
-function FloorControls({
-  floors, activeFloor, onFloorChange,
-}: {
-  floors: number[]; activeFloor: number; onFloorChange: (floor: number) => void;
-}) {
-  return (
-    <div className={styles.floorControls}>
-      {floors.map((floor) => (
-        <button
-          key={floor}
-          type="button"
-          className={`${styles.floorBtn} ${activeFloor === floor ? styles.floorBtnActive : ''}`}
-          onClick={() => onFloorChange(floor)}
-          aria-pressed={activeFloor === floor}
-        >
-          {floor}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function ZoomControls({
-  lang, onZoomIn, onZoomOut, onShare, shareLoading, hasRoute,
-}: {
-  lang: 'ru' | 'en';
-  onZoomIn: () => void; onZoomOut: () => void; onShare: () => void;
-  shareLoading: boolean; hasRoute: boolean;
-}) {
-  return (
-    <div className={styles.zoomControls}>
-      <button
-        type="button"
-        className={styles.qrBtn}
-        aria-label={lang === 'en' ? 'Share route via QR' : 'Поделиться маршрутом через QR'}
-        onClick={onShare}
-        disabled={shareLoading || !hasRoute}
-      >
-        <img src={lang === 'en' ? qrCodeEngIcon : qrCodeIcon} alt="QR" />
-      </button>
-      <button type="button" className={styles.zoomBtn} aria-label="Уменьшить" onClick={onZoomOut}>
-        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M5 12h14" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
-        </svg>
-      </button>
-      <button type="button" className={styles.zoomBtn} aria-label="Увеличить" onClick={onZoomIn}>
-        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </button>
-    </div>
-  );
-}
-
-function ModelError({ onRetry }: { onRetry: () => void }) {
-  return (
-    <div className={styles.modelPlaceholder} style={{ backgroundColor: '#ffcccc' }}>
-      <span className={styles.modelPlaceholderLabel}>Ошибка загрузки 3D-модели</span>
-      <button onClick={onRetry} style={{ marginTop: 12, padding: '8px 16px', cursor: 'pointer' }}>
-        Повторить
-      </button>
-    </div>
-  );
-}
-
-class ErrorBoundary extends React.Component<
-  { children: React.ReactNode; onError: () => void },
-  { hasError: boolean }
-> {
-  constructor(props: { children: React.ReactNode; onError: () => void }) {
-    super(props);
-    this.state = { hasError: false };
-  }
-  static getDerivedStateFromError() {
-    return { hasError: true };
-  }
-  componentDidCatch(error: unknown) {
-    console.error('[ErrorBoundary] 3D render error', error);
-    this.props.onError();
-  }
-  render() {
-    if (this.state.hasError) return null;
-    return this.props.children;
-  }
-}
 
 // ==================== MallMap ====================
 
@@ -689,7 +519,7 @@ export default function MallMap({
     );
   } else {
     viewport = (
-      <ErrorBoundary onError={() => setCanvasError(true)}>
+      <SceneErrorBoundary onError={() => setCanvasError(true)}>
         <SceneCanvas
           key={canvasKey}
           gltf={gltf}
@@ -718,13 +548,13 @@ export default function MallMap({
           }}
           textures={scene?.textures}
         />
-      </ErrorBoundary>
+      </SceneErrorBoundary>
     );
   }
 
   return (
     <div className={styles.page}>
-      <MallMapHeader lang={lang} onLangChange={setLang} onOpenAdmin={onOpenAdmin} now={now} banner={headerBanner} />
+      <MapHeader lang={lang} onLangChange={setLang} onOpenAdmin={onOpenAdmin} now={now} banner={headerBanner} />
 
       <div className={styles.mapArea}>
         <MallWidget
@@ -808,9 +638,9 @@ export default function MallMap({
           </div>
         ) : null}
 
-        <FloorControls floors={floorNumbers} activeFloor={activeFloor} onFloorChange={handleFloorChange} />
+        <MapFloorControls floors={floorNumbers} activeFloor={activeFloor} onFloorChange={handleFloorChange} />
 
-        <ZoomControls
+        <MapZoomControls
           lang={lang}
           onZoomIn={() => handleZoom(0.2)}
           onZoomOut={() => handleZoom(-0.2)}
