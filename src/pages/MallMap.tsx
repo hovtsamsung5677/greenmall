@@ -1,7 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { QRCodeSVG } from 'qrcode.react';
 import styles from '@styles/MallMap.module.css';
 
 import logoGreenMall from '@assets/icons/logo2.webp';
@@ -11,6 +10,7 @@ import translatorRu from '@assets/icons/переводчик рус.svg';
 import translatorEn from '@assets/icons/переводчик англ.svg';
 import MallWidget from '@components/mall-widget/MallWidget';
 import { RouteBuilderWindow } from '@components/MallMap/RouteBuilderWindow';
+import { ShareQrModal } from '@components/MallMap/ShareQrModal';
 import { buildRoute, buildRouteToStore } from '@api/routes';
 import { createSharedRoute } from '@api/sharedRoutes';
 import type { HeaderBanner } from '@api/headerBanners';
@@ -21,7 +21,7 @@ import { fetchFloorScene } from '@api/floors';
 import { queryKeys } from '@api/queryKeys';
 import { resolveModelUrl } from '@utils/floors';
 import { resolveStoreRouteEndpoints } from '@utils/storeRouteEndpoints';
-import { buildShareUrl, isUnreachableFromPhone } from '@utils/shareUrl';
+import { buildShareUrl } from '@utils/shareUrl';
 import type {
   ApiRouteToStoreResponse,
   ApiFloorChange,
@@ -202,61 +202,6 @@ function ZoomControls({
           <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
-    </div>
-  );
-}
-
-function ShareQrModal({
-  lang, shareToken, shareLoading, shareError, shareUrl, onClose,
-}: {
-  lang: 'ru' | 'en';
-  shareToken: string | null;
-  shareLoading: boolean;
-  shareError: string | null;
-  shareUrl: string;
-  onClose: () => void;
-}) {
-  if (!shareToken && !shareLoading && !shareError) return null;
-
-  return (
-    <div className={styles.qrOverlay} onClick={onClose}>
-      <div className={styles.qrModal} onClick={(e) => e.stopPropagation()}>
-        <h3 className={styles.qrModalTitle}>
-          {lang === 'en' ? 'Scan to open on phone' : 'Отсканируйте, чтобы открыть на телефоне'}
-        </h3>
-        {shareLoading ? (
-          <p className={styles.qrModalHint}>
-            {lang === 'en' ? 'Generating code…' : 'Генерация кода…'}
-          </p>
-        ) : shareError ? (
-          <p className={styles.qrModalError}>{shareError}</p>
-        ) : shareToken ? (
-          <>
-            {isUnreachableFromPhone(shareUrl) ? (
-              <p className={styles.qrModalError}>
-                QR-код ведёт на loopback-адрес и с телефона не откроется. Откройте карту на
-                компьютере по LAN-адресу вида {'http://<ip-компьютера>:5173'} и постройте
-                маршрут заново.
-              </p>
-            ) : (
-              <div className={styles.qrCodeBox}>
-                <QRCodeSVG value={shareUrl} size={220} level="M" />
-              </div>
-            )}
-            <p className={styles.qrModalHint}>
-              Если камера не открывает ссылку — введите вручную: <code>{shareUrl}</code>
-            </p>
-            <p className={styles.qrModalHint}>
-              {lang === 'en'
-                ? 'Open the camera and scan — the route will open in your browser.'
-                : 'Откройте камеру и отсканируйте — маршрут откроется в браузере.'}
-            </p>
-          </>
-        ) : null}
-        <button type="button" className={styles.qrModalClose} onClick={onClose}>
-          {lang === 'en' ? 'Close' : 'Закрыть'}
-        </button>
-      </div>
     </div>
   );
 }
