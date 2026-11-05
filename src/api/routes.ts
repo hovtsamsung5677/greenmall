@@ -1,4 +1,4 @@
-import { apiGet } from './client';
+import { publicApiGet } from './client';
 import type { ApiRouteResponse, ApiRouteToStoreResponse } from './types';
 
 export interface BuildRouteQuery {
@@ -20,7 +20,7 @@ export function buildRoute(query: BuildRouteQuery): Promise<ApiRouteResponse> {
   params.set('fromNodeId', query.fromNodeId);
   params.set('toNodeId', query.toNodeId);
   if (query.floorId) params.set('floorId', query.floorId);
-  return apiGet<ApiRouteResponse>(`/public/routes/build?${params.toString()}`);
+  return publicApiGet<ApiRouteResponse>(`/public/routes/build?${params.toString()}`);
 }
 
 export function buildRouteToStore(
@@ -32,7 +32,7 @@ export function buildRouteToStore(
   if (query.storeSlug) params.set('storeSlug', query.storeSlug);
   if (query.storeCode) params.set('storeCode', query.storeCode);
   if (query.floorId) params.set('floorId', query.floorId);
-  return apiGet<ApiRouteToStoreResponse>(
+  return publicApiGet<ApiRouteToStoreResponse>(
     `/public/routes/to-store?${params.toString()}`,
   );
 }

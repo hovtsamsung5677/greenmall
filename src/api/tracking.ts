@@ -1,4 +1,4 @@
-import { apiPost } from './client';
+import { publicApiPost } from './client';
 
 /**
  * Публичная аналитика: панель и мобильная QR-страница отправляют события
@@ -56,13 +56,12 @@ export function getSessionId(): string {
 
 /** Отправляет событие аналитики без ожидания результата. */
 export function trackEvent(event: TrackEventInput): void {
-  void apiPost<unknown>(
+  void publicApiPost<unknown>(
     '/public/analytics/events',
     {
       clientEventId: createClientEventId(),
       ...event,
     },
-    false,
   ).catch(() => {
     // Аналитика не должна ломать пользовательский сценарий.
   });

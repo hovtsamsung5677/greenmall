@@ -1,4 +1,4 @@
-import { apiGet } from './client';
+import { publicApiGet } from './client';
 import type { ApiFileAsset } from './types';
 
 export interface PublicPromotionStore {
@@ -40,9 +40,9 @@ export function fetchPublicPromotions(storeId?: string, limit = 20): Promise<Pub
   const params = new URLSearchParams();
   if (storeId) params.set('storeId', storeId);
   params.set('limit', String(limit));
-  return apiGet<PublicPromotion[]>(`/public/promotions?${params.toString()}`);
+  return publicApiGet<PublicPromotion[]>(`/public/promotions?${params.toString()}`);
 }
 
 export function fetchPublicPromotion(slug: string): Promise<PublicPromotion> {
-  return apiGet<PublicPromotion>(`/public/promotions/${encodeURIComponent(slug)}`);
+  return publicApiGet<PublicPromotion>(`/public/promotions/${encodeURIComponent(slug)}`);
 }

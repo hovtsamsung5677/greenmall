@@ -1,13 +1,14 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchFloors, fetchFloorScene } from '@api/floors';
+import { queryKeys } from '@api/queryKeys';
 import { resolveModelUrl } from '@utils/floors';
 import type { ApiFloor, ApiFloorScene } from '@api/types';
 import { useMemo } from 'react';
 
 export function useFloors() {
   return useQuery({
-    queryKey: ['floors'],
-    queryFn: fetchFloors,
+    queryKey: queryKeys.floors,
+    queryFn: ({ signal }) => fetchFloors(signal),
   });
 }
 
@@ -19,8 +20,8 @@ export function useFloorScene(floorNumber: number | null | undefined) {
   const floorId = floor?.id;
 
   const sceneQuery = useQuery({
-    queryKey: ['floorScene', floorId],
-    queryFn: () => fetchFloorScene(floorId!),
+    queryKey: queryKeys.floorScene(floorId),
+    queryFn: ({ signal }) => fetchFloorScene(floorId!, signal),
     enabled: !!floorId,
   });
 
@@ -39,8 +40,8 @@ export function useFloorScene(floorNumber: number | null | undefined) {
 
   const retry = () => {
     if (!floorId) return;
-    queryClient.invalidateQueries({ queryKey: ['floors'] });
-    queryClient.invalidateQueries({ queryKey: ['floorScene', floorId] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.floors });
+    queryClient.invalidateQueries({ queryKey: queryKeys.floorScene(floorId) });
   };
 
   return {

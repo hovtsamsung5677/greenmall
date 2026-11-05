@@ -1,4 +1,5 @@
 import { apiGet, apiDelete, apiPatch, apiPost, type AdminUser } from './client';
+import { publicApiGet } from './client';
 
 export interface HeaderBanner {
   id: string;
@@ -32,8 +33,8 @@ export async function fetchAdminHeaderBanners(
   );
 }
 
-export async function fetchActiveHeaderBanner(): Promise<HeaderBanner> {
-  return apiGet<HeaderBanner>('/public/header-banners/active');
+export async function fetchActiveHeaderBanner(signal?: AbortSignal): Promise<HeaderBanner> {
+  return publicApiGet<HeaderBanner>('/public/header-banners/active', signal);
 }
 
 export async function createHeaderBanner(

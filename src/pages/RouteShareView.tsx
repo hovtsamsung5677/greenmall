@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getSharedRoute } from '@api/sharedRoutes';
 import { trackQrScanned } from '@api/tracking';
+import { queryKeys } from '@api/queryKeys';
 import SharedRouteScene, { type SharedRouteSceneProps } from '@components/SharedRouteScene';
 import logoGreenMall from '@assets/icons/logo2.webp';
 import styles from '@styles/MallMap.module.css';
@@ -9,7 +10,7 @@ import type { ApiRouteToStoreResponse } from '@api/types';
 
 export default function RouteShareView({ token }: { token: string }) {
   const { data: route, isLoading, error } = useQuery<ApiRouteToStoreResponse>({
-    queryKey: ['sharedRoute', token],
+    queryKey: queryKeys.sharedRoute(token),
     queryFn: () => getSharedRoute<ApiRouteToStoreResponse>(token),
     enabled: !!token,
   });

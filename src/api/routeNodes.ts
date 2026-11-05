@@ -1,5 +1,6 @@
 ﻿import { apiGet, apiPost, apiPatch, apiDelete } from './client';
 import type { ApiRouteNode, ApiRouteNodeType } from './types';
+import { publicApiGet } from './client';
 
 export interface CreateRouteNodeInput {
   floorId: string;
@@ -35,8 +36,14 @@ export function fetchAllRouteNodes(types?: ApiRouteNodeType[]): Promise<ApiRoute
   return apiGet<ApiRouteNode[]>(`/admin/route-nodes?${params.toString()}`);
 }
 
-export function fetchPublicRouteNodes(floorId: string): Promise<ApiRouteNode[]> {
-  return apiGet<ApiRouteNode[]>(`/public/floors/${encodeURIComponent(floorId)}/route-nodes`);
+export function fetchPublicRouteNodes(
+  floorId: string,
+  signal?: AbortSignal,
+): Promise<ApiRouteNode[]> {
+  return publicApiGet<ApiRouteNode[]>(
+    `/public/floors/${encodeURIComponent(floorId)}/route-nodes`,
+    signal,
+  );
 }
 
 export function createRouteNode(input: CreateRouteNodeInput): Promise<ApiRouteNode> {

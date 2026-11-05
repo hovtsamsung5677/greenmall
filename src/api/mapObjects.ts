@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPatch } from './client';
+import { apiPost, apiPatch, publicApiGet } from './client';
 import type { ApiMapObject, ApiMapObjectType } from './types';
 
 export interface MapObjectUpsertInput {
@@ -29,11 +29,11 @@ export function fetchMapObjects(
   const params = new URLSearchParams();
   params.set('floorId', encodeURIComponent(floorId));
   params.set('limit', String(clampMapObjectsLimit(limit)));
-  return apiGet<ApiMapObject[]>(`/public/map-objects?${params.toString()}`);
+  return publicApiGet<ApiMapObject[]>(`/public/map-objects?${params.toString()}`);
 }
 
 export function fetchAllMapObjects(): Promise<ApiMapObject[]> {
-  return apiGet<ApiMapObject[]>(
+  return publicApiGet<ApiMapObject[]>(
     `/public/map-objects?limit=${MAP_OBJECTS_MAX_LIMIT}`,
   );
 }

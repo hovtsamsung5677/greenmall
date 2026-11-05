@@ -1,5 +1,6 @@
 import { apiGet, apiPost, apiPatch, apiDelete } from './client';
 import type { ApiFloorIcon } from './types';
+import { publicApiGet } from './client';
 
 export interface CreateFloorIconInput {
   name: string;
@@ -25,11 +26,17 @@ export function fetchAdminFloorIcons(floorId?: string): Promise<ApiFloorIcon[]> 
   return apiGet<ApiFloorIcon[]>(`/admin/floor-icons${query ? `?${query}` : ''}`);
 }
 
-export function fetchPublicFloorIcons(floorId?: string): Promise<ApiFloorIcon[]> {
+export function fetchPublicFloorIcons(
+  floorId?: string,
+  signal?: AbortSignal,
+): Promise<ApiFloorIcon[]> {
   const params = new URLSearchParams();
   if (floorId) params.set('floorId', floorId);
   const query = params.toString();
-  return apiGet<ApiFloorIcon[]>(`/public/floor-icons${query ? `?${query}` : ''}`);
+  return publicApiGet<ApiFloorIcon[]>(
+    `/public/floor-icons${query ? `?${query}` : ''}`,
+    signal,
+  );
 }
 
 export function createFloorIcon(input: CreateFloorIconInput): Promise<ApiFloorIcon> {

@@ -1,4 +1,4 @@
-import { apiGet } from './client';
+import { publicApiGet } from './client';
 
 export interface PublicPanel {
   id: string;
@@ -7,6 +7,6 @@ export interface PublicPanel {
   floorId: string | null;
 }
 
-export function fetchPanelByRouteNode(nodeId: string): Promise<PublicPanel> {
-  return apiGet<PublicPanel>(`/public/panels/by-node/${nodeId}`);
+export function fetchPanelByRouteNode(nodeId: string, signal?: AbortSignal): Promise<PublicPanel> {
+  return publicApiGet<PublicPanel>(`/public/panels/by-node/${nodeId}`, signal);
 }

@@ -24,6 +24,7 @@ import { fetchEvacuationStairs } from '@api/evacuationStairs';
 import { resolveAssetUrl } from '@api/fileAssets';
 import { useFloorScene } from '@hooks/useFloorScene';
 import { fetchFloorScene } from '@api/floors';
+import { queryKeys } from '@api/queryKeys';
 import { resolveModelUrl } from '@utils/floors';
 import { resolveStoreRouteEndpoints } from '@utils/storeRouteEndpoints';
 import { buildShareUrl, isUnreachableFromPhone } from '@utils/shareUrl';
@@ -59,6 +60,9 @@ const FLOOR_GAP_RATIO = 0.25;
 // Общая длительность перехода между этажами (с). Используется и для
 // анимации камеры сверху→сбоке→сверху, и для таймаута страховки.
 const TRANSFER_DURATION = 2.0;
+const EMPTY_ROUTE_NODES: ApiRouteNode[] = [];
+const EMPTY_ROUTE_EDGES: ApiRouteEdge[] = [];
+const EMPTY_FLOOR_ICONS: ApiFloorIcon[] = [];
 
 const TRANSFER_TYPE_LABELS: Record<string, { ru: string; en: string }> = {
   ELEVATOR: { ru: 'Подъём на лифте', en: 'Elevator' },
@@ -416,7 +420,6 @@ export default function MallMap({
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [modelError, setModelError] = useState(false);
   const [canvasError, setCanvasError] = useState(false);
-  const [headerBanner, setHeaderBanner] = useState<HeaderBanner | null>(null);
 
   const {
     floors,
@@ -451,16 +454,11 @@ export default function MallMap({
     }
   }, [floors, activeFloor]);
 
-  const [routeNodes, setRouteNodes] = useState<ApiRouteNode[]>([]);
-  const [routeEdges, setRouteEdges] = useState<ApiRouteEdge[]>([]);
-  const [floorIcons, setFloorIcons] = useState<ApiFloorIcon[]>([]);
-  const [evacuationStairs, setEvacuationStairs] = useState<ApiRouteNode[]>([]);
   const [activeRoute, setActiveRoute] = useState<ApiRouteToStoreResponse | null>(null);
   const [routeError, setRouteError] = useState<string | null>(null);
   const [routeLoading, setRouteLoading] = useState(false);
   // Идентификатор панели, определенный по её стартовой точке маршрутного
   // графа. Нужен для атрибуции аналитических событий этой стойки.
-  const [panelId, setPanelId] = useState<string | null>(null);
   const sessionStartedRef = useRef(false);
   // Линия эвакуации дорисована — показываем подсказку про пожарную лестницу.
   const [showEvacuationHint, setShowEvacuationHint] = useState(false);
@@ -473,7 +471,6 @@ export default function MallMap({
   const [routeBetweenFromStoreId, setRouteBetweenFromStoreId] = useState<string | null>(null);
   const [routeBetweenToStoreId, setRouteBetweenToStoreId] = useState<string | null>(null);
   const [routeBetweenError, setRouteBetweenError] = useState<string | null>(null);
-  const [allStores, setAllStores] = useState<ApiStore[]>([]);
 
   // Этаж, на который идёт посетитель прямо сейчас. null — перехода нет.
   const [transferTarget, setTransferTarget] = useState<number | null>(null);
@@ -491,41 +488,33 @@ export default function MallMap({
     setCanvasError(false);
   }, [activeFloor]);
 
-  useEffect(() => {
-    if (!floors.length) return;
-    const floor = floors.find((f) => f.number === activeFloor);
-    if (!floor) return;
-    setRouteNodes([]);
-    setRouteEdges([]);
-    setEvacuationStairs([]);
-    let cancelled = false;
-    Promise.all([
-      fetchPublicRouteNodes(floor.id),
-      fetchPublicRouteEdges(floor.id),
-      fetchEvacuationStairs(floor.id),
-    ])
-      .then(([n, e, stairs]) => {
-        if (cancelled) return;
-        setRouteNodes(n);
-        setRouteEdges(e);
-        setEvacuationStairs(stairs);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setRouteNodes([]);
-        setRouteEdges([]);
-        setEvacuationStairs([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [activeFloor, floors]);
+  const activeFloorData = useMemo(
+    () => floors.find((floor) => floor.number === activeFloor) ?? null,
+    [floors, activeFloor],
+  );
+
+  const floorGraphQuery = useQuery({
+    queryKey: queryKeys.floorGraph(activeFloorData?.id),
+    queryFn: async ({ signal }) => {
+      const floorId = activeFloorData!.id;
+      const [nodes, edges, stairs] = await Promise.all([
+        fetchPublicRouteNodes(floorId, signal),
+        fetchPublicRouteEdges(floorId, signal),
+        fetchEvacuationStairs(floorId, signal),
+      ]);
+      return { nodes, edges, stairs };
+    },
+    enabled: !!activeFloorData,
+  });
+  const routeNodes = floorGraphQuery.data?.nodes ?? EMPTY_ROUTE_NODES;
+  const routeEdges = floorGraphQuery.data?.edges ?? EMPTY_ROUTE_EDGES;
+  const evacuationStairs = floorGraphQuery.data?.stairs ?? EMPTY_ROUTE_NODES;
 
   // Определение панели по её стартовой точке в маршрутном графе. Панель
   // привязана к узлу типа PANEL (Panel.routeNodeId), поэтому публичный
   // резолвер by-node возвращает её id для аналитики.
-  useEffect(() => {
-    if (!routeNodes.length) return;
+  const panelNodeId = useMemo(() => {
+    if (!routeNodes.length) return null;
     const connectedIds = new Set<string>();
     for (const edge of routeEdges) {
       connectedIds.add(edge.fromNodeId);
@@ -534,20 +523,16 @@ export default function MallMap({
     const panelNode =
       routeNodes.find((n) => n.type === 'PANEL' && connectedIds.has(n.id)) ??
       routeNodes.find((n) => n.type === 'PANEL');
-    if (!panelNode) return;
-
-    let cancelled = false;
-    fetchPanelByRouteNode(panelNode.id)
-      .then((panel) => {
-        if (!cancelled) setPanelId(panel.id);
-      })
-      .catch(() => {
-        if (!cancelled) setPanelId(null);
-      });
-    return () => {
-      cancelled = true;
-    };
+    return panelNode?.id ?? null;
   }, [routeNodes, routeEdges]);
+
+  const panelQuery = useQuery({
+    queryKey: queryKeys.panelByNode(panelNodeId),
+    queryFn: ({ signal }) => fetchPanelByRouteNode(panelNodeId!, signal),
+    enabled: !!panelNodeId,
+    retry: false,
+  });
+  const panelId = panelQuery.data?.id ?? null;
 
   // Начало сессии на панели — один раз за загрузку страницы.
   useEffect(() => {
@@ -556,50 +541,26 @@ export default function MallMap({
     trackPanelSessionStarted(panelId);
   }, [panelId]);
 
-  // Иконки, размещённые на 3D-модели этажа через админ-панель.
-  useEffect(() => {
-    if (!floors.length) return;
-    const floor = floors.find((f) => f.number === activeFloor);
-    if (!floor) return;
-    setFloorIcons([]);
-    let cancelled = false;
-    fetchPublicFloorIcons(floor.id)
-      .then((list) => {
-        if (!cancelled) setFloorIcons(list);
-      })
-      .catch(() => {
-        if (!cancelled) setFloorIcons([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [activeFloor, floors]);
+  const floorIconsQuery = useQuery({
+    queryKey: queryKeys.floorIcons(activeFloorData?.id),
+    queryFn: ({ signal }) => fetchPublicFloorIcons(activeFloorData!.id, signal),
+    enabled: !!activeFloorData,
+  });
+  const floorIcons = floorIconsQuery.data ?? EMPTY_FLOOR_ICONS;
 
-  useEffect(() => {
-    fetchActiveHeaderBanner()
-      .then(setHeaderBanner)
-      .catch(() => setHeaderBanner(null));
-  }, []);
+  const headerBannerQuery = useQuery({
+    queryKey: queryKeys.activeHeaderBanner,
+    queryFn: ({ signal }) => fetchActiveHeaderBanner(signal),
+    retry: false,
+  });
+  const headerBanner = headerBannerQuery.data ?? null;
 
-  useEffect(() => {
-    if (!floors.length) return;
-    let cancelled = false;
-    fetchStores(500)
-      .then((stores) => {
-        if (!cancelled) setAllStores(stores);
-      })
-      .catch(() => {
-        if (!cancelled) {
-          const sceneStores = scene?.stores;
-          if (sceneStores) {
-            setAllStores(sceneStores as unknown as ApiStore[]);
-          } else {
-            setAllStores([]);
-          }
-        }
-      });
-    return () => { cancelled = true; };
-  }, [floors, scene?.stores]);
+  const storesQuery = useQuery({
+    queryKey: queryKeys.stores(500),
+    queryFn: ({ signal }) => fetchStores(500, signal),
+  });
+  const allStores =
+    storesQuery.data ?? (scene?.stores as unknown as ApiStore[] | undefined) ?? [];
 
   // ---------- межэтажный переход ----------
 
@@ -617,8 +578,8 @@ export default function MallMap({
   );
 
   const nextSceneQuery = useQuery({
-    queryKey: ['floorScene', nextFloorId],
-    queryFn: () => fetchFloorScene(nextFloorId!),
+    queryKey: queryKeys.floorScene(nextFloorId),
+    queryFn: ({ signal }) => fetchFloorScene(nextFloorId!, signal),
     enabled: !!nextFloorId,
   });
 

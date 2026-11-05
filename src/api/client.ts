@@ -1,6 +1,11 @@
 import axios from 'axios';
 import { API_BASE_URL as BASE_URL } from './env';
 
+const httpClient = axios.create({
+  baseURL: BASE_URL,
+  headers: { Accept: 'application/json' },
+});
+
 interface ApiErrorPayload {
   message?: string | string[];
   error?: string;
@@ -94,9 +99,9 @@ async function request<T>(
   }
 
   try {
-    const response = await axios.request<T>({
+    const response = await httpClient.request<T>({
       ...options,
-      url: `${BASE_URL}${path}`,
+      url: path,
       headers,
     });
     return response.data;
@@ -105,8 +110,12 @@ async function request<T>(
   }
 }
 
-export async function apiGet<T>(path: string): Promise<T> {
-  return request<T>(path);
+export async function apiGet<T>(path: string, signal?: AbortSignal): Promise<T> {
+  return request<T>(path, { signal });
+}
+
+export async function publicApiGet<T>(path: string, signal?: AbortSignal): Promise<T> {
+  return request<T>(path, { signal }, false);
 }
 
 export async function fetchCurrentUser(): Promise<AdminUser> {
@@ -131,6 +140,10 @@ export async function apiPost<T>(
     },
     sendAuth,
   );
+}
+
+export async function publicApiPost<T>(path: string, body: unknown): Promise<T> {
+  return apiPost<T>(path, body, false);
 }
 
 export async function apiPatch<T>(
