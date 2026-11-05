@@ -10,6 +10,7 @@ import qrCodeEngIcon from '@assets/icons/qr_code_eng.webp';
 import translatorRu from '@assets/icons/переводчик рус.svg';
 import translatorEn from '@assets/icons/переводчик англ.svg';
 import MallWidget from '@components/mall-widget/MallWidget';
+import { RouteBuilderWindow } from '@components/MallMap/RouteBuilderWindow';
 import { buildRoute, buildRouteToStore } from '@api/routes';
 import { createSharedRoute } from '@api/sharedRoutes';
 import type { HeaderBanner } from '@api/headerBanners';
@@ -24,7 +25,6 @@ import { buildShareUrl, isUnreachableFromPhone } from '@utils/shareUrl';
 import type {
   ApiRouteToStoreResponse,
   ApiFloorChange,
-  ApiStore,
 } from '@api/types';
 import {
   trackPanelSessionStarted,
@@ -201,97 +201,6 @@ function ZoomControls({
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
-      </button>
-    </div>
-  );
-}
-
-function RouteBuilderWindow({
-  stores, fromStoreId, toStoreId, error, loading,
-  onFromChange, onToChange, onBuild,
-}: {
-  stores: ApiStore[];
-  fromStoreId: string | null;
-  toStoreId: string | null;
-  error: string | null;
-  loading: boolean;
-  onFromChange: (id: string | null) => void;
-  onToChange: (id: string | null) => void;
-  onBuild: () => void;
-}) {
-  const buildDisabled = !fromStoreId || !toStoreId || fromStoreId === toStoreId || loading;
-  const [fromOpen, setFromOpen] = useState(false);
-  const [toOpen, setToOpen] = useState(false);
-
-  const fromName = stores.find((s) => s.id === fromStoreId)?.name ?? 'Откуда';
-  const toName = stores.find((s) => s.id === toStoreId)?.name ?? 'Куда';
-  const hasStores = stores.length > 0;
-
-  return (
-    <div className={styles.routeBuilderWindow}>
-      <div className={styles.routeBuilderHeader}>
-        <span className={styles.routeBuilderTitle}>Маршрут между магазинами</span>
-      </div>
-      <div className={styles.routeBuilderSelects}>
-        <div className={styles.routeBuilderDropdown}>
-          <button
-            type="button"
-            className={styles.routeBuilderSelect}
-            onClick={() => setFromOpen((v) => !v)}
-          >
-            {fromName}
-          </button>
-          {fromOpen && (
-            <div className={styles.routeBuilderDropdownList}>
-              {hasStores ? stores.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  className={`${styles.routeBuilderDropdownItem} ${s.id === fromStoreId ? styles.routeBuilderDropdownItemSelected : ''}`}
-                  onClick={() => { onFromChange(s.id); setFromOpen(false); }}
-                >
-                  {s.name}
-                </button>
-              )) : (
-                <div className={styles.routeBuilderDropdownItem}>Нет магазинов</div>
-              )}
-            </div>
-          )}
-        </div>
-        <div className={styles.routeBuilderDropdown}>
-          <button
-            type="button"
-            className={styles.routeBuilderSelect}
-            onClick={() => setToOpen((v) => !v)}
-          >
-            {toName}
-          </button>
-          {toOpen && (
-            <div className={styles.routeBuilderDropdownList}>
-              {hasStores ? stores.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  className={`${styles.routeBuilderDropdownItem} ${s.id === toStoreId ? styles.routeBuilderDropdownItemSelected : ''}`}
-                  onClick={() => { onToChange(s.id); setToOpen(false); }}
-                >
-                  {s.name}
-                </button>
-              )) : (
-                <div className={styles.routeBuilderDropdownItem}>Нет магазинов</div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-      {error ? <div className={styles.routeBuilderError}>{error}</div> : null}
-      <button
-        type="button"
-        className={styles.routeBuilderBuild}
-        onClick={onBuild}
-        disabled={buildDisabled || loading}
-      >
-        {loading ? 'Построение…' : 'Построить маршрут'}
       </button>
     </div>
   );
