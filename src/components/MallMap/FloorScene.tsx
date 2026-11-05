@@ -25,6 +25,7 @@ import type {
 } from '@api/types';
 import FloorIconLayer, { type FloorIconLayerMetrics } from './FloorIconLayer';
 import { getNextRouteFloor, getRouteSegment } from '@utils/routeProgress';
+import { advanceRouteDistance, ROUTE_TRAVEL_SPEED } from '@utils/routeAnimation';
 
 export interface PlanMetrics {
   width: number;
@@ -223,7 +224,7 @@ function PointMarker({ position, color, radius }: { position: [number, number, n
 export function AnimatedRouteLine({
   points,
   onComplete,
-  speed = 2.5,
+  speed = ROUTE_TRAVEL_SPEED,
   dashSize = 4,
   color = ROUTE_COLOR,
   casingColor = ROUTE_CASING_COLOR,
@@ -236,7 +237,7 @@ export function AnimatedRouteLine({
   casingColor?: string;
 }) {
   const markerRef = useRef<Group>(null);
-  const progress = useRef(0);
+  const traveledDistance = useRef(0);
   const completedRef = useRef(false);
 
   // Ключ по содержимому, а не по ссылке на массив: ререндер родителя не должен
@@ -259,7 +260,7 @@ export function AnimatedRouteLine({
   );
 
   useEffect(() => {
-    progress.current = 0;
+    traveledDistance.current = 0;
     completedRef.current = false;
   }, [pointsKey, dashMeshes]);
 
@@ -273,21 +274,24 @@ export function AnimatedRouteLine({
         0.72 + 0.24 * (0.5 + 0.5 * Math.sin(state.clock.elapsedTime * 5.5));
     }
 
-    if (progress.current < 1) {
-      progress.current = Math.min(1, progress.current + delta / speed);
-    }
+    traveledDistance.current = advanceRouteDistance(
+      traveledDistance.current,
+      delta,
+      totalLength,
+      speed,
+    );
+    const progress = totalLength > 0 ? traveledDistance.current / totalLength : 1;
 
     const visibleCount = Math.max(
       0,
-      Math.min(dashMeshes.count, Math.floor(progress.current * dashMeshes.count)),
+      Math.min(dashMeshes.count, Math.floor(progress * dashMeshes.count)),
     );
     if (dashMeshes.line.count !== visibleCount) {
       dashMeshes.line.count = visibleCount;
       dashMeshes.casing.count = visibleCount;
     }
 
-    const markerDist = progress.current * totalLength;
-    const markerPos = getPointOnPolyline(vectors, totalLength, markerDist);
+    const markerPos = getPointOnPolyline(vectors, totalLength, traveledDistance.current);
     if (markerRef.current && markerPos) {
       markerRef.current.position.copy(markerPos);
       // Двигающийся маркер мягко пульсирует, выделяя текущую точку построения.
@@ -296,7 +300,7 @@ export function AnimatedRouteLine({
       );
     }
 
-    if (progress.current >= 1 && !completedRef.current) {
+    if (progress >= 1 && !completedRef.current) {
       completedRef.current = true;
       onComplete?.();
     }
