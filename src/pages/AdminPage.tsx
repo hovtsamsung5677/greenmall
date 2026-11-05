@@ -58,6 +58,7 @@ import TenantsTab, {
 } from '@components/admin/TenantsTab';
 import BannersTab, { type BannersTabProps } from '@components/admin/BannersTab';
 import StatisticsTab from '@components/admin/StatisticsTab';
+import { AdminErrorBoundary } from '@components/admin/AdminErrorBoundary';
 import styles from '@styles/AdminPage.module.css';
 
 const RouteAdminPanel = lazy(() => import('@components/route-editor/RouteAdminPanel'));
@@ -81,37 +82,6 @@ const emptyPromotionForm: CreatePromotionInput & { id?: string | null } = {
   sortOrder: 0,
   metadata: null,
 };
-
-class RouteAdminErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { error: Error | null }
-> {
-  constructor(props: { children: React.ReactNode }) {
-    super(props);
-    this.state = { error: null };
-  }
-
-  static getDerivedStateFromError(error: Error) {
-    return { error };
-  }
-
-  componentDidCatch(error: Error) {
-    console.error('[RouteAdmin] render error', error);
-  }
-
-  render() {
-    if (this.state.error) {
-      return (
-        <div style={{ padding: 24, color: '#b91c1c', whiteSpace: 'pre-wrap', fontFamily: 'monospace', fontSize: 13 }}>
-          <h2>Ошибка вкладки «Маршруты»</h2>
-          <p>{this.state.error.message}</p>
-          <pre>{this.state.error.stack}</pre>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
 
 type Tab = 'categories' | 'stores' | 'tenants' | 'routes' | 'mobile' | 'banners' | 'icons' | 'statistics' | 'promotions';
 
@@ -769,11 +739,11 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
       </nav>
 
       {tab === 'routes' ? (
-        <RouteAdminErrorBoundary>
+            <AdminErrorBoundary>
           <Suspense fallback={<div className={styles.loading}>Загрузка редактора…</div>}>
             <RouteAdminPanel />
           </Suspense>
-        </RouteAdminErrorBoundary>
+            </AdminErrorBoundary>
       ) : tab === 'mobile' ? (
         <Suspense fallback={<div className={styles.loading}>Загрузка QR-страницы…</div>}>
           <RouteSharePreview />
