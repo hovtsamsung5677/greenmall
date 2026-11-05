@@ -79,8 +79,15 @@ export default function LoadingScreen({ onContinue, onOpenAdmin }: LoadingScreen
       className={styles.screen}
       style={{ backgroundImage: `url(${bgPattern})` }}
       onClick={onContinue}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onContinue?.();
+        }
+      }}
       role="button"
       tabIndex={0}
+      aria-label={lang === 'ru' ? 'Открыть карту торгового центра' : 'Open the mall map'}
     >
       <header className={styles.topBar}>
         <div className={styles.dateTime}>
@@ -101,7 +108,12 @@ export default function LoadingScreen({ onContinue, onOpenAdmin }: LoadingScreen
                 Admin
               </button>
             ) : null}
-            <button className={styles.langSwitch} onClick={toggleLang} type="button">
+            <button
+              className={styles.langSwitch}
+              onClick={toggleLang}
+              type="button"
+              aria-label={lang === 'ru' ? 'Переключить на английский' : 'Switch to Russian'}
+            >
             <img
               src={lang === 'ru' ? translatorRu : translatorEn}
               alt={lang === 'ru' ? 'Переключить на английский' : 'Switch to Russian'}
