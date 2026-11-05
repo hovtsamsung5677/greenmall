@@ -35,6 +35,7 @@ import {
 } from '@api/admin';
 import {
   clearAccessToken,
+  AUTH_EXPIRED_EVENT,
   fetchCurrentUser,
   setAccessToken,
   type AdminUser,
@@ -144,6 +145,16 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  useEffect(() => {
+    const handleExpiredSession = () => {
+      setUser(null);
+      setLoginError('Сессия истекла. Войдите снова.');
+      setLoading(false);
+    };
+    window.addEventListener(AUTH_EXPIRED_EVENT, handleExpiredSession);
+    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, handleExpiredSession);
   }, []);
 
   async function loadData() {

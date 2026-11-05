@@ -6,6 +6,8 @@ const httpClient = axios.create({
   headers: { Accept: 'application/json' },
 });
 
+export const AUTH_EXPIRED_EVENT = 'greenmall:auth-expired';
+
 interface ApiErrorPayload {
   message?: string | string[];
   error?: string;
@@ -106,6 +108,10 @@ async function request<T>(
     });
     return response.data;
   } catch (error) {
+    if (sendAuth && axios.isAxiosError(error) && error.response?.status === 401) {
+      clearAccessToken();
+      window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));
+    }
     throw toApiError(error);
   }
 }
