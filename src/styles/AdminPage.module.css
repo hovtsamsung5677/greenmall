@@ -1,13 +1,4 @@
 .page {
-  --brand: #C2C353;
-  --brand-dark: #9FA044;
-  --bg: #fffdeb;
-  --panel-bg: #ffffff;
-  --border: #e7e4d9;
-  --text: #2F3A18;
-  --muted: #6d7058;
-  --danger: #d04545;
-
   min-height: 100vh;
   min-height: 100dvh;
   width: 100%;
@@ -15,7 +6,7 @@
   margin: 0 auto;
   background-color: var(--bg);
   color: var(--text);
-  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  font-family: var(--font-sans);
   padding: 20px;
   display: flex;
   flex-direction: column;

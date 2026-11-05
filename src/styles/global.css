@@ -6,6 +6,18 @@
   --brand-dark: #9FA044;
   --bg: #fffdeb;
   --gray-model: #9ba0ab;
+  --panel-bg: #ffffff;
+  --border: #e7e4d9;
+  --text: #2f3a18;
+  --muted: #6d7058;
+  --danger: #d04545;
+  --font-sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 html {
@@ -26,6 +38,7 @@ body {
   overflow: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  font-family: var(--font-sans);
 }
 
 body::-webkit-scrollbar,
