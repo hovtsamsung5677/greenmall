@@ -31,6 +31,7 @@ import {
 } from '@api/tracking';
 
 import { useCachedGLTF, clearGLTFCache } from '@components/MallMap/gltfCache';
+import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { SceneCanvas, makeCameraConfig, CAMERA_HEIGHT_DEFAULT, CAMERA_HEIGHT_GROUND, type CameraConfig } from '@components/MallMap/SceneCanvas';
 import { makePlanToScene } from '@components/MallMap/FloorScene';
 import type { PlanMetrics, UpwardShaft } from '@components/MallMap/FloorScene';
@@ -102,7 +103,7 @@ export default function MallMap({
     retry,
   } = useFloorScene(activeFloor);
 
-  const controlsRef = useRef<any>(null);
+  const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const [controlsEnabled, setControlsEnabled] = useState(false);
   const viewportRef = useRef<HTMLDivElement | null>(null);
 

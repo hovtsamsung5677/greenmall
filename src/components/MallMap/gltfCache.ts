@@ -3,6 +3,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 const gltfPromiseCache = new Map<string, Promise<GLTF>>();
+const MAX_CACHED_MODELS = 3;
 
 // Результаты и ошибки хранятся ОТДЕЛЬНО от промисов. Хук читает их синхронно во
 // время рендера, поэтому уже загруженная модель доступна в том же кадре, в котором
@@ -11,6 +12,22 @@ const gltfPromiseCache = new Map<string, Promise<GLTF>>();
 // новая — на переходе это читается как мигание.
 const gltfResultCache = new Map<string, GLTF>();
 const gltfErrorCache = new Map<string, Error>();
+
+function trimCache(currentUrl: string) {
+  while (gltfResultCache.size > MAX_CACHED_MODELS) {
+    const oldestUrl = gltfResultCache.keys().next().value as string | undefined;
+    if (!oldestUrl) return;
+    if (oldestUrl === currentUrl) {
+      const current = gltfResultCache.get(oldestUrl);
+      gltfResultCache.delete(oldestUrl);
+      if (current) gltfResultCache.set(oldestUrl, current);
+      continue;
+    }
+    gltfResultCache.delete(oldestUrl);
+    gltfPromiseCache.delete(oldestUrl);
+    gltfErrorCache.delete(oldestUrl);
+  }
+}
 
 function toError(err: unknown): Error {
   return err instanceof Error ? err : new Error(String(err));
@@ -26,7 +43,9 @@ export function loadGLTFCached(url: string): Promise<GLTF> {
     gltfPromiseCache.set(url, promise);
     promise
       .then((gltf) => {
+        gltfResultCache.delete(url);
         gltfResultCache.set(url, gltf);
+        trimCache(url);
       })
       .catch((err: unknown) => {
         gltfErrorCache.set(url, toError(err));

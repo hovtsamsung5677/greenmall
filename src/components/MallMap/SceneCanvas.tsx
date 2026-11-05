@@ -3,6 +3,7 @@ import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { MOUSE, TOUCH } from 'three';
 import type { Group } from 'three';
+import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { ApiRouteToStoreResponse, ApiRouteNode, ApiFloorIcon } from '@api/types';
 import { FloorScene, type PlanMetrics, type UpwardShaft } from './FloorScene';
@@ -35,7 +36,7 @@ export function CameraController({
   zoom,
 }: {
   activeFloor: number;
-  controlsRef: React.RefObject<any>;
+  controlsRef: React.RefObject<OrbitControlsImpl | null>;
   justOpened?: boolean;
   zoom: number;
 }) {
@@ -125,7 +126,7 @@ export function SceneCanvas({
   icons?: ApiFloorIcon[];
   evacuationStairs?: ApiRouteNode[];
   onEvacuationRouteStart?: () => void;
-  controlsRef: React.RefObject<any>;
+  controlsRef: React.RefObject<OrbitControlsImpl | null>;
   controlsEnabled: boolean;
   cameraConfig: CameraConfig;
   transferCameraPosition?: [number, number, number];
@@ -192,7 +193,7 @@ export function SceneCanvas({
     <Canvas
       camera={cameraConfig}
       style={canvasStyle}
-      dpr={[1, 2]}
+      dpr={[1, 1.5]}
       gl={{ powerPreference: 'high-performance', antialias: true }}
       onCreated={({ gl }) => {
         const canvas = gl.domElement;
