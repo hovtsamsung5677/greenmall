@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { isUnreachableFromPhone } from '@utils/shareUrl';
 import styles from '@styles/MallMap.module.css';
@@ -19,6 +20,17 @@ export function ShareQrModal({
   shareUrl,
   onClose,
 }: ShareQrModalProps) {
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  useEffect(() => {
+    if (!shareToken && !shareLoading && !shareError) return;
+    closeButtonRef.current?.focus();
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [shareToken, shareLoading, shareError, onClose]);
+
   if (!shareToken && !shareLoading && !shareError) return null;
 
   return (
@@ -45,9 +57,9 @@ export function ShareQrModal({
           <>
             {isUnreachableFromPhone(shareUrl) ? (
               <p className={styles.qrModalError} role="alert">
-                QR-код ведёт на loopback-адрес и с телефона не откроется. Откройте карту на
-                компьютере по LAN-адресу вида {'http://<ip-компьютера>:5173'} и постройте
-                маршрут заново.
+                {lang === 'en'
+                  ? 'This link is only available on this computer. Open the map using its LAN address and build the route again.'
+                  : 'QR-код доступен только на этом компьютере. Откройте карту по LAN-адресу и постройте маршрут заново.'}
               </p>
             ) : (
               <div className={styles.qrCodeBox}>
@@ -55,7 +67,8 @@ export function ShareQrModal({
               </div>
             )}
             <p className={styles.qrModalHint}>
-              Если камера не открывает ссылку — введите вручную: <code>{shareUrl}</code>
+              {lang === 'en' ? 'Or enter the address manually: ' : 'Или введите адрес вручную: '}
+              <code>{shareUrl}</code>
             </p>
             <p className={styles.qrModalHint}>
               {lang === 'en'
@@ -64,7 +77,7 @@ export function ShareQrModal({
             </p>
           </>
         ) : null}
-        <button type="button" className={styles.qrModalClose} onClick={onClose}>
+        <button ref={closeButtonRef} type="button" className={styles.qrModalClose} onClick={onClose}>
           {lang === 'en' ? 'Close' : 'Закрыть'}
         </button>
       </div>

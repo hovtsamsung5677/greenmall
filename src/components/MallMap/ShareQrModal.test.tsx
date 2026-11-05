@@ -26,9 +26,18 @@ describe('ShareQrModal', () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
+  it('focuses the close button and closes with Escape', () => {
+    const onClose = vi.fn();
+    render(<ShareQrModal {...defaults} onClose={onClose} />);
+
+    expect(screen.getByRole('button', { name: 'Закрыть' })).toHaveFocus();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
   it('shows an error instead of a QR code for a loopback URL', () => {
     render(<ShareQrModal {...defaults} shareUrl="http://localhost:5173/#/route/token" />);
-    expect(screen.getByRole('alert')).toHaveTextContent('с телефона не откроется');
+    expect(screen.getByRole('alert')).toHaveTextContent('только на этом компьютере');
   });
 
   it('announces API errors', () => {

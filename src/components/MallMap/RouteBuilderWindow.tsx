@@ -66,11 +66,13 @@ export function RouteBuilderWindow({
             className={styles.routeBuilderSelect}
             onClick={() => setFromOpen((open) => !open)}
             aria-expanded={fromOpen}
+            aria-controls="route-from-options"
+            aria-haspopup="listbox"
           >
             {fromName}
           </button>
           {fromOpen ? (
-            <div className={styles.routeBuilderDropdownList}>
+            <div id="route-from-options" className={styles.routeBuilderDropdownList} role="listbox">
               {renderStoreOptions(fromStoreId, onFromChange, () => setFromOpen(false))}
             </div>
           ) : null}
@@ -81,17 +83,19 @@ export function RouteBuilderWindow({
             className={styles.routeBuilderSelect}
             onClick={() => setToOpen((open) => !open)}
             aria-expanded={toOpen}
+            aria-controls="route-to-options"
+            aria-haspopup="listbox"
           >
             {toName}
           </button>
           {toOpen ? (
-            <div className={styles.routeBuilderDropdownList}>
+            <div id="route-to-options" className={styles.routeBuilderDropdownList} role="listbox">
               {renderStoreOptions(toStoreId, onToChange, () => setToOpen(false))}
             </div>
           ) : null}
         </div>
       </div>
-      {error ? <div className={styles.routeBuilderError}>{error}</div> : null}
+      {error ? <div className={styles.routeBuilderError} role="alert">{error}</div> : null}
       <button
         type="button"
         className={styles.routeBuilderBuild}
