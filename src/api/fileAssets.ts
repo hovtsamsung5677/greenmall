@@ -1,6 +1,13 @@
 import axios from 'axios';
 import { API_ORIGIN } from './env';
-import { apiGet, apiPost, apiPatch, apiDelete, getAccessToken } from './client';
+import {
+  apiGet,
+  apiPost,
+  apiPatch,
+  apiDelete,
+  getAccessToken,
+  toApiError,
+} from './client';
 import type { ApiFileAsset } from './types';
 
 export interface CreateFileAssetInput {
@@ -68,11 +75,7 @@ export async function uploadFileAsset(file: File, kind?: string): Promise<ApiFil
     }
     return asset;
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response) {
-      const text = typeof error.response.data === 'string' ? error.response.data : JSON.stringify(error.response.data);
-      throw new Error(text || `Upload failed with status ${error.response.status}`);
-    }
-    throw error;
+    throw toApiError(error);
   }
 }
 

@@ -20,7 +20,9 @@ function showFatalError(message: string, stack?: string) {
   banner.id = 'fatal-error-banner';
   banner.style.cssText =
     'position:fixed;inset:0;z-index:99999;background:#1f2937;color:#fca5a5;padding:24px;font-family:monospace;font-size:13px;white-space:pre-wrap;overflow:auto;';
-  banner.textContent = `Критическая ошибка:\n${message}\n\n${stack ?? ''}`;
+  banner.textContent = import.meta.env.DEV
+    ? `Критическая ошибка:\n${message}\n\n${stack ?? ''}`
+    : 'Произошла критическая ошибка. Обновите страницу или обратитесь к администратору.';
   document.body.appendChild(banner);
 }
 

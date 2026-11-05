@@ -1,6 +1,81 @@
 import axios from 'axios';
 import { API_BASE_URL as BASE_URL } from './env';
 
+interface ApiErrorPayload {
+  message?: string | string[];
+  error?: string;
+  code?: string;
+}
+
+export class ApiError extends Error {
+  readonly status: number | null;
+  readonly code: string | null;
+  readonly details: unknown;
+
+  constructor(
+    message: string,
+    options: {
+      status?: number | null;
+      code?: string | null;
+      details?: unknown;
+      cause?: unknown;
+    } = {},
+  ) {
+    super(message, { cause: options.cause });
+    this.name = 'ApiError';
+    this.status = options.status ?? null;
+    this.code = options.code ?? null;
+    this.details = options.details;
+  }
+}
+
+function extractPayloadMessage(data: unknown): string | null {
+  if (!data || typeof data !== 'object') return null;
+  const message = (data as ApiErrorPayload).message;
+  if (Array.isArray(message)) return message.filter(Boolean).join('. ');
+  return typeof message === 'string' && message.trim() ? message.trim() : null;
+}
+
+function userMessageForStatus(status: number, payloadMessage: string | null): string {
+  if (status === 400 || status === 409 || status === 422) {
+    return payloadMessage ?? 'Проверьте введённые данные и повторите попытку.';
+  }
+  if (status === 401) return 'Сессия истекла. Войдите в систему ещё раз.';
+  if (status === 403) return 'У вас недостаточно прав для этого действия.';
+  if (status === 404) return payloadMessage ?? 'Запрошенные данные не найдены.';
+  if (status === 413) return 'Файл слишком большой.';
+  if (status === 429) return 'Слишком много запросов. Попробуйте немного позже.';
+  return 'Сервис временно недоступен. Попробуйте позже.';
+}
+
+export function toApiError(error: unknown): ApiError {
+  if (error instanceof ApiError) return error;
+
+  if (axios.isAxiosError(error)) {
+    const status = error.response?.status ?? null;
+    const details = error.response?.data;
+    const payload = details && typeof details === 'object' ? (details as ApiErrorPayload) : null;
+    const message = status
+      ? userMessageForStatus(status, extractPayloadMessage(details))
+      : 'Не удалось связаться с сервером. Проверьте подключение к сети.';
+
+    return new ApiError(message, {
+      status,
+      code: typeof payload?.code === 'string' ? payload.code : null,
+      details,
+      cause: error,
+    });
+  }
+
+  return new ApiError('Произошла непредвиденная ошибка. Попробуйте ещё раз.', {
+    cause: error,
+  });
+}
+
+export function getApiErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof ApiError ? error.message : fallback;
+}
+
 async function request<T>(
   path: string,
   options: Parameters<typeof axios.request>[0] = {},
@@ -26,13 +101,7 @@ async function request<T>(
     });
     return response.data;
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response) {
-      const text = typeof error.response.data === 'string' ? error.response.data.slice(0, 200) : JSON.stringify(error.response.data).slice(0, 200);
-      throw new Error(
-        `API request failed: ${error.response.status} ${error.response.statusText}${text ? `: ${text}` : ''}`
-      );
-    }
-    throw error;
+    throw toApiError(error);
   }
 }
 
