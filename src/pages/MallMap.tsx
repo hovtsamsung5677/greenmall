@@ -10,30 +10,20 @@ import qrCodeEngIcon from '@assets/icons/qr_code_eng.webp';
 import translatorRu from '@assets/icons/переводчик рус.svg';
 import translatorEn from '@assets/icons/переводчик англ.svg';
 import MallWidget from '@components/mall-widget/MallWidget';
-import { fetchPublicRouteNodes } from '@api/routeNodes';
-import { fetchPublicRouteEdges } from '@api/routeEdges';
 import { buildRoute, buildRouteToStore } from '@api/routes';
 import { createSharedRoute } from '@api/sharedRoutes';
-import { fetchPanelByRouteNode } from '@api/panels';
-import { fetchStores } from '@api/categories';
-import {
-  fetchActiveHeaderBanner, type HeaderBanner,
-} from '@api/headerBanners';
-import { fetchPublicFloorIcons } from '@api/floorIcons';
-import { fetchEvacuationStairs } from '@api/evacuationStairs';
+import type { HeaderBanner } from '@api/headerBanners';
 import { resolveAssetUrl } from '@api/fileAssets';
 import { useFloorScene } from '@hooks/useFloorScene';
+import { useMallMapData } from '@hooks/useMallMapData';
 import { fetchFloorScene } from '@api/floors';
 import { queryKeys } from '@api/queryKeys';
 import { resolveModelUrl } from '@utils/floors';
 import { resolveStoreRouteEndpoints } from '@utils/storeRouteEndpoints';
 import { buildShareUrl, isUnreachableFromPhone } from '@utils/shareUrl';
 import type {
-  ApiRouteNode,
-  ApiRouteEdge,
   ApiRouteToStoreResponse,
   ApiFloorChange,
-  ApiFloorIcon,
   ApiStore,
 } from '@api/types';
 import {
@@ -60,9 +50,6 @@ const FLOOR_GAP_RATIO = 0.25;
 // Общая длительность перехода между этажами (с). Используется и для
 // анимации камеры сверху→сбоке→сверху, и для таймаута страховки.
 const TRANSFER_DURATION = 2.0;
-const EMPTY_ROUTE_NODES: ApiRouteNode[] = [];
-const EMPTY_ROUTE_EDGES: ApiRouteEdge[] = [];
-const EMPTY_FLOOR_ICONS: ApiFloorIcon[] = [];
 
 const TRANSFER_TYPE_LABELS: Record<string, { ru: string; en: string }> = {
   ELEVATOR: { ru: 'Подъём на лифте', en: 'Elevator' },
@@ -488,51 +475,15 @@ export default function MallMap({
     setCanvasError(false);
   }, [activeFloor]);
 
-  const activeFloorData = useMemo(
-    () => floors.find((floor) => floor.number === activeFloor) ?? null,
-    [floors, activeFloor],
-  );
-
-  const floorGraphQuery = useQuery({
-    queryKey: queryKeys.floorGraph(activeFloorData?.id),
-    queryFn: async ({ signal }) => {
-      const floorId = activeFloorData!.id;
-      const [nodes, edges, stairs] = await Promise.all([
-        fetchPublicRouteNodes(floorId, signal),
-        fetchPublicRouteEdges(floorId, signal),
-        fetchEvacuationStairs(floorId, signal),
-      ]);
-      return { nodes, edges, stairs };
-    },
-    enabled: !!activeFloorData,
-  });
-  const routeNodes = floorGraphQuery.data?.nodes ?? EMPTY_ROUTE_NODES;
-  const routeEdges = floorGraphQuery.data?.edges ?? EMPTY_ROUTE_EDGES;
-  const evacuationStairs = floorGraphQuery.data?.stairs ?? EMPTY_ROUTE_NODES;
-
-  // Определение панели по её стартовой точке в маршрутном графе. Панель
-  // привязана к узлу типа PANEL (Panel.routeNodeId), поэтому публичный
-  // резолвер by-node возвращает её id для аналитики.
-  const panelNodeId = useMemo(() => {
-    if (!routeNodes.length) return null;
-    const connectedIds = new Set<string>();
-    for (const edge of routeEdges) {
-      connectedIds.add(edge.fromNodeId);
-      connectedIds.add(edge.toNodeId);
-    }
-    const panelNode =
-      routeNodes.find((n) => n.type === 'PANEL' && connectedIds.has(n.id)) ??
-      routeNodes.find((n) => n.type === 'PANEL');
-    return panelNode?.id ?? null;
-  }, [routeNodes, routeEdges]);
-
-  const panelQuery = useQuery({
-    queryKey: queryKeys.panelByNode(panelNodeId),
-    queryFn: ({ signal }) => fetchPanelByRouteNode(panelNodeId!, signal),
-    enabled: !!panelNodeId,
-    retry: false,
-  });
-  const panelId = panelQuery.data?.id ?? null;
+  const {
+    routeNodes,
+    routeEdges,
+    evacuationStairs,
+    floorIcons,
+    panelId,
+    headerBanner,
+    allStores,
+  } = useMallMapData(floors, activeFloor, scene?.stores);
 
   // Начало сессии на панели — один раз за загрузку страницы.
   useEffect(() => {
@@ -540,27 +491,6 @@ export default function MallMap({
     sessionStartedRef.current = true;
     trackPanelSessionStarted(panelId);
   }, [panelId]);
-
-  const floorIconsQuery = useQuery({
-    queryKey: queryKeys.floorIcons(activeFloorData?.id),
-    queryFn: ({ signal }) => fetchPublicFloorIcons(activeFloorData!.id, signal),
-    enabled: !!activeFloorData,
-  });
-  const floorIcons = floorIconsQuery.data ?? EMPTY_FLOOR_ICONS;
-
-  const headerBannerQuery = useQuery({
-    queryKey: queryKeys.activeHeaderBanner,
-    queryFn: ({ signal }) => fetchActiveHeaderBanner(signal),
-    retry: false,
-  });
-  const headerBanner = headerBannerQuery.data ?? null;
-
-  const storesQuery = useQuery({
-    queryKey: queryKeys.stores(500),
-    queryFn: ({ signal }) => fetchStores(500, signal),
-  });
-  const allStores =
-    storesQuery.data ?? (scene?.stores as unknown as ApiStore[] | undefined) ?? [];
 
   // ---------- межэтажный переход ----------
 
