@@ -34,6 +34,7 @@ import {
   type UpdateTenantInput,
 } from '@api/admin';
 import {
+  clearAccessToken,
   fetchCurrentUser,
   setAccessToken,
   type AdminUser,
@@ -214,6 +215,7 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
   }
 
   function handleLogout() {
+    clearAccessToken();
     setUser(null);
     setCategories([]);
     setStores([]);
@@ -228,6 +230,8 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
     setStoreForm(emptyStoreForm);
     setTenantForm(emptyTenantForm);
     setPromotionForm(emptyPromotionForm);
+    setLoginPassword('');
+    setLoginError(null);
   }
 
   async function submitCategory() {

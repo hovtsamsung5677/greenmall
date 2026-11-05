@@ -25,6 +25,7 @@ import { resolveAssetUrl } from '@api/fileAssets';
 import { useFloorScene } from '@hooks/useFloorScene';
 import { fetchFloorScene } from '@api/floors';
 import { resolveModelUrl } from '@utils/floors';
+import { resolveStoreRouteEndpoints } from '@utils/storeRouteEndpoints';
 import { buildShareUrl, isUnreachableFromPhone } from '@utils/shareUrl';
 import type {
   ApiRouteNode,
@@ -33,7 +34,6 @@ import type {
   ApiFloorChange,
   ApiFloorIcon,
   ApiStore,
-  ApiSceneStore,
 } from '@api/types';
 import {
   trackPanelSessionStarted,
@@ -498,21 +498,27 @@ export default function MallMap({
     setRouteNodes([]);
     setRouteEdges([]);
     setEvacuationStairs([]);
+    let cancelled = false;
     Promise.all([
       fetchPublicRouteNodes(floor.id),
       fetchPublicRouteEdges(floor.id),
       fetchEvacuationStairs(floor.id),
     ])
       .then(([n, e, stairs]) => {
+        if (cancelled) return;
         setRouteNodes(n);
         setRouteEdges(e);
         setEvacuationStairs(stairs);
       })
       .catch(() => {
+        if (cancelled) return;
         setRouteNodes([]);
         setRouteEdges([]);
         setEvacuationStairs([]);
       });
+    return () => {
+      cancelled = true;
+    };
   }, [activeFloor, floors]);
 
   // Определение панели по её стартовой точке в маршрутном графе. Панель
@@ -806,26 +812,21 @@ export default function MallMap({
     }
     setRouteBetweenError(null);
 
-    const fromSceneStore = (scene?.stores ?? []).find(
-      (s: ApiSceneStore) => s.id === fromStoreId,
-    );
-    const toSceneStore = (scene?.stores ?? []).find(
-      (s: ApiSceneStore) => s.id === toStoreId,
-    );
-
-    const fromStoreNodeId = fromSceneStore?.primaryRouteNodeId;
-    const toStoreNodeId = toSceneStore?.primaryRouteNodeId;
-
-    if (!fromStoreNodeId || !toStoreNodeId) {
-      setRouteBetweenError('Маршрутные точки магазинов не найдены');
-      return;
-    }
-
     setRouteLoading(true);
     try {
+      const endpoints = await resolveStoreRouteEndpoints(
+        allStores,
+        fromStoreId,
+        toStoreId,
+        fetchFloorScene,
+      );
+      if (!endpoints) {
+        setRouteBetweenError('Маршрутные точки магазинов не найдены');
+        return;
+      }
       const route = await buildRoute({
-        fromNodeId: fromStoreNodeId,
-        toNodeId: toStoreNodeId,
+        fromNodeId: endpoints.fromNodeId,
+        toNodeId: endpoints.toNodeId,
       });
       setActiveRoute({ ...route, targetStore: null, evacuation: null });
       setRouteBetweenFromStoreId(null);

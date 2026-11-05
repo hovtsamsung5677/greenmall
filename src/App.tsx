@@ -112,13 +112,9 @@ function App() {
   }
 
   function closeAdmin() {
-    console.log('[App] closeAdmin, current widgetRefreshKey', widgetRefreshKey);
-    window.history.back();
-    setWidgetRefreshKey((prev) => {
-      const next = prev + 1;
-      console.log('[App] widgetRefreshKey', prev, '->', next);
-      return next;
-    });
+    window.history.replaceState({}, '', '/');
+    setIsAdmin(false);
+    setWidgetRefreshKey((prev) => prev + 1);
   }
 
   if (shareToken) {
