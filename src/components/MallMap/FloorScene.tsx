@@ -24,6 +24,7 @@ import type {
   ApiRouteToStoreResponse,
 } from '@api/types';
 import FloorIconLayer, { type FloorIconLayerMetrics } from './FloorIconLayer';
+import { getNextRouteFloor, getRouteSegment } from '@utils/routeProgress';
 
 export interface PlanMetrics {
   width: number;
@@ -473,6 +474,7 @@ export function FloorScene({
   groupRef,
   metrics,
   route,
+  routeSegmentIndex = 0,
   activeFloor,
   onReachTransfer,
   upwardShaft = null,
@@ -487,6 +489,7 @@ export function FloorScene({
   groupRef?: React.RefObject<Group | null>;
   metrics: PlanMetrics | null;
   route: ApiRouteToStoreResponse | null;
+  routeSegmentIndex?: number;
   activeFloor: number;
   onReachTransfer?: (nextFloor: number) => void;
   upwardShaft?: UpwardShaft | null;
@@ -735,22 +738,17 @@ export function FloorScene({
 
   const routeOverlay = useMemo(() => {
     if (!route || route.routePath.length < 1) return null;
-    // Этаж может встречаться в маршруте несколько раз (спуск/подъём) —
-    // склеиваем все чанки этого этажа в один непрерывный путь.
-    const floorSegments = (route.segments ?? []).filter(
-      (s) => s.floorNumber === activeFloor,
-    );
-    if (floorSegments.length === 0) return null;
-    const points = floorSegments.flatMap((s) => s.points.map(planToScene));
+    const activeSegment = getRouteSegment(route, routeSegmentIndex);
+    if (!activeSegment || activeSegment.floorNumber !== activeFloor) return null;
+    const points = activeSegment.points.map(planToScene);
     if (points.length < 1) return null;
     const start = points[0];
     const end = points[points.length - 1];
 
     const handleComplete = () => {
-      const changes = route.floorChanges ?? [];
-      const change = changes.find((ch) => ch.fromFloor === activeFloor);
-      if (change) {
-        onReachTransfer?.(change.toFloor);
+      const nextFloor = getNextRouteFloor(route, routeSegmentIndex);
+      if (nextFloor != null) {
+        onReachTransfer?.(nextFloor);
         return;
       }
 
@@ -781,7 +779,7 @@ export function FloorScene({
       </group>
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [route, planToScene, activeFloor]);
+  }, [route, planToScene, activeFloor, routeSegmentIndex]);
 
   const shaft = useMemo(() => {
     if (!upwardShaft) return null;

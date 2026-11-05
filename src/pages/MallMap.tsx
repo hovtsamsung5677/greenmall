@@ -19,6 +19,7 @@ import { fetchFloorScene } from '@api/floors';
 import { queryKeys } from '@api/queryKeys';
 import { resolveModelUrl } from '@utils/floors';
 import { resolveStoreRouteEndpoints } from '@utils/storeRouteEndpoints';
+import { getNextRouteFloor, getRouteSegment } from '@utils/routeProgress';
 import { buildShareUrl } from '@utils/shareUrl';
 import type {
   ApiRouteToStoreResponse,
@@ -127,6 +128,7 @@ export default function MallMap({
   }, [floors, activeFloor]);
 
   const [activeRoute, setActiveRoute] = useState<ApiRouteToStoreResponse | null>(null);
+  const [routeSegmentIndex, setRouteSegmentIndex] = useState(0);
   const [routeError, setRouteError] = useState<string | null>(null);
   const [routeLoading, setRouteLoading] = useState(false);
   // Идентификатор панели, определенный по её стартовой точке маршрутного
@@ -183,9 +185,8 @@ export default function MallMap({
   // следующего этажа начинает грузиться заранее — задолго до того, как
   // посетитель дойдёт до лифта, иначе в момент перехода был бы кадр-заглушка.
   const nextFloorNumber = useMemo(() => {
-    const change = activeRoute?.floorChanges?.find((c) => c.fromFloor === activeFloor);
-    return change?.toFloor ?? null;
-  }, [activeRoute, activeFloor]);
+    return getNextRouteFloor(activeRoute, routeSegmentIndex);
+  }, [activeRoute, routeSegmentIndex]);
 
   const nextFloorId = useMemo(
     () => floors.find((f) => f.number === nextFloorNumber)?.id ?? null,
@@ -224,12 +225,8 @@ export default function MallMap({
       height: toFloorData.height ?? 600,
     };
 
-    const fromSegment = (activeRoute.segments ?? []).find(
-      (s) => s.floorNumber === activeFloor,
-    );
-    const toSegment = (activeRoute.segments ?? []).find(
-      (s) => s.floorNumber === transferTarget,
-    );
+    const fromSegment = getRouteSegment(activeRoute, routeSegmentIndex);
+    const toSegment = getRouteSegment(activeRoute, routeSegmentIndex + 1);
     const fromPoint = fromSegment?.points[fromSegment.points.length - 1];
     const toPoint = toSegment?.points[0];
     if (!fromPoint || !toPoint) return null;
@@ -252,7 +249,7 @@ export default function MallMap({
     };
 
     return { gap, nextMetrics: toMetrics, shaft, direction };
-  }, [transferTarget, activeFloor, floors, activeRoute]);
+  }, [transferTarget, activeFloor, floors, activeRoute, routeSegmentIndex]);
 
   // Переход стартует только когда следующая модель уже в памяти — иначе во
   // время движения этажей в кадре мигала бы пустота.
@@ -274,7 +271,10 @@ export default function MallMap({
   function handleTransferComplete() {
     const target = transferTarget;
     setTransferTarget(null);
-    if (target != null) setActiveFloor(target);
+    if (target != null) {
+      setActiveFloor(target);
+      setRouteSegmentIndex((index) => index + 1);
+    }
   }
 
   function handleFloorChange(floor: number) {
@@ -284,7 +284,8 @@ export default function MallMap({
   }
 
   useEffect(() => {
-    if (!activeRoute) setTransferTarget(null);
+    setTransferTarget(null);
+    setRouteSegmentIndex(0);
   }, [activeRoute]);
 
   // Страховка: если следующая модель так и не загрузилась или в маршруте нет
@@ -295,7 +296,10 @@ export default function MallMap({
     const timer = setTimeout(() => {
       const target = transferTarget;
       setTransferTarget(null);
-      if (target != null) setActiveFloor(target);
+      if (target != null) {
+        setActiveFloor(target);
+        setRouteSegmentIndex((index) => index + 1);
+      }
     }, TRANSFER_DURATION * 1000);
     return () => clearTimeout(timer);
   }, [transferTarget, transfer]);
@@ -528,6 +532,7 @@ export default function MallMap({
           metrics={planMetrics}
           nextMetrics={transferPlan?.nextMetrics ?? planMetrics}
           route={activeRoute}
+          routeSegmentIndex={routeSegmentIndex}
           activeFloor={activeFloor}
           transfer={transfer}
           shaft={transfer ? transferPlan?.shaft ?? null : null}

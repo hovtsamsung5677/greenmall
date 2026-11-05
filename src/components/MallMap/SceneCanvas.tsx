@@ -94,6 +94,7 @@ export function SceneCanvas({
   metrics,
   nextMetrics,
   route,
+  routeSegmentIndex = 0,
   activeFloor,
   transfer = null,
   shaft = null,
@@ -118,6 +119,7 @@ export function SceneCanvas({
   metrics: PlanMetrics | null;
   nextMetrics?: PlanMetrics | null;
   route: ApiRouteToStoreResponse | null;
+  routeSegmentIndex?: number;
   activeFloor: number;
   transfer?: SceneTransfer | null;
   shaft?: UpwardShaft | null;
@@ -167,6 +169,7 @@ export function SceneCanvas({
       groupRef={groupRef}
       metrics={metrics}
       route={route}
+      routeSegmentIndex={routeSegmentIndex}
       activeFloor={activeFloor}
       onReachTransfer={onReachTransfer}
       upwardShaft={shaft}
