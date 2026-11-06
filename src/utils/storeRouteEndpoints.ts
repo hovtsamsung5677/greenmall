@@ -13,10 +13,12 @@ export async function resolveStoreRouteEndpoints(
 ): Promise<StoreRouteEndpoints | null> {
   const fromStore = stores.find((store) => store.id === fromStoreId);
   const toStore = stores.find((store) => store.id === toStoreId);
-  if (!fromStore?.floorId || !toStore?.floorId) return null;
+  const fromFloorId = fromStore?.floorId ?? fromStore?.floor?.id ?? null;
+  const toFloorId = toStore?.floorId ?? toStore?.floor?.id ?? null;
+  if (!fromFloorId || !toFloorId) return null;
 
-  const floorIds = [...new Set([fromStore.floorId, toStore.floorId])];
-  const scenes = await Promise.all(floorIds.map(loadFloorScene));
+  const floorIds = [...new Set([fromFloorId, toFloorId])];
+  const scenes = await Promise.all(floorIds.map((floorId) => loadFloorScene(floorId)));
 
   const findNodeId = (storeId: string): string | null => {
     for (const floorScene of scenes) {

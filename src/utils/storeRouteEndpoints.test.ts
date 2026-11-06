@@ -52,6 +52,29 @@ describe('resolveStoreRouteEndpoints', () => {
     expect(loadFloorScene).toHaveBeenCalledTimes(1);
   });
 
+  it('uses the nested public floor when floorId is omitted', async () => {
+    const sharedScene = {
+      ...scene('floor-1', 'store-a', 'node-a'),
+      stores: [
+        { id: 'store-a', primaryRouteNodeId: 'node-a' },
+        { id: 'store-b', primaryRouteNodeId: 'node-b' },
+      ],
+    } as ApiFloorScene;
+    const loadFloorScene = vi.fn(async () => sharedScene);
+    const nestedFloorStore = (id: string) =>
+      ({ id, floorId: null, floor: { id: 'floor-1', number: 1, name: 'Первый этаж' } }) as ApiStore;
+
+    await expect(
+      resolveStoreRouteEndpoints(
+        [nestedFloorStore('store-a'), nestedFloorStore('store-b')],
+        'store-a',
+        'store-b',
+        loadFloorScene,
+      ),
+    ).resolves.toEqual({ fromNodeId: 'node-a', toNodeId: 'node-b' });
+    expect(loadFloorScene).toHaveBeenCalledWith('floor-1');
+  });
+
   it('returns null when a store has no floor', async () => {
     const loadFloorScene = vi.fn();
     await expect(
