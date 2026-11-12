@@ -136,12 +136,15 @@ export default function RouteAdminPanel() {
     // Граф и объекты карты загружаются независимо: отказ объектов карты
     // не должен обнулять узлы и рёбра — иначе редактор выглядит пустым.
     Promise.all([
-      fetchRouteNodes(floorId),
-      fetchRouteEdges(floorId),
+      fetchRouteNodes(floorId, false),
+      fetchRouteEdges(floorId, false),
     ])
       .then(([n, e]) => {
-        setNodes(n);
-        setEdges(e);
+        const activeNodes = n.filter((node) => node.isActive);
+        const activeNodeIds = new Set(activeNodes.map((node) => node.id));
+        setNodes(activeNodes);
+        setEdges(e.filter((edge) => edge.isActive &&
+          activeNodeIds.has(edge.fromNodeId) && activeNodeIds.has(edge.toNodeId)));
         setSelectedNodeId(null);
         setEditingCode('');
         setPendingFromId(null);
@@ -156,7 +159,7 @@ export default function RouteAdminPanel() {
     Promise.all([
       fetchAllRouteNodes(['ELEVATOR', 'ESCALATOR', 'STAIRS']),
     ])
-      .then(([allVertical]) => setAllVerticalNodes(allVertical))
+      .then(([allVertical]) => setAllVerticalNodes(allVertical.filter((node) => node.isActive)))
       .catch(() => setAllVerticalNodes([]));
 
     fetchMapObjects(floorId)
