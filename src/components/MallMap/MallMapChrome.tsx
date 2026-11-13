@@ -6,6 +6,7 @@ import qrCodeEngIcon from '@assets/icons/qr_code_eng.webp';
 import translatorRu from '@assets/icons/переводчик рус.svg';
 import translatorEn from '@assets/icons/переводчик англ.svg';
 import styles from '@styles/MallMap.module.css';
+import headerStyles from './HeaderControls.module.css';
 
 type Language = 'ru' | 'en';
 const WEEKDAYS = {
@@ -36,10 +37,10 @@ export function MallMapHeader({
     <header className={styles.header}>
       <img src={logoGreenMall} alt="GreenMall" className={styles.logo} draggable={false} />
       <HeaderAdvertisement banner={banner} />
-      <div className={styles.headerRight}>
+      <div className={`${styles.headerRight} ${headerStyles.controls}`}>
         <div className={styles.dateTime}>
-          <span className={styles.time}>{time}</span>
-          <span className={styles.date}>{date}</span>
+          <span className={`${styles.time} ${headerStyles.time}`}>{time}</span>
+          <span className={`${styles.date} ${headerStyles.date}`}>{date}</span>
         </div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           {onOpenAdmin ? (
@@ -48,14 +49,14 @@ export function MallMapHeader({
             </button>
           ) : null}
           <button
-            className={styles.langSwitch}
+            className={`${styles.langSwitch} ${headerStyles.language}`}
             type="button"
             onClick={() => onLangChange(lang === 'en' ? 'ru' : 'en')}
           >
             <img
               src={lang === 'ru' ? translatorRu : translatorEn}
               alt={lang === 'ru' ? 'Переключить на английский' : 'Switch to Russian'}
-              className={styles.translatorIcon}
+              className={`${styles.translatorIcon} ${headerStyles.icon}`}
               draggable={false}
             />
           </button>

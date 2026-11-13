@@ -1,0 +1,13 @@
+.controls {
+  flex-shrink: 0;
+}
+.controls .time { font-size: 20px; }
+.controls .date { font-size: 14px; }
+.controls .language { min-height: 40px; padding: 4px; }
+.controls .icon { height: 28px; }
+
+@media (min-width: 1920px) and (min-aspect-ratio: 16/9) {
+  .controls .time { font-size: calc(22px * var(--k, 1)); }
+  .controls .date { font-size: calc(16px * var(--k, 1)); }
+  .controls .icon { height: calc(30px * var(--k, 1)); }
+}
