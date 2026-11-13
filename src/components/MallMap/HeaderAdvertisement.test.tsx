@@ -8,8 +8,8 @@ it('replaces a failed campaign image and removes its link', () => {
   const initial=container.querySelector('img')!;
   fireEvent.error(initial);
   expect(container.querySelector('a')).toBeNull();
-  expect(container.querySelector('img')?.src).toContain('greenmall-banner');
-  expect(container.querySelector('img')?.alt).toBe('');
+  expect(container.querySelector('image')?.getAttribute('href')).toContain('greenmall-banner-wide');
+  expect(container.querySelector('svg')?.getAttribute('preserveAspectRatio')).toBe('xMidYMid meet');
   rerender(<HeaderAdvertisement banner={{...banner,asset:{...banner.asset!,url:'/new.png'}}} />);
   expect(container.querySelector('a')).not.toBeNull();
   expect(container.querySelector('img')?.src).toContain('/new.png');
