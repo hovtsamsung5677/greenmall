@@ -17,6 +17,41 @@
 
 /* ---------- Header ---------- */
 
+.mobileAdBanner {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: min(92%, 420px);
+  max-height: 64px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--brand, #C2C353);
+  background: #fff;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.mobileAdBannerImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.mobileAdBannerPlaceholder {
+  padding: 8px 12px;
+  color: #2F3A18;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.3;
+}
+
 .header {
   position: relative;
   z-index: 5;

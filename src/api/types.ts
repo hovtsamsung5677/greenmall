@@ -421,3 +421,36 @@ export interface ApiEvacuationRoute {
     instructions: ApiRouteInstruction[];
   } | null;
 }
+
+export interface PublicAd {
+  slot: {
+    code: string;
+    placement: string;
+  };
+  ad: {
+    campaignId: string;
+    creative: {
+      id: string;
+      title: string | null;
+      description: string | null;
+      altText: string | null;
+      ctaText: string | null;
+      asset: {
+        id: string;
+        filename: string;
+        url: string;
+        mimeType: string | null;
+        kind: string;
+        metadata: unknown | null;
+        createdAt: string;
+        updatedAt: string;
+      };
+    };
+    target: {
+      type: string;
+      store: { id: string; slug: string; name: string } | null;
+      promotion: { id: string; slug: string; title: string } | null;
+      url: string | null;
+    };
+  } | null;
+}

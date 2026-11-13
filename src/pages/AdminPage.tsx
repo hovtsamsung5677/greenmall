@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, lazy, Suspense } from 'react';
+import { useMemo, useState, lazy, Suspense } from 'react';
 import React from 'react';
 import { fetchCategories, fetchStores } from '@api/categories';
 import { fetchFloors } from '@api/floors';
@@ -22,7 +22,6 @@ import {
   fetchAdminCategories,
   fetchAdminStores,
   fetchAdminTenants,
-  login,
   updateAdminCategory,
   updateAdminStore,
   updateAdminTenant,
@@ -33,13 +32,7 @@ import {
   type UpdateStoreInput,
   type UpdateTenantInput,
 } from '@api/admin';
-import {
-  clearAccessToken,
-  AUTH_EXPIRED_EVENT,
-  fetchCurrentUser,
-  setAccessToken,
-  type AdminUser,
-} from '@api/client';
+import { useAdminSession } from '@hooks/useAdminSession';
 import type {
   ApiCategory,
   ApiStore,
@@ -91,8 +84,6 @@ export interface AdminPageProps {
 }
 
 export default function AdminPage({ onClose }: AdminPageProps = {}) {
-  const [user, setUser] = useState<AdminUser | null>(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>('categories');
   const [categories, setCategories] = useState<ApiCategory[]>([]);
@@ -109,10 +100,6 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [editingStoreId, setEditingStoreId] = useState<string | null>(null);
   const [editingTenantId, setEditingTenantId] = useState<string | null>(null);
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
-  const [loginError, setLoginError] = useState<string | null>(null);
-  const [loginLoading, setLoginLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [uploadingTenantLogo, setUploadingTenantLogo] = useState(false);
@@ -124,38 +111,19 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
   const logoFileInputRef = React.useRef<HTMLInputElement | null>(null);
   const tenantLogoFileInputRef = React.useRef<HTMLInputElement | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function init() {
-      try {
-        const me = await fetchCurrentUser();
-        if (cancelled) return;
-        setUser(me);
-        await loadData();
-      } catch {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    }
-
-    init();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    const handleExpiredSession = () => {
-      setUser(null);
-      setLoginError('Сессия истекла. Войдите снова.');
-      setLoading(false);
-    };
-    window.addEventListener(AUTH_EXPIRED_EVENT, handleExpiredSession);
-    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, handleExpiredSession);
-  }, []);
+  const {
+    user,
+    loading,
+    setLoading,
+    email: loginEmail,
+    setEmail: setLoginEmail,
+    password: loginPassword,
+    setPassword: setLoginPassword,
+    error: loginError,
+    loginLoading,
+    handleLogin,
+    logout: handleLogout,
+  } = useAdminSession({ loadData, resetData: resetAdminData });
 
   async function loadData() {
     try {
@@ -178,29 +146,11 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
     }
   }
 
-  async function handleLogin(e: React.FormEvent) {
-    e.preventDefault();
-    setLoginError(null);
-    setLoginLoading(true);
-
-    try {
-      const response = await login(loginEmail, loginPassword);
-      setAccessToken(response.accessToken);
-      setUser(response.user);
-      await loadData();
-    } catch (err) {
-      setLoginError(err instanceof Error ? err.message : 'Login failed');
-    } finally {
-      setLoginLoading(false);
-    }
-  }
-
-  function handleLogout() {
-    clearAccessToken();
-    setUser(null);
+  function resetAdminData() {
     setCategories([]);
     setStores([]);
     setFloors([]);
+    setTenants([]);
     setFileAssets([]);
     setPromotions([]);
     setEditingCategoryId(null);
@@ -211,8 +161,6 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
     setStoreForm(emptyStoreForm);
     setTenantForm(emptyTenantForm);
     setPromotionForm(emptyPromotionForm);
-    setLoginPassword('');
-    setLoginError(null);
   }
 
   async function submitCategory() {

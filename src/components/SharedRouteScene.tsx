@@ -4,6 +4,7 @@ import type { Group } from 'three';
 import { FloorScene, type PlanMetrics } from '@pages/MallMap';
 import { useCachedGLTF } from '@components/MallMap/gltfCache';
 import { useFloorScene } from '@hooks/useFloorScene';
+import PublicAdBanner from '@components/PublicAdBanner';
 import type {
   ApiRouteNode,
   ApiRouteToStoreResponse,
@@ -248,6 +249,7 @@ export default function SharedRouteScene({
   const inner = (
     <div className={styles.page}>
       {headerContent}
+      <PublicAdBanner slotCode="mobile-home-banner" />
       <div className={styles.mapArea}>
         {routeStatusContent}
         <div
