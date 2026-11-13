@@ -3,7 +3,7 @@
   flex: 1 1 0;
   min-width: 0;
   max-width: 640px;
-  height: 40px;
+  height: 48px;
   margin: 0 10px;
   overflow: hidden;
   border-radius: 8px;
@@ -14,5 +14,5 @@
 @media (max-width: 600px) { .banner { margin: 0 6px; border-radius: 6px; } }
 @media (max-width: 900px) { .banner { order: 3; flex-basis: 100%; max-width: none; margin: 6px 0 0; } }
 @media (min-width: 1920px) and (min-aspect-ratio: 16/9) {
-  .banner { max-width: 800px; height: calc(40px * var(--k, 1)); }
+  .banner { max-width: 800px; height: calc(48px * var(--k, 1)); }
 }
