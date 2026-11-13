@@ -1,0 +1,15 @@
+.banner {
+  display: flex;
+  flex: 1 1 360px;
+  min-width: 0;
+  max-width: 480px;
+  aspect-ratio: 3 / 1;
+  margin: 0 16px;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #082c1e;
+}
+.banner img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.banner:focus-visible { outline: 3px solid #9fa044; outline-offset: 3px; }
+@media (max-width: 600px) { .banner { margin: 0 6px; border-radius: 6px; } }
+@media (max-width: 900px) { .banner { order: 3; flex-basis: 100%; max-width: 480px; margin: 6px auto 0; } }

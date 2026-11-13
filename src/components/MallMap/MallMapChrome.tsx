@@ -1,5 +1,5 @@
 import type { HeaderBanner } from '@api/headerBanners';
-import { resolveAssetUrl } from '@api/fileAssets';
+import HeaderAdvertisement from './HeaderAdvertisement';
 import logoGreenMall from '@assets/icons/logo2.webp';
 import qrCodeIcon from '@assets/icons/qr_code.webp';
 import qrCodeEngIcon from '@assets/icons/qr_code_eng.webp';
@@ -35,19 +35,7 @@ export function MallMapHeader({
   return (
     <header className={styles.header}>
       <img src={logoGreenMall} alt="GreenMall" className={styles.logo} draggable={false} />
-      {banner?.asset ? (
-        <div className={styles.headerBanner}>
-          <img
-            src={resolveAssetUrl(banner.asset.url)}
-            alt={banner.title}
-            className={styles.headerBannerImage}
-            onClick={() =>
-              banner.linkUrl && window.open(banner.linkUrl, '_blank', 'noopener,noreferrer')
-            }
-            style={{ cursor: banner.linkUrl ? 'pointer' : 'default' }}
-          />
-        </div>
-      ) : null}
+      <HeaderAdvertisement banner={banner} />
       <div className={styles.headerRight}>
         <div className={styles.dateTime}>
           <span className={styles.time}>{time}</span>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Category, SubcategoryItem } from "./types";
+import { matchesStore } from '@utils/storeSearch';
 import { SearchIcon, ChevronUpIcon, BackIcon, FloorIcon } from "./icons";
 
 import clothingIcon from "@assets/icons/Одежда.svg";
@@ -99,6 +100,7 @@ export default function MallWidget({
   onCollapse,
 }: MallWidgetProps) {
   const [screen, setScreen] = useState<Screen>("categories");
+  const [search, setSearch] = useState('');
   const [currentCategory, setCurrentCategory] = useState<Category | null>(null);
   const [selectedStore, setSelectedStore] = useState<ApiStore | null>(null);
   const [storePromotions, setStorePromotions] = useState<PublicPromotion[]>([]);
@@ -262,7 +264,7 @@ export default function MallWidget({
   }
 
   function goBackToCategory() {
-    setScreen("detail");
+    setScreen(currentCategory ? "detail" : "categories");
     setSelectedStore(null);
   }
 
@@ -320,7 +322,11 @@ export default function MallWidget({
                 <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
                 <path d="M21 21L16.5 16.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
               </svg>
-               <span className={styles.searchPlaceholder}>{lang === 'ru' ? 'Куда отправимся?' : 'Where to?'}</span>
+               <input type="search" value={search} onFocus={onExpand}
+                 onChange={(event) => setSearch(event.target.value)}
+                 aria-label={lang === 'ru' ? 'Поиск магазина' : 'Search stores'}
+                 placeholder={lang === 'ru' ? 'Название или синоним магазина' : 'Store name or keyword'}
+                 style={{width:'100%',minWidth:0,border:0,background:'transparent',font:'inherit',color:'inherit'}} />
             </div>
              <button
                className={`${styles.collapseBtn} ${open ? styles.collapseBtnOpen : ""}`}
@@ -375,6 +381,17 @@ export default function MallWidget({
                   </div>
                 ))}
               </div>
+            </div>
+          ) : screen === "categories" && search.trim() ? (
+            <div className={styles.content}>
+              <div className={styles.grid}>
+                {[...storesById.values()].filter(store => matchesStore(store, search)).map(store => (
+                  <button key={store.id} className={styles.catCard} onClick={() => openStore(store)}>
+                    <span>{store.name}</span><small>{lang === 'ru' ? 'Этаж' : 'Floor'} {store.floor?.number}</small>
+                  </button>
+                ))}
+              </div>
+              {![...storesById.values()].some(store => matchesStore(store, search)) && <p role="status">{lang === 'ru' ? 'Магазины не найдены. Попробуйте другое название.' : 'No stores found. Try another name.'}</p>}
             </div>
           ) : screen === "categories" ? (
             <div className={styles.content}>

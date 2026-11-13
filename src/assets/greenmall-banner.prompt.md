@@ -1,0 +1,3 @@
+Generated with the built-in image generation tool for the header fallback.
+
+Prompt: Use case: ads-marketing. Create a wide premium photographic advertising banner for GreenMall shopping centre, 3:1 landscape. Emerald green and warm cream palette. Elegant still life of shopping bags, coffee cup and lush leaves on the right; generous clean dark green negative space on left. Exact headline 'GREENMALL', smaller exact Russian text 'Покупки. Отдых. Впечатления.' Large readable typography centered vertically within the middle 50 percent of canvas so a wide horizontal crop is safe. No other lettering, no watermarks, no discount claims. Photorealistic studio lighting, sophisticated restrained composition.
