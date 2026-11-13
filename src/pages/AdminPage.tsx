@@ -79,6 +79,18 @@ const emptyPromotionForm: CreatePromotionInput & { id?: string | null } = {
 
 type Tab = 'categories' | 'stores' | 'tenants' | 'routes' | 'mobile' | 'banners' | 'icons' | 'statistics' | 'promotions';
 
+const SECTION_INFO: Record<Tab, [string, string]> = {
+  categories: ['Категории', 'Организуйте каталог и распределение магазинов по категориям.'],
+  stores: ['Магазины', 'Карточки магазинов, расположение, изображения и часы работы.'],
+  tenants: ['Арендаторы', 'Контактные данные и управление арендаторами торгового центра.'],
+  routes: ['Маршруты', 'Точки, соединения и переходы между этажами.'],
+  mobile: ['QR-страница', 'Настройки карты, которую посетители берут с собой.'],
+  banners: ['Баннеры', 'Рекламные изображения и настройки их показа.'],
+  icons: ['Иконки на карте', 'Размещение обозначений на моделях этажей.'],
+  statistics: ['Статистика', 'Посещения, маршруты и результаты работы навигации.'],
+  promotions: ['Акции', 'Предложения магазинов, сроки действия и публикация.'],
+};
+
 export interface AdminPageProps {
   onClose?: () => void;
 }
@@ -86,6 +98,7 @@ export interface AdminPageProps {
 export default function AdminPage({ onClose }: AdminPageProps = {}) {
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>('categories');
+  const [compact, setCompact] = useState(false);
   const [categories, setCategories] = useState<ApiCategory[]>([]);
   const [stores, setStores] = useState<ApiStore[]>([]);
   const [floors, setFloors] = useState<ApiFloor[]>([]);
@@ -599,15 +612,21 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
   }
 
   return (
-    <div className={styles.page}>
+    <div className={`${styles.page} ${compact ? styles.compact : ''}`}>
       <header className={styles.header}>
         <div>
-          <h1 className={styles.heading}>Green Mall Admin</h1>
+          <span className={styles.sectionEyebrow}>GREEN MALL · УПРАВЛЕНИЕ</span>
+          <h1 className={styles.heading}>{SECTION_INFO[tab][0]}</h1>
+          <p className={styles.sectionDescription}>{SECTION_INFO[tab][1]}</p>
           <p className={styles.userInfo}>
             {user.fullName ?? user.email} · {user.role}
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <button className={styles.ghostBtn} type="button" aria-pressed={compact}
+            onClick={() => setCompact(value => !value)} title="Уменьшить отступы в формах и списках">
+            Компактный вид
+          </button>
           {onClose ? (
             <button className={styles.ghostBtn} type="button" onClick={onClose}>
               ← Назад
@@ -624,11 +643,12 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
         </div>
       </header>
 
-      <nav className={styles.tabs}>
+      <nav className={styles.tabs} aria-label="Разделы управления">
         <button
           type="button"
           className={`${styles.tab} ${tab === 'categories' ? styles.tabActive : ''}`}
           onClick={() => setTab('categories')}
+          aria-current={tab === 'categories' ? 'page' : undefined}
         >
           Категории
         </button>
@@ -636,6 +656,7 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
           type="button"
           className={`${styles.tab} ${tab === 'stores' ? styles.tabActive : ''}`}
           onClick={() => setTab('stores')}
+          aria-current={tab === 'stores' ? 'page' : undefined}
         >
           Магазины
         </button>
@@ -643,6 +664,7 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
           type="button"
           className={`${styles.tab} ${tab === 'tenants' ? styles.tabActive : ''}`}
           onClick={() => setTab('tenants')}
+          aria-current={tab === 'tenants' ? 'page' : undefined}
         >
           Арендаторы
         </button>
@@ -650,6 +672,7 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
           type="button"
           className={`${styles.tab} ${tab === 'routes' ? styles.tabActive : ''}`}
           onClick={() => setTab('routes')}
+          aria-current={tab === 'routes' ? 'page' : undefined}
         >
           Маршруты
         </button>
@@ -657,6 +680,7 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
           type="button"
           className={`${styles.tab} ${tab === 'mobile' ? styles.tabActive : ''}`}
           onClick={() => setTab('mobile')}
+          aria-current={tab === 'mobile' ? 'page' : undefined}
         >
           QR-страница
         </button>
@@ -664,6 +688,7 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
           type="button"
           className={`${styles.tab} ${tab === 'banners' ? styles.tabActive : ''}`}
           onClick={() => setTab('banners')}
+          aria-current={tab === 'banners' ? 'page' : undefined}
         >
           Баннеры
         </button>
@@ -671,6 +696,7 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
           type="button"
           className={`${styles.tab} ${tab === 'icons' ? styles.tabActive : ''}`}
           onClick={() => setTab('icons')}
+          aria-current={tab === 'icons' ? 'page' : undefined}
         >
           Иконки на карте
         </button>
@@ -678,6 +704,7 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
           type="button"
           className={`${styles.tab} ${tab === 'statistics' ? styles.tabActive : ''}`}
           onClick={() => setTab('statistics')}
+          aria-current={tab === 'statistics' ? 'page' : undefined}
         >
           Статистика
         </button>
@@ -685,6 +712,7 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
           type="button"
           className={`${styles.tab} ${tab === 'promotions' ? styles.tabActive : ''}`}
           onClick={() => setTab('promotions')}
+          aria-current={tab === 'promotions' ? 'page' : undefined}
         >
           Акции
         </button>

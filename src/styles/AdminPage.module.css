@@ -1,4 +1,5 @@
 .page {
+  box-sizing: border-box;
   min-height: 100vh;
   min-height: 100dvh;
   width: 100%;
@@ -902,7 +903,7 @@ select.input {
   width: 264px;
   height: 100vh;
   height: 100dvh;
-  min-height: 560px;
+  min-height: 0;
   margin: 0;
   padding: 28px 16px 18px;
   overflow-y: auto;
@@ -1231,6 +1232,42 @@ select.input:focus {
 .page {
   --brand: #B5B62F;
   --brand-dark: #7D7F20;
+}
+
+/* Workspace hierarchy and density. Keep every existing editor and action. */
+.sectionEyebrow {
+  display: block;
+  margin-bottom: 8px;
+  color: #6c775e;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: .12em;
+}
+.sectionDescription { margin: 8px 0 0; color: #59665e; font-size: 13px; line-height: 1.6; max-width: 620px; }
+.header > div:last-child { flex-wrap: wrap; justify-content: flex-end; }
+.panel { min-width: 0; box-sizing: border-box; padding: 24px; gap: 18px; box-shadow: 0 4px 20px #20362906; }
+.panelHeader { padding-bottom: 14px; border-bottom: 1px solid #edf0e8; flex-wrap: wrap; }
+.panelTitle { font-size: 18px; letter-spacing: -.02em; }
+.label { color: #48594c; font-size: 13px; text-transform: none; letter-spacing: normal; }
+.hint { font-size: 12px; line-height: 1.6; color: #647167; }
+.itemTitle { font-size: 14px; line-height: 1.45; overflow-wrap: anywhere; }
+.itemMeta { color: #637169; overflow-wrap: anywhere; }
+.item { gap: 16px; align-items: flex-start; }
+.itemActions { flex-shrink: 0; max-width: 50%; }
+.input::placeholder, .textarea::placeholder { color: #748078; }
+.page button:focus-visible, .page a:focus-visible { outline: 3px solid #7d7f20; outline-offset: 3px; }
+.page button:disabled { cursor: not-allowed; opacity: .55; }
+.ghostBtn[aria-pressed='true'] { background: #e2e5bc; box-shadow: inset 0 0 0 1px #a5aa55; }
+.compact .panel { padding: 16px; gap: 10px; }
+.compact .form { gap: 10px; }
+.compact .item { padding: 10px; gap: 10px; }
+.compact .input, .compact .textarea { min-height: 36px; padding: 8px 10px; }
+.compact .panelHeader { padding-bottom: 10px; }
+@media (max-width: 760px) {
+  .panel { padding: 16px; }
+  .itemActions { max-width: none; }
+  .header > div:last-child { justify-content: flex-start; }
+  .sectionDescription { font-size: 12px; }
 }
 
 .page:has(> .header):has(> .tabs) > .tabs::before {
