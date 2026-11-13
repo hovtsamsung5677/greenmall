@@ -1,0 +1,22 @@
+.button.button {
+  border: 2px solid var(--brand, #c2c353);
+  border-radius: 999px;
+  background: white;
+  color: #aeb52e;
+}
+.label {
+  padding: 0 14px;
+  white-space: nowrap;
+  font-size: calc(16px * var(--ctrl, 1));
+  font-weight: 700;
+}
+.icon {
+  height: 100%;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--brand, #c2c353);
+  color: white;
+}
+.icon svg { width: 60%; height: 60%; }

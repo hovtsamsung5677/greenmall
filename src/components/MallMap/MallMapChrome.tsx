@@ -1,8 +1,7 @@
 import type { HeaderBanner } from '@api/headerBanners';
 import HeaderAdvertisement from './HeaderAdvertisement';
 import logoGreenMall from '@assets/icons/logo2.webp';
-import qrCodeIcon from '@assets/icons/qr_code.webp';
-import qrCodeEngIcon from '@assets/icons/qr_code_eng.webp';
+import qrStyles from './ShareMapButton.module.css';
 import translatorRu from '@assets/icons/переводчик рус.svg';
 import translatorEn from '@assets/icons/переводчик англ.svg';
 import styles from '@styles/MallMap.module.css';
@@ -111,12 +110,18 @@ export function ZoomControls({
     <div className={styles.zoomControls}>
       <button
         type="button"
-        className={styles.qrBtn}
-        aria-label={lang === 'en' ? 'Share route via QR' : 'Поделиться маршрутом через QR'}
+        className={`${styles.qrBtn} ${qrStyles.button}`}
+        aria-label={lang === 'en' ? 'Map to go' : 'Карта с собой'}
         onClick={onShare}
         disabled={shareLoading || !hasRoute}
       >
-        <img src={lang === 'en' ? qrCodeEngIcon : qrCodeIcon} alt="" />
+        <span className={qrStyles.label}>{lang === 'en' ? 'Map to go' : 'Карта с собой'}</span>
+        <span className={qrStyles.icon} aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path fillRule="evenodd" d="M2 2h7v7H2V2zm2 2v3h3V4H4zm11-2h7v7h-7V2zm2 2v3h3V4h-3zM2 15h7v7H2v-7zm2 2v3h3v-3H4z" />
+            <path d="M11 2h2v3h-2zm0 5h2v5h-2zM2 11h3v2H2zm5 0h2v2H7zm8 0h3v3h-3zm5 0h2v2h-2zm-9 4h3v3h-3zm5 1h3v3h-3zm4-1h2v4h-2zm-9 5h3v2h-3zm5 1h6v1h-6z" />
+          </svg>
+        </span>
       </button>
       <button type="button" className={styles.zoomBtn} aria-label="Уменьшить" onClick={onZoomOut}>
         <svg viewBox="0 0 24 24" fill="none">
