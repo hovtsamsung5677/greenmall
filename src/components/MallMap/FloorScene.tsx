@@ -490,6 +490,7 @@ export function FloorScene({
   onIconClick,
   stores = [],
   onStoreClick,
+  selectedStoreId,
   evacuationStairs = [],
   onEvacuationRouteStart,
 }: {
@@ -507,6 +508,7 @@ export function FloorScene({
   onIconClick?: (icon: ApiFloorIcon) => void;
   stores?: ApiStore[];
   onStoreClick?: (store: ApiStore) => void;
+  selectedStoreId?: string;
   evacuationStairs?: ApiRouteNode[];
   onEvacuationRouteStart?: () => void;
 }) {
@@ -813,7 +815,7 @@ export function FloorScene({
         </group>
       </group>
 {metrics?.width === 900 && metrics?.height === 600 && stores.length > 0 && (
-  <StoreLabelLayer stores={stores} floor={activeFloor} elevation={modelWorldSize.y / 2 + 1} onStoreClick={onStoreClick} />
+  <StoreLabelLayer stores={stores} floor={activeFloor} elevation={modelWorldSize.y / 2 + 1} onStoreClick={onStoreClick} selectedStoreId={selectedStoreId} />
 )}
 <FloorIconLayer
         icons={icons}

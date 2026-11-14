@@ -103,6 +103,7 @@ export function SceneCanvas({
   icons,
   stores,
   onStoreClick,
+  selectedStoreId,
   evacuationStairs,
   onEvacuationRouteStart,
   controlsRef,
@@ -130,6 +131,7 @@ export function SceneCanvas({
   icons?: ApiFloorIcon[];
   stores?: ApiStore[];
   onStoreClick?: (store: ApiStore) => void;
+  selectedStoreId?: string;
   evacuationStairs?: ApiRouteNode[];
   onEvacuationRouteStart?: () => void;
   controlsRef: React.RefObject<OrbitControlsImpl | null>;
@@ -181,6 +183,7 @@ export function SceneCanvas({
       icons={icons}
       stores={transfer ? [] : stores}
       onStoreClick={onStoreClick}
+      selectedStoreId={selectedStoreId}
       evacuationStairs={evacuationStairs}
       onEvacuationRouteStart={onEvacuationRouteStart}
       textures={textures}

@@ -25,6 +25,7 @@
   background: #fffffff2;
   padding: 2px;
   box-shadow: 0 1px 3px #22332230;
+  transition: transform 220ms ease, box-shadow 220ms ease;
 }
 .name {
   position: absolute;
@@ -39,6 +40,22 @@
   overflow: hidden;
   text-overflow: ellipsis;
   text-shadow: 0 0 3px white, 0 1px 2px white;
+  transition: top 220ms ease, color 220ms ease;
+}
+.marker[aria-pressed='true'] img,
+.marker[aria-pressed='true'] .neutral {
+  transform: scale(1.4);
+  box-shadow: 0 0 0 2px #60802b, 0 0 0 5px #b9c65755, 0 3px 8px #22332240;
+}
+.marker[aria-pressed='true'] .name {
+  top: calc(100% + var(--store-icon-size, 24px) * .2 + 8px);
+  color: #35491d;
+  font-weight: 700;
+  background: #fffffff2;
+  border-radius: 3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .marker img, .neutral, .name { transition: none; }
 }
 .marker:not([data-label='true']) .name { display: none; }
 .marker:hover .name, .marker:focus-visible .name { display: -webkit-box; background: #fffffff2; border-radius: 3px; }

@@ -529,6 +529,7 @@ export default function MallMap({
       <SceneErrorBoundary onError={() => setCanvasError(true)}>
         <SceneCanvas
           stores={allStores}
+          selectedStoreId={storeCardRequest?.store.id}
           onStoreClick={store => {
             setStoreCardRequest({ store });
             setFiltersOpen(true);

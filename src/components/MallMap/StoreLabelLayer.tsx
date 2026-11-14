@@ -26,17 +26,19 @@ const icons: Record<string, string> = {
   'kids-goods': kids, entertainment, services, infrastructure, atms,
 };
 
-export function StoreLabelLayer({ stores, floor, elevation, onStoreClick }: {
+export function StoreLabelLayer({ stores, floor, elevation, onStoreClick, selectedStoreId }: {
   stores: ApiStore[];
   floor: number;
   elevation: number;
   onStoreClick?: (store: ApiStore) => void;
+  selectedStoreId?: string;
 }) {
   const buttons = useRef(new Map<string, HTMLButtonElement>());
   const entries = useMemo(() => (STORE_LABELS_BY_FLOOR[floor] ?? []).flatMap(placement => {
     const store = stores.find(item => item.slug === placement.slug && item.floor?.number === floor && item.isActive && item.isVisible);
     return store ? [{ placement, store, center: labelCenter(placement) }] : [];
-  }).sort((a, b) => Number(a.placement.compact) - Number(b.placement.compact)), [stores, floor]);
+  }).sort((a, b) => Number(b.store.id === selectedStoreId) - Number(a.store.id === selectedStoreId) ||
+    Number(a.placement.compact) - Number(b.placement.compact)), [stores, floor, selectedStoreId]);
 
   useFrame(({ camera, size }) => {
     const accepted: LabelBox[] = [];
@@ -51,23 +53,25 @@ export function StoreLabelLayer({ stores, floor, elevation, onStoreClick }: {
       const [l, t, r, b] = placement.interior;
       const radius = projectedClearance(p, [project(l, t), project(r, t), project(r, b), project(l, b)]);
       const iconSize = Math.min(placement.compact ? 19 : 26, Math.floor(radius * 1.25));
-      const box = { x: p.x, y: p.y, width: iconSize, height: iconSize };
+      const selected = entry.store.id === selectedStoreId;
+      const footprint = iconSize * (selected ? 1.4 : 1) + (selected ? 6 : 0);
+      const box = { x: p.x, y: p.y, width: footprint, height: footprint };
       const visible = iconSize >= 9 && p.z > -1 && p.z < 1 && p.x >= 0 && p.x <= size.width && p.y >= 0 && p.y <= size.height &&
         !visibleIcons.some(other => boxesOverlap(other, box));
       if (visible) visibleIcons.push(box);
-      return { ...entry, p, iconSize, visible, box };
+      return { ...entry, p, iconSize, visible, box, selected, footprint };
     });
-    for (const { store, p, iconSize, visible } of projected) {
+    for (const { store, p, iconSize, visible, selected, footprint } of projected) {
       const button = buttons.current.get(store.id);
       if (!button) continue;
       const textWidth = Math.min(160, Math.max(64, store.name.length * 9 + 12));
       // Reserve two lines: uppercase Cyrillic and wide glyphs must not collide
       // with the next marker even when browser font metrics differ.
       const textHeight = 32;
-      const textBox = { x: p.x, y: p.y + iconSize / 2 + 5 + textHeight / 2, width: textWidth, height: textHeight };
-      const showText = visible && iconSize >= 14 &&
+      const textBox = { x: p.x, y: p.y + footprint / 2 + 5 + textHeight / 2, width: textWidth, height: textHeight };
+      const showText = visible && (selected || iconSize >= 14 &&
         !visibleIcons.some(box => boxesOverlap(box, textBox)) &&
-        !accepted.some(box => boxesOverlap(box, textBox));
+        !accepted.some(box => boxesOverlap(box, textBox)));
       button.style.visibility = visible ? 'visible' : 'hidden';
       button.style.setProperty('--store-icon-size', `${iconSize}px`);
       button.style.setProperty('--store-label-width', `${textWidth}px`);
@@ -83,6 +87,7 @@ export function StoreLabelLayer({ stores, floor, elevation, onStoreClick }: {
     <button
       ref={element => { if (element) buttons.current.set(store.id, element); else buttons.current.delete(store.id); }}
       className={styles.marker} type="button" aria-label={store.name} title={store.name}
+      aria-pressed={store.id === selectedStoreId}
       onPointerDown={event => event.stopPropagation()}
       onClick={event => { event.stopPropagation(); onStoreClick?.(store); }}
     >
