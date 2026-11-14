@@ -5,7 +5,7 @@ import { MOUSE, TOUCH } from 'three';
 import type { Group } from 'three';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import type { ApiRouteToStoreResponse, ApiRouteNode, ApiFloorIcon } from '@api/types';
+import type { ApiRouteToStoreResponse, ApiRouteNode, ApiFloorIcon, ApiStore } from '@api/types';
 import { FloorScene, type PlanMetrics, type UpwardShaft } from './FloorScene';
 import FloorStackStage from './FloorStackStage';
 
@@ -101,6 +101,8 @@ export function SceneCanvas({
   onReachTransfer,
   onTransferComplete,
   icons,
+  stores,
+  onStoreClick,
   evacuationStairs,
   onEvacuationRouteStart,
   controlsRef,
@@ -126,6 +128,8 @@ export function SceneCanvas({
   onReachTransfer?: (nextFloor: number) => void;
   onTransferComplete?: () => void;
   icons?: ApiFloorIcon[];
+  stores?: ApiStore[];
+  onStoreClick?: (store: ApiStore) => void;
   evacuationStairs?: ApiRouteNode[];
   onEvacuationRouteStart?: () => void;
   controlsRef: React.RefObject<OrbitControlsImpl | null>;
@@ -175,6 +179,8 @@ export function SceneCanvas({
       upwardShaft={shaft}
       debug={debug}
       icons={icons}
+      stores={transfer ? [] : stores}
+      onStoreClick={onStoreClick}
       evacuationStairs={evacuationStairs}
       onEvacuationRouteStart={onEvacuationRouteStart}
       textures={textures}

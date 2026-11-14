@@ -83,6 +83,7 @@ export interface MallWidgetProps {
   categories?: Category[];
   lang?: 'ru' | 'en';
   refreshKey?: number;
+  storeCardRequest?: { store: ApiStore } | null;
   onSelectItem?: (category: Category, floor: number, item: SubcategoryItem) => void;
   onPickStore?: (store: ApiStore) => void;
   onExpand?: () => void;
@@ -94,6 +95,7 @@ export default function MallWidget({
   categories: categoriesProp,
   lang = 'ru',
   refreshKey,
+  storeCardRequest,
   onSelectItem,
   onPickStore,
   onExpand,
@@ -127,6 +129,15 @@ export default function MallWidget({
   }, [categoriesProp, internalCategories]);
 
   const loadDataRef = useRef<() => void>(() => {});
+
+  useEffect(() => {
+    if (!storeCardRequest) return;
+    const { store } = storeCardRequest;
+    trackStoreSelected(store.id, store.name);
+    setCurrentCategory(null);
+    setSelectedStore(store);
+    setScreen('store-detail');
+  }, [storeCardRequest]);
 
   useEffect(() => {
     if (categoriesProp) return;
@@ -344,7 +355,7 @@ export default function MallWidget({
                 </button>
                 <span className={styles.title}>{selectedStore.name}</span>
               </div>
-              <button className={styles.collapseBtn} aria-label={lang === 'ru' ? 'Свернуть' : 'Collapse'} onClick={onCollapse}>
+              <button className={styles.collapseBtn} aria-label={lang === 'ru' ? 'Свернуть' : 'Collapse'} onClick={() => { closeDetail(); onCollapse?.(); }}>
                 <ChevronUpIcon />
              </button>
           </>

@@ -24,6 +24,7 @@ import { buildShareUrl } from '@utils/shareUrl';
 import type {
   ApiRouteToStoreResponse,
   ApiFloorChange,
+  ApiStore,
 } from '@api/types';
 import {
   trackPanelSessionStarted,
@@ -91,6 +92,7 @@ export default function MallMap({
   const [activeFloor, setActiveFloor] = useState<number>(1);
   const [zoom, setZoom] = useState<number>(2);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [storeCardRequest, setStoreCardRequest] = useState<{ store: ApiStore } | null>(null);
   const [modelError, setModelError] = useState(false);
   const [canvasError, setCanvasError] = useState(false);
 
@@ -526,6 +528,11 @@ export default function MallMap({
     viewport = (
       <SceneErrorBoundary onError={() => setCanvasError(true)}>
         <SceneCanvas
+          stores={allStores}
+          onStoreClick={store => {
+            setStoreCardRequest({ store });
+            setFiltersOpen(true);
+          }}
           key={canvasKey}
           gltf={gltf}
           nextGltf={nextGltf}
@@ -564,6 +571,7 @@ export default function MallMap({
 
       <div className={styles.mapArea}>
         <MallWidget
+          storeCardRequest={storeCardRequest}
           key={widgetRefreshKey}
           open={filtersOpen}
           lang={lang}

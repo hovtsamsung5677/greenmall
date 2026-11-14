@@ -24,6 +24,8 @@ import type {
   ApiRouteToStoreResponse,
 } from '@api/types';
 import FloorIconLayer, { type FloorIconLayerMetrics } from './FloorIconLayer';
+import { StoreLabelLayer } from './StoreLabelLayer';
+import type { ApiStore } from '@api/types';
 import { getNextRouteFloor, getRouteSegment } from '@utils/routeProgress';
 import { advanceRouteDistance, ROUTE_TRAVEL_SPEED } from '@utils/routeAnimation';
 
@@ -486,6 +488,8 @@ export function FloorScene({
   textures = [],
   icons = [],
   onIconClick,
+  stores = [],
+  onStoreClick,
   evacuationStairs = [],
   onEvacuationRouteStart,
 }: {
@@ -501,6 +505,8 @@ export function FloorScene({
   textures?: ApiFloorTexture[];
   icons?: ApiFloorIcon[];
   onIconClick?: (icon: ApiFloorIcon) => void;
+  stores?: ApiStore[];
+  onStoreClick?: (store: ApiStore) => void;
   evacuationStairs?: ApiRouteNode[];
   onEvacuationRouteStart?: () => void;
 }) {
@@ -806,6 +812,9 @@ export function FloorScene({
           <primitive object={scene} />
         </group>
       </group>
+{metrics?.width === 900 && metrics?.height === 600 && stores.length > 0 && (
+  <StoreLabelLayer stores={stores} floor={activeFloor} elevation={modelWorldSize.y / 2 + 1} onStoreClick={onStoreClick} />
+)}
 <FloorIconLayer
         icons={icons}
         metrics={metrics}
