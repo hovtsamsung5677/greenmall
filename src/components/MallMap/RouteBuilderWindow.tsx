@@ -11,6 +11,8 @@ export interface RouteBuilderWindowProps {
   onFromChange: (id: string | null) => void;
   onToChange: (id: string | null) => void;
   onBuild: () => void;
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
 }
 
 export function RouteBuilderWindow({
@@ -22,6 +24,8 @@ export function RouteBuilderWindow({
   onFromChange,
   onToChange,
   onBuild,
+  mobileOpen = false,
+  onMobileClose,
 }: RouteBuilderWindowProps) {
   const [fromOpen, setFromOpen] = useState(false);
   const [toOpen, setToOpen] = useState(false);
@@ -55,9 +59,19 @@ export function RouteBuilderWindow({
   }
 
   return (
-    <div className={styles.routeBuilderWindow}>
+    <div className={`${styles.routeBuilderWindow} ${mobileOpen ? styles.routeBuilderWindowMobileOpen : ''}`}>
       <div className={styles.routeBuilderHeader}>
         <span className={styles.routeBuilderTitle}>Маршрут между магазинами</span>
+        {onMobileClose ? (
+          <button
+            type="button"
+            className={styles.routeBuilderMobileClose}
+            onClick={onMobileClose}
+            aria-label="Закрыть маршрут между магазинами"
+          >
+            ×
+          </button>
+        ) : null}
       </div>
       <div className={styles.routeBuilderSelects}>
         <div className={styles.routeBuilderDropdown}>

@@ -4,6 +4,7 @@ import styles from '@styles/MallMap.module.css';
 
 import MallWidget from '@components/mall-widget/MallWidget';
 import { RouteBuilderWindow } from '@components/MallMap/RouteBuilderWindow';
+import { MobileMapActions } from '@components/MallMap/MobileMapActions';
 import { ShareQrModal } from '@components/MallMap/ShareQrModal';
 import { ModelError, SceneErrorBoundary } from '@components/MallMap/SceneFallbacks';
 import {
@@ -92,6 +93,8 @@ export default function MallMap({
   const [activeFloor, setActiveFloor] = useState<number>(1);
   const [zoom, setZoom] = useState<number>(2);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileRouteBuilderOpen, setMobileRouteBuilderOpen] = useState(false);
   const [storeCardRequest, setStoreCardRequest] = useState<{ store: ApiStore } | null>(null);
   const [modelError, setModelError] = useState(false);
   const [canvasError, setCanvasError] = useState(false);
@@ -571,18 +574,20 @@ export default function MallMap({
       <MapHeader lang={lang} onLangChange={setLang} onOpenAdmin={onOpenAdmin} now={now} banner={headerBanner} />
 
       <div className={styles.mapArea}>
-        <MallWidget
-          storeCardRequest={storeCardRequest}
-          key={widgetRefreshKey}
-          open={filtersOpen}
-          lang={lang}
-          refreshKey={widgetRefreshKey}
-          onExpand={() => setFiltersOpen(true)}
-          onCollapse={() => setFiltersOpen(false)}
-          onPickStore={(store) => {
-            if (store?.slug) void handleBuildRouteToStore(store.slug);
-          }}
-        />
+        <div className={`${styles.widgetShell} ${filtersOpen ? styles.widgetShellOpen : ''}`}>
+          <MallWidget
+            storeCardRequest={storeCardRequest}
+            key={widgetRefreshKey}
+            open={filtersOpen}
+            lang={lang}
+            refreshKey={widgetRefreshKey}
+            onExpand={() => setFiltersOpen(true)}
+            onCollapse={() => setFiltersOpen(false)}
+            onPickStore={(store) => {
+              if (store?.slug) void handleBuildRouteToStore(store.slug);
+            }}
+          />
+        </div>
 
         <div ref={viewportRef} className={styles.modelViewport}>
           {floorsError ? (
@@ -663,6 +668,26 @@ export default function MallMap({
           shareLoading={shareLoading}
           hasRoute={!!activeRoute}
         />
+
+        <MobileMapActions
+          lang={lang}
+          open={mobileMenuOpen}
+          onToggle={() => {
+            setMobileRouteBuilderOpen(false);
+            setMobileMenuOpen((open) => !open);
+          }}
+          onOpenCategories={() => {
+            setFiltersOpen(true);
+            setMobileMenuOpen(false);
+            setMobileRouteBuilderOpen(false);
+          }}
+          onToggleLanguage={() => setLang((current) => current === 'ru' ? 'en' : 'ru')}
+          onOpenRouteBuilder={() => {
+            setFiltersOpen(false);
+            setMobileMenuOpen(false);
+            setMobileRouteBuilderOpen(true);
+          }}
+        />
       </div>
 
       <RouteBuilderWindow
@@ -674,6 +699,8 @@ export default function MallMap({
         onFromChange={setRouteBetweenFromStoreId}
         onToChange={setRouteBetweenToStoreId}
         onBuild={handleBuildRouteBetween}
+        mobileOpen={mobileRouteBuilderOpen}
+        onMobileClose={() => setMobileRouteBuilderOpen(false)}
       />
 
       <ShareQrModal

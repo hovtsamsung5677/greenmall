@@ -241,7 +241,15 @@
 }
 
 /* Keep category icons centered while preserving room for labels on small screens. */
-@media (max-width: 600px) {
+@media (max-width: 600px), (max-width: 950px) and (max-height: 500px) {
+  .widget {
+    top: max(48px, env(safe-area-inset-top));
+    left: max(8px, env(safe-area-inset-left));
+    width: min(420px, calc(100vw - 56px));
+    max-height: calc(100dvh - 64px);
+    box-shadow: 0 14px 38px rgba(31, 39, 15, 0.2);
+  }
+
   .catIcon {
     top: 45%;
     height: 28px;
@@ -251,6 +259,14 @@
   .catCard span {
     font-size: 11.5px;
     line-height: 1.12;
+  }
+}
+
+@media (max-width: 950px) and (max-height: 500px) and (orientation: landscape) {
+  .widget {
+    top: 8px;
+    width: min(430px, calc(100vw - 64px));
+    max-height: calc(100dvh - 16px);
   }
 }
 
