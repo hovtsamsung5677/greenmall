@@ -17,9 +17,13 @@ import { createSharedRoute } from '@api/sharedRoutes';
 import { useFloorScene } from '@hooks/useFloorScene';
 import { useMallMapData } from '@hooks/useMallMapData';
 import { fetchFloorScene } from '@api/floors';
+import { fetchPublicRouteEdges } from '@api/routeEdges';
+import { fetchPublicRouteNodes } from '@api/routeNodes';
+import { fetchPanelByRouteNode } from '@api/panels';
 import { queryKeys } from '@api/queryKeys';
 import { resolveModelUrl } from '@utils/floors';
 import { resolveStoreRouteEndpoints } from '@utils/storeRouteEndpoints';
+import { findRouteStartNode } from '@utils/routeStartNode';
 import { getNextRouteFloor, getRouteSegment } from '@utils/routeProgress';
 import { buildShareUrl } from '@utils/shareUrl';
 import type {
@@ -331,35 +335,9 @@ export default function MallMap({
       storeSlug,
     });
     if (!floors.length) return;
-    const floor = floors.find((f) => f.number === activeFloor);
-    if (!floor) return;
-
-    const connectedIds = new Set<string>();
-    for (const edge of routeEdges) {
-      connectedIds.add(edge.fromNodeId);
-      connectedIds.add(edge.toNodeId);
-    }
-
-    const startNode =
-      routeNodes.find((n) => n.type === 'PANEL' && connectedIds.has(n.id)) ??
-      routeNodes.find((n) => n.type === 'PANEL') ??
-      routeNodes.find((n) => n.type === 'ENTRANCE' && connectedIds.has(n.id)) ??
-      routeNodes.find((n) => n.type === 'ENTRANCE') ??
-      routeNodes.find((n) => n.type === 'INFO_DESK' && connectedIds.has(n.id)) ??
-      routeNodes.find((n) => n.type === 'INFO_DESK') ??
-      routeNodes.find((n) => n.type === 'STORE_ANCHOR' && connectedIds.has(n.id)) ??
-      routeNodes.find((n) => n.type === 'STORE_ANCHOR') ??
-      routeNodes.find((n) => n.type === 'ROUTE_POINT' && connectedIds.has(n.id)) ??
-      routeNodes.find((n) => n.type === 'ROUTE_POINT');
-
-    console.log('[MallMap] startNode', {
-      found: Boolean(startNode),
-      startNodeId: startNode?.id,
-      startNodeType: startNode?.type,
-    });
-
-    if (!startNode) {
-      setRouteError('Не найден вход/панель/точка на текущем этаже');
+    const firstFloor = floors.find((floor) => floor.number === 1);
+    if (!firstFloor) {
+      setRouteError('Первый этаж не найден');
       return;
     }
 
@@ -367,7 +345,24 @@ export default function MallMap({
     setRouteError(null);
     setActiveRoute(null);
     setShowEvacuationHint(false);
+    setTransferTarget(null);
+    setRouteSegmentIndex(0);
+    setActiveFloor(firstFloor.number);
     try {
+      const [firstFloorNodes, firstFloorEdges] = await Promise.all([
+        fetchPublicRouteNodes(firstFloor.id),
+        fetchPublicRouteEdges(firstFloor.id),
+      ]);
+      const startNode = findRouteStartNode(firstFloorNodes, firstFloorEdges);
+      if (!startNode) {
+        throw new Error('Не найдена стартовая панель на первом этаже');
+      }
+
+      console.log('[MallMap] first-floor startNode', {
+        startNodeId: startNode.id,
+        startNodeType: startNode.type,
+      });
+
       const route = await buildRouteToStore({
         fromNodeId: startNode.id,
         storeSlug,
@@ -379,9 +374,10 @@ export default function MallMap({
         instructionsCount: route.instructions.length,
       });
       setActiveRoute(route);
-      if (panelId) {
-        trackPanelUsed(panelId);
-        trackRouteBuilt(panelId, route.targetStore?.id ?? null, {
+      const routePanel = await fetchPanelByRouteNode(startNode.id).catch(() => null);
+      if (routePanel?.id) {
+        trackPanelUsed(routePanel.id);
+        trackRouteBuilt(routePanel.id, route.targetStore?.id ?? null, {
           fromNodeId: startNode.id,
           storeSlug,
           totalDistance: route.totalDistance,
