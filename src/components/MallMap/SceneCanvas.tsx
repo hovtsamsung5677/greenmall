@@ -113,6 +113,8 @@ export function SceneCanvas({
   canvasStyle,
   justOpened,
   zoom,
+  enableTouchZoom = false,
+  onTouchZoomChange,
   debug,
   onContextLost,
   textures,
@@ -141,6 +143,8 @@ export function SceneCanvas({
   canvasStyle: React.CSSProperties;
   justOpened?: boolean;
   zoom: number;
+  enableTouchZoom?: boolean;
+  onTouchZoomChange?: (zoom: number) => void;
   debug?: boolean;
   onContextLost?: () => void;
   textures?: {
@@ -239,8 +243,20 @@ export function SceneCanvas({
         enabled={controlsEnabled}
         enableDamping
         dampingFactor={0.08}
-        enableZoom={false}
+        enableZoom={enableTouchZoom}
+        minDistance={(activeFloor === 0 ? CAMERA_HEIGHT_GROUND : CAMERA_HEIGHT_DEFAULT) * (2 / 3)}
+        maxDistance={(activeFloor === 0 ? CAMERA_HEIGHT_GROUND : CAMERA_HEIGHT_DEFAULT) * 5}
         enablePan
+        onEnd={() => {
+          if (!enableTouchZoom || !onTouchZoomChange) return;
+          const controls = controlsRef.current;
+          if (!controls) return;
+          const baseHeight = activeFloor === 0 ? CAMERA_HEIGHT_GROUND : CAMERA_HEIGHT_DEFAULT;
+          const distance = controls.object.position.distanceTo(controls.target);
+          if (distance <= 0) return;
+          const nextZoom = Math.min(3, Math.max(0.4, baseHeight * 2 / distance));
+          onTouchZoomChange(+nextZoom.toFixed(2));
+        }}
         mouseButtons={{
           LEFT: MOUSE.ROTATE,
           MIDDLE: MOUSE.DOLLY,
