@@ -1,0 +1,47 @@
+.marker {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 24px;
+  height: 24px;
+  padding: 3px;
+  border: 1px solid #d1dba9;
+  border-radius: 6px;
+  background: #fffffff5;
+  color: #557135;
+  box-shadow: 0 1px 3px #22332225;
+  pointer-events: auto;
+  cursor: pointer;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+.marker:disabled { cursor: default; opacity: .72; }
+.marker[aria-pressed='true'] { transform: scale(1.3); box-shadow: 0 0 0 2px #60802b, 0 0 0 5px #b9c65755, 0 3px 8px #22332240; }
+.marker img, .marker svg { width: 100%; height: 100%; }
+.number {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 12px;
+  border-radius: 6px;
+  background: #557135;
+  color: white;
+  text-align: center;
+  font: 600 9px/12px system-ui, sans-serif;
+}
+.tooltip {
+  display: none;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 3px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  background: #fffffff5;
+  color: #475569;
+  font: 500 11px/14px system-ui, sans-serif;
+}
+.marker:hover .tooltip, .marker:focus-visible .tooltip { display: block; }
+.marker:focus-visible { outline: 2px solid #557135; outline-offset: 2px; }

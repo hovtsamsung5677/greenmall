@@ -18,6 +18,7 @@ import infrastructure from '@assets/icons/инфраструктура.svg';
 import atms from '@assets/icons/банкомат.svg';
 import { boxesOverlap, labelCenter, projectedClearance, type LabelBox } from './firstFloorStoreLabels';
 import { STORE_LABELS_BY_FLOOR } from './storeLabelPlacements';
+import { INFRASTRUCTURE_BY_FLOOR } from './infrastructurePlacements';
 import styles from './StoreLabelLayer.module.css';
 
 const icons: Record<string, string> = {
@@ -46,7 +47,10 @@ export function StoreLabelLayer({ stores, floor, elevation, onStoreClick, select
       const p = new Vector3(x - 450, elevation, y - 300).project(camera);
       return { x: (p.x + 1) * size.width / 2, y: (1 - p.y) * size.height / 2, z: p.z };
     };
-    const visibleIcons: LabelBox[] = [];
+    const visibleIcons: LabelBox[] = (INFRASTRUCTURE_BY_FLOOR[floor] ?? []).map(point => {
+      const p = project(point.x, point.y);
+      return { x: p.x, y: p.y, width: 28, height: 28 };
+    });
     const projected = entries.map(entry => {
       const { placement, center } = entry;
       const p = project(center.x, center.y);

@@ -175,7 +175,9 @@ export default function MallWidget({
             title: translateCategory(category.slug, category.name, lang),
             icon: category.icon ?? category.slug,
             items: categoryStores.map((store) => ({
-              name: translateStore(store.slug, store.name, lang),
+              name: category.slug === 'infrastructure' || category.slug === 'toilets'
+                ? `${translateStore(store.slug, store.name, lang)} · ${store.floor?.number ?? '—'} ${lang === 'ru' ? 'этаж' : 'floor'}`
+                : translateStore(store.slug, store.name, lang),
               count: 1,
               storeId: store.id,
               store,
