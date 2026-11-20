@@ -95,7 +95,7 @@ export default function MallMap({
 
   const [lang, setLang] = useState<'ru' | 'en'>('ru');
   const [activeFloor, setActiveFloor] = useState<number>(1);
-  const [zoom, setZoom] = useState<number>(2);
+  const [zoom, setZoom] = useState<number>(2.3);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileRouteBuilderOpen, setMobileRouteBuilderOpen] = useState(false);
