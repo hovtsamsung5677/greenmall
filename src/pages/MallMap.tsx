@@ -96,23 +96,12 @@ export default function MallMap({
   const [lang, setLang] = useState<'ru' | 'en'>('ru');
   const [activeFloor, setActiveFloor] = useState<number>(1);
   const [zoom, setZoom] = useState<number>(2);
-  const [touchZoomEnabled, setTouchZoomEnabled] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileRouteBuilderOpen, setMobileRouteBuilderOpen] = useState(false);
   const [storeCardRequest, setStoreCardRequest] = useState<{ store: ApiStore } | null>(null);
   const [modelError, setModelError] = useState(false);
   const [canvasError, setCanvasError] = useState(false);
-
-  useEffect(() => {
-    const updateTouchCapability = () => {
-      setTouchZoomEnabled(navigator.maxTouchPoints > 0 || window.matchMedia('(pointer: coarse)').matches);
-    };
-    updateTouchCapability();
-    const media = window.matchMedia('(pointer: coarse)');
-    media.addEventListener('change', updateTouchCapability);
-    return () => media.removeEventListener('change', updateTouchCapability);
-  }, []);
 
   const {
     floors,
@@ -566,8 +555,7 @@ export default function MallMap({
           canvasStyle={canvasStyle}
           justOpened={justOpened}
           zoom={zoom}
-          enableTouchZoom={touchZoomEnabled}
-          onTouchZoomChange={setZoom}
+          onZoomChange={setZoom}
           debug={DEBUG_3D}
           onContextLost={() => {
             setCanvasKey((k) => k + 1);

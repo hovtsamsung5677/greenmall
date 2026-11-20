@@ -263,6 +263,7 @@
 
 .modelViewport canvas {
   pointer-events: auto;
+  touch-action: none !important;
 }
 
 .modelPlaceholder {
@@ -1184,10 +1185,6 @@
   .modelViewport {
     position: absolute;
     inset: 0;
-  }
-
-  .modelViewport canvas {
-    touch-action: none !important;
   }
 
   .modelPlaceholder {
