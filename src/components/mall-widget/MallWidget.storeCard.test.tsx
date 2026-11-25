@@ -55,10 +55,19 @@ describe('store marker card integration', () => {
       panoramaAsset: { url: '/uploads/store-panorama.jpg' },
     } as ApiStore;
 
+    const onPanoramaOpenChange = vi.fn();
     const { rerender } = render(<MallWidget open categories={[]} />);
-    rerender(<MallWidget open categories={[]} storeCardRequest={{ store }} />);
+    rerender(
+      <MallWidget
+        open
+        categories={[]}
+        storeCardRequest={{ store }}
+        onPanoramaOpenChange={onPanoramaOpenChange}
+      />,
+    );
 
     fireEvent.click(await screen.findByRole('button', { name: '3D-панорама' }));
+    expect(onPanoramaOpenChange).toHaveBeenCalledWith(true);
     expect(screen.getByRole('dialog')).toHaveTextContent('Панорама Панорамный магазин');
   });
 });

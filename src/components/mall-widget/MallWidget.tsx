@@ -89,6 +89,7 @@ export interface MallWidgetProps {
   onPickStore?: (store: ApiStore) => void;
   onExpand?: () => void;
   onCollapse?: () => void;
+  onPanoramaOpenChange?: (open: boolean) => void;
 }
 
 export default function MallWidget({
@@ -101,6 +102,7 @@ export default function MallWidget({
   onPickStore,
   onExpand,
   onCollapse,
+  onPanoramaOpenChange,
 }: MallWidgetProps) {
   const [screen, setScreen] = useState<Screen>("categories");
   const [search, setSearch] = useState('');
@@ -513,7 +515,10 @@ export default function MallWidget({
                     <button
                       type="button"
                       className={styles.panoramaBtn}
-                      onClick={() => setPanoramaOpen(true)}
+                      onClick={() => {
+                        onPanoramaOpenChange?.(true);
+                        setPanoramaOpen(true);
+                      }}
                     >
                       <span aria-hidden="true">360°</span>
                       {lang === 'ru' ? '3D-панорама' : '3D panorama'}
@@ -535,7 +540,10 @@ export default function MallWidget({
                   open={panoramaOpen}
                   title={selectedStore.name}
                   imageUrl={resolveAssetUrl(selectedStore.panoramaAsset.url)}
-                  onClose={() => setPanoramaOpen(false)}
+                  onClose={() => {
+                    setPanoramaOpen(false);
+                    onPanoramaOpenChange?.(false);
+                  }}
                 />
               ) : null}
               </div>

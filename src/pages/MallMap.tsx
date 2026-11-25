@@ -102,6 +102,7 @@ export default function MallMap({
   const [storeCardRequest, setStoreCardRequest] = useState<{ store: ApiStore } | null>(null);
   const [modelError, setModelError] = useState(false);
   const [canvasError, setCanvasError] = useState(false);
+  const [panoramaOpen, setPanoramaOpen] = useState(false);
 
   const {
     floors,
@@ -499,7 +500,9 @@ export default function MallMap({
   // ---------- рендер вьюпорта ----------
 
   let viewport: React.ReactNode;
-  if (!modelUrl) {
+  if (panoramaOpen) {
+    viewport = null;
+  } else if (!modelUrl) {
     viewport = (
       <div
         className={styles.modelPlaceholder}
@@ -580,6 +583,7 @@ export default function MallMap({
             refreshKey={widgetRefreshKey}
             onExpand={() => setFiltersOpen(true)}
             onCollapse={() => setFiltersOpen(false)}
+            onPanoramaOpenChange={setPanoramaOpen}
             onPickStore={(store) => {
               if (store?.slug) void handleBuildRouteToStore(store.slug);
             }}

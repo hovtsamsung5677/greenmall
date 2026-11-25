@@ -25,16 +25,29 @@ export interface StorePanoramaModalProps {
 
 export default function StorePanoramaModal({ open, title, imageUrl, onClose }: StorePanoramaModalProps) {
   const [ready, setReady] = useState(false);
+  const [imageReady, setImageReady] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setReady(false);
+    setImageReady(false);
+    setLoadError(false);
+    const image = new Image();
+    image.crossOrigin = 'anonymous';
+    image.onload = () => setImageReady(true);
+    image.onerror = () => setLoadError(true);
+    image.src = imageUrl;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [open, onClose]);
+    return () => {
+      image.onload = null;
+      image.onerror = null;
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [open, imageUrl, onClose]);
 
   if (!open) return null;
 
@@ -47,24 +60,30 @@ export default function StorePanoramaModal({ open, title, imageUrl, onClose }: S
         </div>
         <button type="button" className={styles.closeButton} onClick={onClose} aria-label="Закрыть панораму">×</button>
       </div>
-      {!ready ? <div className={styles.loading}>Загрузка панорамы…</div> : null}
-      <Canvas
-        className={styles.canvas}
-        camera={{ position: [0, 0, 0.1], fov: 70 }}
-        onCreated={() => setReady(true)}
-      >
-        <PanoramaSphere url={imageUrl} />
-        <OrbitControls
-          enablePan={false}
-          enableZoom={false}
-          enableDamping
-          dampingFactor={0.08}
-          rotateSpeed={-0.35}
-          minPolarAngle={0.05}
-          maxPolarAngle={Math.PI - 0.05}
-          target={[0, 0, 0]}
-        />
-      </Canvas>
+      {loadError ? (
+        <div className={styles.loading}>Не удалось загрузить панораму</div>
+      ) : !ready ? (
+        <div className={styles.loading}>Загрузка панорамы…</div>
+      ) : null}
+      {imageReady && !loadError ? (
+        <Canvas
+          className={styles.canvas}
+          camera={{ position: [0, 0, 0.1], fov: 70 }}
+          onCreated={() => setReady(true)}
+        >
+          <PanoramaSphere url={imageUrl} />
+          <OrbitControls
+            enablePan={false}
+            enableZoom={false}
+            enableDamping
+            dampingFactor={0.08}
+            rotateSpeed={-0.35}
+            minPolarAngle={0.05}
+            maxPolarAngle={Math.PI - 0.05}
+            target={[0, 0, 0]}
+          />
+        </Canvas>
+      ) : null}
     </div>
   );
 }
