@@ -1,12 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, useTexture } from '@react-three/drei';
 import { SRGBColorSpace } from 'three';
 import styles from '@styles/StorePanoramaModal.module.css';
 
-function PanoramaSphere({ url }: { url: string }) {
+function PanoramaSphere({ url, onReady }: { url: string; onReady: () => void }) {
   const texture = useTexture(url);
   texture.colorSpace = SRGBColorSpace;
+
+  useEffect(() => {
+    onReady();
+  }, [onReady, texture]);
 
   return (
     <mesh scale={[-1, 1, 1]}>
@@ -27,6 +31,13 @@ export default function StorePanoramaModal({ open, title, imageUrl, onClose }: S
   const [ready, setReady] = useState(false);
   const [imageReady, setImageReady] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  const handleTextureReady = useCallback(() => setReady(true), []);
 
   useEffect(() => {
     if (!open) return;
@@ -39,7 +50,7 @@ export default function StorePanoramaModal({ open, title, imageUrl, onClose }: S
     image.onerror = () => setLoadError(true);
     image.src = imageUrl;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape') onCloseRef.current();
     };
     window.addEventListener('keydown', onKeyDown);
     return () => {
@@ -47,7 +58,7 @@ export default function StorePanoramaModal({ open, title, imageUrl, onClose }: S
       image.onerror = null;
       window.removeEventListener('keydown', onKeyDown);
     };
-  }, [open, imageUrl, onClose]);
+  }, [open, imageUrl]);
 
   if (!open) return null;
 
@@ -69,9 +80,8 @@ export default function StorePanoramaModal({ open, title, imageUrl, onClose }: S
         <Canvas
           className={styles.canvas}
           camera={{ position: [0, 0, 0.1], fov: 70 }}
-          onCreated={() => setReady(true)}
         >
-          <PanoramaSphere url={imageUrl} />
+          <PanoramaSphere url={imageUrl} onReady={handleTextureReady} />
           <OrbitControls
             enablePan={false}
             enableZoom={false}
