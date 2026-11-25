@@ -550,6 +550,34 @@
   transition: opacity 0.15s ease;
 }
 
+.panoramaBtn {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 16px;
+  border: 1px solid #169b62;
+  border-radius: 32px;
+  background: #fff;
+  color: #087348;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.panoramaBtn span {
+  display: grid;
+  place-items: center;
+  min-width: 34px;
+  height: 24px;
+  border-radius: 12px;
+  background: #169b62;
+  color: #fff;
+  font-size: 11px;
+}
+
 .routeBtn:active {
   opacity: 0.85;
 }

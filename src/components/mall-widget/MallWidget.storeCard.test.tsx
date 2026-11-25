@@ -9,6 +9,10 @@ vi.mock('@api/tracking', () => ({
   trackCategorySelected: vi.fn(),
 }));
 vi.mock('@api/promotions', () => ({ fetchPublicPromotions: vi.fn().mockResolvedValue([]) }));
+vi.mock('./StorePanoramaModal', () => ({
+  default: ({ open, title }: { open: boolean; title: string }) =>
+    open ? <div role="dialog">Панорама {title}</div> : null,
+}));
 
 describe('store marker card integration', () => {
   it('opens a requested card without routing, then preserves the explicit route action', async () => {
@@ -39,5 +43,22 @@ describe('store marker card integration', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Свернуть' }));
     expect(onCollapse).toHaveBeenCalledOnce();
     expect(screen.queryByRole('heading', { name: 'МАГНИТ' })).not.toBeInTheDocument();
+  });
+
+  it('shows and opens a panorama only when it is assigned to the store', async () => {
+    const store = {
+      id: 'panorama-store',
+      slug: 'panorama-store',
+      name: 'Панорамный магазин',
+      floor: { id: 'floor-1', number: 1, name: '1 этаж' },
+      category: null,
+      panoramaAsset: { url: '/uploads/store-panorama.jpg' },
+    } as ApiStore;
+
+    const { rerender } = render(<MallWidget open categories={[]} />);
+    rerender(<MallWidget open categories={[]} storeCardRequest={{ store }} />);
+
+    fireEvent.click(await screen.findByRole('button', { name: '3D-панорама' }));
+    expect(screen.getByRole('dialog')).toHaveTextContent('Панорама Панорамный магазин');
   });
 });

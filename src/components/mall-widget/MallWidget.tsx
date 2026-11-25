@@ -25,6 +25,7 @@ import { resolveAssetUrl } from "@api/fileAssets";
 import { fetchPublicPromotions, type PublicPromotion } from "@api/promotions";
 import { trackStoreCardViewed, trackCategorySelected, trackStoreSelected } from "@api/tracking";
 import type { ApiCategory, ApiStore, ApiFileAsset } from "@api/types";
+import StorePanoramaModal from './StorePanoramaModal';
 
 const ICON_MAP: Record<string, string | React.ComponentType<{ className?: string }>> = {
   clothing: clothingIcon,
@@ -109,6 +110,7 @@ export default function MallWidget({
   const [internalCategories, setInternalCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const [panoramaOpen, setPanoramaOpen] = useState(false);
 
   const categories = useMemo(
     () => categoriesProp ?? internalCategories,
@@ -507,6 +509,16 @@ export default function MallWidget({
                       ))}
                     </div>
                   ) : null}
+                  {selectedStore.panoramaAsset?.url ? (
+                    <button
+                      type="button"
+                      className={styles.panoramaBtn}
+                      onClick={() => setPanoramaOpen(true)}
+                    >
+                      <span aria-hidden="true">360°</span>
+                      {lang === 'ru' ? '3D-панорама' : '3D panorama'}
+                    </button>
+                  ) : null}
                   <button
                     className={styles.routeBtn}
                     onClick={() => {
@@ -518,6 +530,14 @@ export default function MallWidget({
                   </button>
                 </div>
               </div>
+              {selectedStore.panoramaAsset?.url ? (
+                <StorePanoramaModal
+                  open={panoramaOpen}
+                  title={selectedStore.name}
+                  imageUrl={resolveAssetUrl(selectedStore.panoramaAsset.url)}
+                  onClose={() => setPanoramaOpen(false)}
+                />
+              ) : null}
               </div>
             </div>
           ) : currentCategory ? (

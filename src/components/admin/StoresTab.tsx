@@ -33,6 +33,7 @@ export type AdminStoreForm = {
   searchKeywords: string;
   logoAssetId: string;
   coverAssetId: string;
+  panoramaAssetId: string;
   isActive: boolean;
   isVisible: boolean;
 };
@@ -109,6 +110,7 @@ export function storeToForm(store: ApiStore): AdminStoreForm {
     searchKeywords: store.searchKeywords ?? '',
     logoAssetId: store.logoAsset?.id ?? '',
     coverAssetId: store.coverAsset?.id ?? '',
+    panoramaAssetId: store.panoramaAsset?.id ?? '',
     isActive: store.isActive,
     isVisible: store.isVisible,
   };
@@ -129,6 +131,7 @@ export const emptyStoreForm: AdminStoreForm = {
   searchKeywords: '',
   logoAssetId: '',
   coverAssetId: '',
+  panoramaAssetId: '',
   isActive: true,
   isVisible: true,
 };
@@ -152,9 +155,11 @@ export type StoresTabProps = {
   onAddNew: () => void;
   onCoverUpload: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
   onLogoUpload: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
+  onPanoramaUpload: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
   uploadingCover: boolean;
   coverFileInputRef: React.RefObject<HTMLInputElement | null>;
   logoFileInputRef: React.RefObject<HTMLInputElement | null>;
+  panoramaFileInputRef: React.RefObject<HTMLInputElement | null>;
 };
 
 export default function StoresTab({
@@ -176,9 +181,11 @@ export default function StoresTab({
   onAddNew,
   onCoverUpload,
   onLogoUpload,
+  onPanoramaUpload,
   uploadingCover,
   coverFileInputRef,
   logoFileInputRef,
+  panoramaFileInputRef,
 }: StoresTabProps) {
   return (
     <>
@@ -449,6 +456,41 @@ export default function StoresTab({
               />
             </div>
           ) : null}
+          <label className={styles.field}>
+            <span className={styles.label}>Панорама 360°</span>
+            <div className={styles.coverField}>
+              <select
+                className={styles.input}
+                value={storeForm.panoramaAssetId}
+                onChange={(e) =>
+                  setStoreForm((prev) => ({ ...prev, panoramaAssetId: e.target.value }))
+                }
+              >
+                <option value="">— без панорамы —</option>
+                {fileAssets.filter((asset) => asset.mimeType?.startsWith('image/')).map((asset) => (
+                  <option key={asset.id} value={asset.id}>
+                    {asset.originalName ?? asset.filename}
+                  </option>
+                ))}
+              </select>
+              <input
+                ref={panoramaFileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={onPanoramaUpload}
+                style={{ display: 'none' }}
+              />
+              <button
+                type="button"
+                className={styles.uploadBtn}
+                onClick={() => panoramaFileInputRef.current?.click()}
+                disabled={uploadingCover}
+              >
+                {uploadingCover ? 'Загрузка…' : 'Загрузить панораму'}
+              </button>
+            </div>
+            <span className={styles.hint}>Используйте панорамное изображение в формате 2:1.</span>
+          </label>
           <label className={styles.field}>
             <span className={styles.label}>Ключевые слова</span>
             <input

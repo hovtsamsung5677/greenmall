@@ -41,6 +41,7 @@ export interface CreateStoreInput {
   searchKeywords?: string;
   logoAssetId?: string | null;
   coverAssetId?: string | null;
+  panoramaAssetId?: string | null;
   isActive?: boolean;
   isVisible?: boolean;
 }
@@ -60,6 +61,7 @@ export interface UpdateStoreInput {
   searchKeywords?: string;
   logoAssetId?: string | null;
   coverAssetId?: string | null;
+  panoramaAssetId?: string | null;
   isActive?: boolean;
   isVisible?: boolean;
 }

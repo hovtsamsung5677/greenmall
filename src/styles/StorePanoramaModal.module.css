@@ -1,0 +1,54 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  overflow: hidden;
+  background: #111;
+  color: #fff;
+}
+
+.canvas {
+  width: 100% !important;
+  height: 100% !important;
+  touch-action: none;
+}
+
+.header {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  right: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: max(16px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) 16px max(18px, env(safe-area-inset-left));
+  background: linear-gradient(180deg, rgb(0 0 0 / 72%), transparent);
+  pointer-events: none;
+}
+
+.header div { display: grid; gap: 3px; }
+.header strong { font-size: clamp(18px, 2vw, 26px); }
+.header span { color: rgb(255 255 255 / 78%); font-size: 13px; }
+
+.closeButton {
+  width: 48px;
+  height: 48px;
+  border: 1px solid rgb(255 255 255 / 35%);
+  border-radius: 50%;
+  background: rgb(0 0 0 / 48%);
+  color: #fff;
+  font: 32px/1 sans-serif;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.loading {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: #111;
+}

@@ -122,6 +122,7 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
 
   const coverFileInputRef = React.useRef<HTMLInputElement | null>(null);
   const logoFileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const panoramaFileInputRef = React.useRef<HTMLInputElement | null>(null);
   const tenantLogoFileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const {
@@ -273,6 +274,7 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
           searchKeywords: storeForm.searchKeywords.trim() || undefined,
           logoAssetId: storeForm.logoAssetId || null,
           coverAssetId: storeForm.coverAssetId || null,
+          panoramaAssetId: storeForm.panoramaAssetId || null,
           isActive: storeForm.isActive,
           isVisible: storeForm.isVisible,
         };
@@ -296,6 +298,7 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
           searchKeywords: storeForm.searchKeywords.trim() || undefined,
           logoAssetId: storeForm.logoAssetId || null,
           coverAssetId: storeForm.coverAssetId || null,
+          panoramaAssetId: storeForm.panoramaAssetId || null,
           isActive: storeForm.isActive,
           isVisible: storeForm.isVisible,
         };
@@ -486,6 +489,23 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
       if (coverFileInputRef.current) {
         coverFileInputRef.current.value = '';
       }
+    }
+  }
+
+  async function handlePanoramaUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingCover(true);
+    setError(null);
+    try {
+      const asset = await uploadFileAsset(file, 'IMAGE');
+      setFileAssets((prev) => [asset, ...prev]);
+      setStoreForm((prev) => ({ ...prev, panoramaAssetId: asset.id }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to upload panorama');
+    } finally {
+      setUploadingCover(false);
+      if (panoramaFileInputRef.current) panoramaFileInputRef.current.value = '';
     }
   }
 
@@ -841,9 +861,11 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
                   }}
                   onCoverUpload={handleCoverUpload}
                   onLogoUpload={handleLogoUpload}
+                  onPanoramaUpload={handlePanoramaUpload}
                   uploadingCover={uploadingCover}
                   coverFileInputRef={coverFileInputRef}
                   logoFileInputRef={logoFileInputRef}
+                  panoramaFileInputRef={panoramaFileInputRef}
                 />
               )}
               {tab === 'tenants' && (

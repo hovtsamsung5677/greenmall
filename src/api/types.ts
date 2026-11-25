@@ -53,6 +53,7 @@ export interface ApiStore {
   floorId: string | null;
   logoAsset: Partial<ApiFileAsset> | null;
   coverAsset: Partial<ApiFileAsset> | null;
+  panoramaAsset: Partial<ApiFileAsset> | null;
   tenant: ApiTenant | null;
   tenantId: string | null;
   isActive: boolean;
