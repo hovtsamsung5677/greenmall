@@ -36,27 +36,32 @@ describe('StorePanoramaModal', () => {
   });
 
   it('does not restart loading when the parent supplies a new close callback', async () => {
+    const onClose = vi.fn();
     const { rerender } = render(
       <StorePanoramaModal
         open
         title="МАГНИТ"
         imageUrl="/uploads/panorama.jpg"
-        onClose={() => undefined}
+        onClose={onClose}
       />,
     );
 
     await waitFor(() => expect(screen.queryByText('Загрузка панорамы…')).not.toBeInTheDocument());
     expect(screen.getByRole('img', { name: 'Панорамный обзор магазина МАГНИТ' })).toBeInTheDocument();
 
+    const nextOnClose = vi.fn();
     rerender(
       <StorePanoramaModal
         open
         title="МАГНИТ"
         imageUrl="/uploads/panorama.jpg"
-        onClose={() => undefined}
+        onClose={nextOnClose}
       />,
     );
 
     expect(screen.queryByText('Загрузка панорамы…')).not.toBeInTheDocument();
+    screen.getByRole('button', { name: 'Закрыть панораму' }).click();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(nextOnClose).toHaveBeenCalledOnce();
   });
 });

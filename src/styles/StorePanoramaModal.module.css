@@ -41,6 +41,10 @@
 .header span { color: rgb(255 255 255 / 78%); font-size: 13px; }
 
 .closeButton {
+  position: absolute;
+  z-index: 10;
+  top: max(16px, env(safe-area-inset-top));
+  right: max(18px, env(safe-area-inset-right));
   width: 48px;
   height: 48px;
   border: 1px solid rgb(255 255 255 / 35%);

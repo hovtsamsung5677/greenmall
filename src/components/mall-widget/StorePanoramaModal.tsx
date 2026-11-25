@@ -70,7 +70,6 @@ export default function StorePanoramaModal({ open, title, imageUrl, onClose }: S
           <strong>{title}</strong>
           <span>Проведите пальцем или перетащите мышью для обзора</span>
         </div>
-        <button type="button" className={styles.closeButton} onClick={onClose} aria-label="Закрыть панораму">×</button>
       </div>
       {ready && !loadError ? (
         <div
@@ -87,6 +86,15 @@ export default function StorePanoramaModal({ open, title, imageUrl, onClose }: S
           onPointerCancel={stopDragging}
         />
       ) : null}
+      <button
+        type="button"
+        className={styles.closeButton}
+        onPointerDown={(event) => event.stopPropagation()}
+        onClick={onClose}
+        aria-label="Закрыть панораму"
+      >
+        ×
+      </button>
       {loadError ? (
         <div className={styles.loading}>Не удалось загрузить панораму</div>
       ) : !ready ? (
