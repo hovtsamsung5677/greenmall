@@ -1,24 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls, useTexture } from '@react-three/drei';
-import { SRGBColorSpace } from 'three';
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import styles from '@styles/StorePanoramaModal.module.css';
-
-function PanoramaSphere({ url, onReady }: { url: string; onReady: () => void }) {
-  const texture = useTexture(url);
-  texture.colorSpace = SRGBColorSpace;
-
-  useEffect(() => {
-    onReady();
-  }, [onReady, texture]);
-
-  return (
-    <mesh scale={[-1, 1, 1]}>
-      <sphereGeometry args={[20, 64, 40]} />
-      <meshBasicMaterial map={texture} />
-    </mesh>
-  );
-}
 
 export interface StorePanoramaModalProps {
   open: boolean;
@@ -29,24 +10,23 @@ export interface StorePanoramaModalProps {
 
 export default function StorePanoramaModal({ open, title, imageUrl, onClose }: StorePanoramaModalProps) {
   const [ready, setReady] = useState(false);
-  const [imageReady, setImageReady] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const dragRef = useRef<{ x: number; y: number } | null>(null);
   const onCloseRef = useRef(onClose);
 
   useEffect(() => {
     onCloseRef.current = onClose;
   }, [onClose]);
 
-  const handleTextureReady = useCallback(() => setReady(true), []);
-
   useEffect(() => {
     if (!open) return;
     setReady(false);
-    setImageReady(false);
     setLoadError(false);
+    setOffset({ x: 0, y: 0 });
     const image = new Image();
     image.crossOrigin = 'anonymous';
-    image.onload = () => setImageReady(true);
+    image.onload = () => setReady(true);
     image.onerror = () => setLoadError(true);
     image.src = imageUrl;
     const onKeyDown = (event: KeyboardEvent) => {
@@ -62,6 +42,27 @@ export default function StorePanoramaModal({ open, title, imageUrl, onClose }: S
 
   if (!open) return null;
 
+  const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    dragRef.current = { x: event.clientX, y: event.clientY };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const previous = dragRef.current;
+    if (!previous) return;
+    const dx = event.clientX - previous.x;
+    const dy = event.clientY - previous.y;
+    dragRef.current = { x: event.clientX, y: event.clientY };
+    setOffset((current) => ({
+      x: current.x + dx,
+      y: Math.max(-window.innerHeight * 0.2, Math.min(window.innerHeight * 0.2, current.y + dy)),
+    }));
+  };
+
+  const stopDragging = () => {
+    dragRef.current = null;
+  };
+
   return (
     <div className={styles.overlay} role="dialog" aria-modal="true" aria-label={`Панорама магазина ${title}`}>
       <div className={styles.header}>
@@ -71,28 +72,25 @@ export default function StorePanoramaModal({ open, title, imageUrl, onClose }: S
         </div>
         <button type="button" className={styles.closeButton} onClick={onClose} aria-label="Закрыть панораму">×</button>
       </div>
+      {ready && !loadError ? (
+        <div
+          className={styles.viewer}
+          role="img"
+          aria-label={`Панорамный обзор магазина ${title}`}
+          style={{
+            backgroundImage: `url("${imageUrl.replaceAll('"', '%22')}")`,
+            backgroundPosition: `${offset.x}px calc(50% + ${offset.y}px)`,
+          }}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={stopDragging}
+          onPointerCancel={stopDragging}
+        />
+      ) : null}
       {loadError ? (
         <div className={styles.loading}>Не удалось загрузить панораму</div>
       ) : !ready ? (
         <div className={styles.loading}>Загрузка панорамы…</div>
-      ) : null}
-      {imageReady && !loadError ? (
-        <Canvas
-          className={styles.canvas}
-          camera={{ position: [0, 0, 0.1], fov: 70 }}
-        >
-          <PanoramaSphere url={imageUrl} onReady={handleTextureReady} />
-          <OrbitControls
-            enablePan={false}
-            enableZoom={false}
-            enableDamping
-            dampingFactor={0.08}
-            rotateSpeed={-0.35}
-            minPolarAngle={0.05}
-            maxPolarAngle={Math.PI - 0.05}
-            target={[0, 0, 0]}
-          />
-        </Canvas>
       ) : null}
     </div>
   );

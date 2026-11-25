@@ -7,11 +7,19 @@
   color: #fff;
 }
 
-.canvas {
-  width: 100% !important;
-  height: 100% !important;
+.viewer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-color: #111;
+  background-repeat: repeat-x;
+  background-size: auto 140%;
+  cursor: grab;
   touch-action: none;
+  user-select: none;
 }
+
+.viewer:active { cursor: grabbing; }
 
 .header {
   position: absolute;
@@ -41,7 +49,6 @@
   color: #fff;
   font: 32px/1 sans-serif;
   cursor: pointer;
-  pointer-events: auto;
 }
 
 .loading {
@@ -51,4 +58,5 @@
   display: grid;
   place-items: center;
   background: #111;
+  pointer-events: auto;
 }

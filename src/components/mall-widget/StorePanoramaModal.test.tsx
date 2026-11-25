@@ -46,7 +46,7 @@ describe('StorePanoramaModal', () => {
     );
 
     await waitFor(() => expect(screen.queryByText('Загрузка панорамы…')).not.toBeInTheDocument());
-    expect(screen.getByTestId('panorama-canvas')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Панорамный обзор магазина МАГНИТ' })).toBeInTheDocument();
 
     rerender(
       <StorePanoramaModal
