@@ -79,17 +79,43 @@ const emptyPromotionForm: CreatePromotionInput & { id?: string | null } = {
 
 type Tab = 'categories' | 'stores' | 'tenants' | 'routes' | 'mobile' | 'banners' | 'icons' | 'statistics' | 'promotions';
 
-const SECTION_INFO: Record<Tab, [string, string]> = {
-  categories: ['Категории', 'Организуйте каталог и распределение магазинов по категориям.'],
-  stores: ['Магазины', 'Карточки магазинов, расположение, изображения и часы работы.'],
-  tenants: ['Арендаторы', 'Контактные данные и управление арендаторами торгового центра.'],
-  routes: ['Маршруты', 'Точки, соединения и переходы между этажами.'],
-  mobile: ['QR-страница', 'Настройки карты, которую посетители берут с собой.'],
-  banners: ['Баннеры', 'Рекламные изображения и настройки их показа.'],
-  icons: ['Иконки на карте', 'Размещение обозначений на моделях этажей.'],
-  statistics: ['Статистика', 'Посещения, маршруты и результаты работы навигации.'],
-  promotions: ['Акции', 'Предложения магазинов, сроки действия и публикация.'],
+type AdminIconName = 'grid' | 'store' | 'users' | 'route' | 'phone' | 'image' | 'pin' | 'chart' | 'tag';
+
+const SECTION_INFO: Record<Tab, { title: string; description: string; icon: AdminIconName }> = {
+  categories: { title: 'Категории', description: 'Структура каталога и группировка магазинов.', icon: 'grid' },
+  stores: { title: 'Магазины', description: 'Карточки, расположение, медиа и часы работы.', icon: 'store' },
+  tenants: { title: 'Арендаторы', description: 'Контакты и данные компаний торгового центра.', icon: 'users' },
+  routes: { title: 'Маршруты', description: 'Точки, рёбра и переходы между этажами.', icon: 'route' },
+  mobile: { title: 'QR-страница', description: 'Мобильная карта для посетителей GreenMall.', icon: 'phone' },
+  banners: { title: 'Баннеры', description: 'Рекламные изображения, форматы и расписание.', icon: 'image' },
+  icons: { title: 'Иконки на карте', description: 'Обозначения объектов на моделях этажей.', icon: 'pin' },
+  statistics: { title: 'Аналитика', description: 'Использование навигации и ключевые показатели.', icon: 'chart' },
+  promotions: { title: 'Акции', description: 'Предложения магазинов, сроки и публикация.', icon: 'tag' },
 };
+
+const NAV_GROUPS: Array<{ label: string; items: Tab[] }> = [
+  { label: 'Каталог', items: ['stores', 'categories', 'tenants'] },
+  { label: 'Контент', items: ['banners', 'promotions'] },
+  { label: 'Навигация', items: ['routes', 'icons', 'mobile'] },
+  { label: 'Отчёты', items: ['statistics'] },
+];
+
+const SEARCHABLE_TABS: Tab[] = ['categories', 'stores', 'tenants', 'promotions'];
+
+function AdminIcon({ name }: { name: AdminIconName }) {
+  const paths: Record<AdminIconName, React.ReactNode> = {
+    grid: <><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></>,
+    store: <><path d="M4 10v10h16V10"/><path d="M3 10l2-6h14l2 6"/><path d="M8 20v-6h8v6"/><path d="M3 10c0 2 3 2 3 0 0 2 3 2 3 0 0 2 3 2 3 0 0 2 3 2 3 0 0 2 3 2 3 0"/></>,
+    users: <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></>,
+    route: <><circle cx="6" cy="18" r="3"/><circle cx="18" cy="6" r="3"/><path d="M8.5 16.5 16 8.5M6 15V7a3 3 0 0 1 3-3h4"/></>,
+    phone: <><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M10 18h4"/></>,
+    image: <><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><path d="m21 15-5-5L5 20"/></>,
+    pin: <><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></>,
+    chart: <><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></>,
+    tag: <><path d="M20.6 13.6 11 4H4v7l9.6 9.6a2 2 0 0 0 2.8 0l4.2-4.2a2 2 0 0 0 0-2.8Z"/><circle cx="7.5" cy="7.5" r="1"/></>,
+  };
+  return <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{paths[name]}</svg>;
+}
 
 export interface AdminPageProps {
   onClose?: () => void;
@@ -593,10 +619,19 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
 
   if (!user) {
     return (
-      <div className={styles.page}>
+      <div className={styles.loginPage}>
         <div className={styles.loginCard}>
-          <h1 className={styles.loginTitle}>Green Mall Admin</h1>
-          <p className={styles.loginSubtitle}>Вход в панель управления</p>
+          <div className={styles.loginBrand}>
+            <span className={styles.brandMark}>G</span>
+            <div>
+              <h1 className={styles.loginTitle}>GreenMall</h1>
+              <p className={styles.loginSubtitle}>Панель управления</p>
+            </div>
+          </div>
+          <div className={styles.loginIntro}>
+            <h2>Вход для сотрудников</h2>
+            <p>Управление каталогом, навигацией и рекламными материалами торгового центра.</p>
+          </div>
           <form className={styles.loginForm} onSubmit={handleLogin}>
             <label className={styles.field}>
               <span className={styles.label}>Email</span>
@@ -606,6 +641,7 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
                 value={loginEmail}
                 onChange={(e) => setLoginEmail(e.target.value)}
                 placeholder="admin@greenmall.local"
+                autoComplete="username"
                 required
               />
             </label>
@@ -617,6 +653,7 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
                 value={loginPassword}
                 onChange={(e) => setLoginPassword(e.target.value)}
                 placeholder="••••••••"
+                autoComplete="current-password"
                 required
                 minLength={8}
               />
@@ -633,117 +670,123 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
 
   return (
     <div className={`${styles.page} ${compact ? styles.compact : ''}`}>
-      <header className={styles.header}>
-        <div>
-          <span className={styles.sectionEyebrow}>GREEN MALL · УПРАВЛЕНИЕ</span>
-          <h1 className={styles.heading}>{SECTION_INFO[tab][0]}</h1>
-          <p className={styles.sectionDescription}>{SECTION_INFO[tab][1]}</p>
-          <p className={styles.userInfo}>
-            {user.fullName ?? user.email} · {user.role}
-          </p>
+      <header className={styles.sidebar}>
+        <div className={styles.brand}>
+          <span className={styles.brandMark}>G</span>
+          <div className={styles.brandCopy}>
+            <span className={styles.brandTitleRow}>
+              <strong className={styles.brandName}>GreenMall</strong>
+              <span className={styles.brandBadge}>Admin</span>
+            </span>
+            <span className={styles.brandMeta}>Панель управления ТЦ</span>
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <button className={styles.ghostBtn} type="button" aria-pressed={compact}
-            onClick={() => setCompact(value => !value)} title="Уменьшить отступы в формах и списках">
-            Компактный вид
-          </button>
-          {onClose ? (
-            <button className={styles.ghostBtn} type="button" onClick={onClose}>
-              ← Назад
-            </button>
-          ) : null}
+        <nav className={styles.tabs} aria-label="Разделы управления">
+          {NAV_GROUPS.map((group) => (
+            <div className={styles.navGroup} key={group.label}>
+              <span className={styles.navGroupTitle}>{group.label}</span>
+              {group.items.map((item) => {
+                const info = SECTION_INFO[item];
+                return (
+                  <button
+                    type="button"
+                    className={`${styles.tab} ${tab === item ? styles.tabActive : ''}`}
+                    onClick={() => setTab(item)}
+                    aria-current={tab === item ? 'page' : undefined}
+                    key={item}
+                  >
+                    <span className={styles.tabIcon}><AdminIcon name={info.icon} /></span>
+                    <span className={styles.tabText}>{info.title}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ))}
+        </nav>
+        <div className={styles.sidebarFooter}>
+          <div className={styles.profile}>
+            <span className={styles.profileAvatar}>
+              {(user.fullName ?? user.email).slice(0, 1).toUpperCase()}
+              <span className={styles.profileStatus} aria-hidden="true" />
+            </span>
+            <span className={styles.profileText}>
+              <strong className={styles.profileName}>{user.fullName ?? user.email}</strong>
+              <span className={styles.profileRole}>{user.role}</span>
+            </span>
+          </div>
           <button
-            className={styles.ghostBtn}
+            className={`${styles.logoutBtn} gm-admin-logout`}
             type="button"
-            onClick={refreshData}
-            disabled={refreshing}
+            onClick={handleLogout}
           >
-            {refreshing ? 'Обновление…' : 'Обновить'}
+            <span aria-hidden="true">↗</span>
+            <span>Выйти</span>
           </button>
         </div>
       </header>
 
-      <nav className={styles.tabs} aria-label="Разделы управления">
-        <button
-          type="button"
-          className={`${styles.tab} ${tab === 'categories' ? styles.tabActive : ''}`}
-          onClick={() => setTab('categories')}
-          aria-current={tab === 'categories' ? 'page' : undefined}
-        >
-          Категории
-        </button>
-        <button
-          type="button"
-          className={`${styles.tab} ${tab === 'stores' ? styles.tabActive : ''}`}
-          onClick={() => setTab('stores')}
-          aria-current={tab === 'stores' ? 'page' : undefined}
-        >
-          Магазины
-        </button>
-        <button
-          type="button"
-          className={`${styles.tab} ${tab === 'tenants' ? styles.tabActive : ''}`}
-          onClick={() => setTab('tenants')}
-          aria-current={tab === 'tenants' ? 'page' : undefined}
-        >
-          Арендаторы
-        </button>
-        <button
-          type="button"
-          className={`${styles.tab} ${tab === 'routes' ? styles.tabActive : ''}`}
-          onClick={() => setTab('routes')}
-          aria-current={tab === 'routes' ? 'page' : undefined}
-        >
-          Маршруты
-        </button>
-        <button
-          type="button"
-          className={`${styles.tab} ${tab === 'mobile' ? styles.tabActive : ''}`}
-          onClick={() => setTab('mobile')}
-          aria-current={tab === 'mobile' ? 'page' : undefined}
-        >
-          QR-страница
-        </button>
-        <button
-          type="button"
-          className={`${styles.tab} ${tab === 'banners' ? styles.tabActive : ''}`}
-          onClick={() => setTab('banners')}
-          aria-current={tab === 'banners' ? 'page' : undefined}
-        >
-          Баннеры
-        </button>
-        <button
-          type="button"
-          className={`${styles.tab} ${tab === 'icons' ? styles.tabActive : ''}`}
-          onClick={() => setTab('icons')}
-          aria-current={tab === 'icons' ? 'page' : undefined}
-        >
-          Иконки на карте
-        </button>
-        <button
-          type="button"
-          className={`${styles.tab} ${tab === 'statistics' ? styles.tabActive : ''}`}
-          onClick={() => setTab('statistics')}
-          aria-current={tab === 'statistics' ? 'page' : undefined}
-        >
-          Статистика
-        </button>
-        <button
-          type="button"
-          className={`${styles.tab} ${tab === 'promotions' ? styles.tabActive : ''}`}
-          onClick={() => setTab('promotions')}
-          aria-current={tab === 'promotions' ? 'page' : undefined}
-        >
-          Акции
-        </button>
-        <button
-          className={`${styles.ghostBtn} gm-admin-logout`}
-          type="button"
-          onClick={handleLogout}
-        >
-          Выйти
-        </button>
-      </nav>
+      <div className={styles.workspace}>
+        <header className={styles.header}>
+          <div className={styles.headerTitleRow}>
+            <span className={styles.headerIcon}><AdminIcon name={SECTION_INFO[tab].icon} /></span>
+            <div>
+              <span className={styles.sectionEyebrow}>GreenMall Admin</span>
+              <h1 className={styles.heading}>{SECTION_INFO[tab].title}</h1>
+              <p className={styles.sectionDescription}>{SECTION_INFO[tab].description}</p>
+            </div>
+          </div>
+          <div className={styles.headerActions}>
+            <button className={styles.ghostBtn} type="button" aria-pressed={compact}
+              onClick={() => setCompact(value => !value)} title="Уменьшить отступы в формах и списках">
+              {compact ? 'Обычный вид' : 'Компактно'}
+            </button>
+            {onClose ? (
+              <button className={styles.ghostBtn} type="button" onClick={onClose}>
+                Вернуться к карте
+              </button>
+            ) : null}
+            <button
+              className={styles.refreshBtn}
+              type="button"
+              onClick={refreshData}
+              disabled={refreshing}
+            >
+              <span aria-hidden="true" className={refreshing ? styles.spinning : ''}>↻</span>
+              {refreshing ? 'Обновление…' : 'Обновить данные'}
+            </button>
+          </div>
+        </header>
+        <main className={styles.content}>
+      {SEARCHABLE_TABS.includes(tab) ? (
+        <div className={styles.searchRow} role="search">
+          <span className={styles.searchIcon} aria-hidden="true">⌕</span>
+          <input
+            className={styles.input}
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={`Поиск: ${SECTION_INFO[tab].title.toLowerCase()}…`}
+            aria-label={`Поиск в разделе «${SECTION_INFO[tab].title}»`}
+          />
+          {search ? (
+            <button className={styles.clearSearchBtn} type="button" onClick={() => setSearch('')}>
+              Очистить
+            </button>
+          ) : null}
+          <span className={styles.searchCount} aria-live="polite">
+            {tab === 'categories'
+              ? `${filteredCategories.length} категорий`
+              : tab === 'stores'
+                ? `${filteredStores.length} магазинов`
+                : tab === 'tenants'
+                  ? `${filteredTenants.length} арендаторов`
+                  : `${promotions.filter((promotion) => {
+                      const query = search.trim().toLowerCase();
+                      return !query || promotion.title.toLowerCase().includes(query) || promotion.slug.toLowerCase().includes(query);
+                    }).length} акций`}
+          </span>
+        </div>
+      ) : null}
 
       {tab === 'routes' ? (
             <AdminErrorBoundary>
@@ -794,28 +837,6 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
         </Suspense>
       ) : (
         <>
-          <div className={styles.searchRow}>
-            <input
-              className={styles.input}
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Поиск по названию, slug, кабинету…"
-            />
-            {search ? (
-              <button className={styles.ghostBtn} type="button" onClick={() => setSearch('')}>
-                Сбросить
-              </button>
-            ) : null}
-            <span className={styles.searchCount}>
-              {tab === 'categories'
-                ? `${filteredCategories.length} категорий`
-                : tab === 'stores'
-                  ? `${filteredStores.length} магазинов`
-                  : `${filteredTenants.length} арендаторов`}
-            </span>
-          </div>
-
           {loading ? (
             <p className={styles.empty}>Загрузка...</p>
           ) : (
@@ -904,6 +925,8 @@ export default function AdminPage({ onClose }: AdminPageProps = {}) {
           )}
         </>
       )}
+        </main>
+      </div>
     </div>
   );
 }
